@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Momdad Fashion Diary — 오늘의 패션 추천</title>
+  <meta name="description" content="엄마아빠의 패션 일기. 매일 엄선된 패션 아이템을 소개합니다." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 헤더 -->
+  <header class="hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <p class="hero-sub">✨ 오늘의 스타일 추천</p>
+      <h1 class="hero-title">Momdad<br>Fashion Diary</h1>
+      <p class="hero-desc">매일 엄선된 패션 아이템을 소개해요</p>
+    </div>
+  </header>
+
+  <!-- 상품 목록 -->
+  <main class="container">
+    <section class="section-header">
+      <h2 id="catalog-title">추천 상품</h2>
+      <p id="updated-at" class="update-time"></p>
+    </section>
+
+    <!-- 로딩 -->
+    <div id="loading" class="loading-wrap">
+      <div class="spinner"></div>
+      <p>상품을 불러오는 중...</p>
+    </div>
+
+    <!-- 빈 상태 -->
+    <div id="empty-state" class="empty-state" style="display:none;">
+      <div class="empty-icon">🛍️</div>
+      <h3>곧 새로운 상품이 올라옵니다!</h3>
+      <p>유튜브 / 틱톡 / 인스타에서 먼저 만나보세요 😊</p>
+    </div>
+
+    <!-- 상품 카드 그리드 -->
+    <div id="product-grid" class="product-grid" style="display:none;"></div>
+  </main>
+
+  <!-- 푸터 -->
+  <footer class="footer">
+    <p>© 2026 Momdad Fashion Diary</p>
+    <p class="footer-sub">이 페이지의 링크는 쿠팡 파트너스 제휴 링크입니다 🛒</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

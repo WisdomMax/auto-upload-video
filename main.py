@@ -754,6 +754,78 @@ async def refresh_item_youtube_trends(item_id: int, payload: dict = None):
     
     return {"status": "success", "trends": trends}
 
+@app.post("/api/publish-catalog")
+async def publish_catalog():
+    """DB의 상품 목록을 dist/products.json에 저장하고 git push → Cloudflare 자동 배포"""
+    import subprocess
+    from datetime import datetime, timezone
+
+    try:
+        items = database.get_items()
+        
+        products = []
+        for item in items:
+            products.append({
+                "id": item["id"],
+                "name": item["title"],
+                "description": item.get("description", ""),
+                "short_url": item.get("short_url", ""),
+                "coupang_url": item.get("coupang_url", ""),
+                "video_url": item.get("r2_video_url", ""),
+                "thumbnail_url": ""
+            })
+
+        catalog = {
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "store_name": "Momdad Fashion Diary",
+            "store_description": "엄마아빠의 패션 일기 — 매일 새로운 스타일 추천",
+            "products": products
+        }
+
+        dist_dir = os.path.join(BASE_DIR, "dist")
+        os.makedirs(dist_dir, exist_ok=True)
+        products_path = os.path.join(dist_dir, "products.json")
+
+        with open(products_path, "w", encoding="utf-8") as f:
+            json.dump(catalog, f, ensure_ascii=False, indent=2)
+
+        # git add → commit → push
+        subprocess.run(["git", "add", "dist/products.json"], cwd=BASE_DIR, check=True)
+        commit_msg = f"🛍️ catalog: 상품 목록 업데이트 ({len(products)}개) — {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        result = subprocess.run(
+            ["git", "commit", "-m", commit_msg],
+            cwd=BASE_DIR, capture_output=True, text=True
+        )
+        
+        # 변경사항이 없으면 commit이 실패할 수 있음 (정상)
+        if result.returncode not in (0, 1):
+            logger.error(f"Git commit error: {result.stderr}")
+
+        push_result = subprocess.run(
+            ["git", "push"],
+            cwd=BASE_DIR, capture_output=True, text=True, timeout=30
+        )
+        
+        if push_result.returncode != 0:
+            return {
+                "status": "error",
+                "message": f"Git push 실패: {push_result.stderr}",
+                "products_count": len(products)
+            }
+
+        return {
+            "status": "success",
+            "message": f"{len(products)}개 상품이 배포됐습니다. Cloudflare Pages가 자동으로 업데이트됩니다.",
+            "products_count": len(products),
+            "updated_at": catalog["updated_at"]
+        }
+
+    except Exception as e:
+        logger.error(f"Catalog publish error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=18888, reload=True)
+
