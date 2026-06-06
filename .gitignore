@@ -1,0 +1,17 @@
+# Local environment variables
+.env
+
+# Python caching & byte code
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local database
+db.sqlite
+
+# Media uploads (user data)
+uploads/
+
+# OS metadata
+.DS_Store

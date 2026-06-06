@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Momdad Fashion Diary - SNS Automation Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/index.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar/Header -->
+        <header class="main-header">
+            <div class="logo">
+                <i class="fa-solid fa-wand-magic-sparkles logo-icon"></i>
+                <h1>Momdad Fashion Diary <span>SNS Auto Upload</span></h1>
+            </div>
+            <div class="header-actions">
+                <button id="btn-settings" class="btn btn-secondary">
+                    <i class="fa-solid fa-gear"></i> 설정 및 API 키 관리
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <!-- Left Side: Product List -->
+            <section class="list-section">
+                <div class="section-header">
+                    <h2><i class="fa-solid fa-list"></i> 등록 상품 리스트</h2>
+                    <button id="btn-add-item" class="btn btn-primary">
+                        <i class="fa-solid fa-plus"></i> 새 상품 등록
+                    </button>
+                </div>
+                
+                <div id="items-grid" class="items-grid">
+                    <div class="empty-state">
+                        <i class="fa-regular fa-folder-open empty-icon"></i>
+                        <p>등록된 상품이 없습니다. 새 상품 등록 버튼을 눌러 첫 콘텐츠를 등록해보세요!</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Side: Details & Content Editor -->
+            <section class="detail-section" id="detail-section" style="display: none;">
+                <div class="detail-placeholder" id="detail-placeholder">
+                    <i class="fa-solid fa-hand-pointer"></i>
+                    <h3>상품을 선택해 주세요</h3>
+                    <p>왼쪽 목록에서 상품을 선택하면 동영상 확인, R2/Buffer 자동 업로드 및 플랫폼별 콘텐츠 자동 생성 본문을 확인할 수 있습니다.</p>
+                </div>
+
+                <div class="detail-container" id="detail-container" style="display: none;">
+                    <div class="detail-header">
+                        <div class="title-area">
+                            <span class="product-badge" id="detail-product-no">No. 01</span>
+                            <h2 id="detail-title">상품명 위치</h2>
+                        </div>
+                        <button id="btn-delete-item" class="btn btn-danger btn-icon" title="삭제">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+
+                    <!-- Video Preview Area -->
+                    <div class="video-preview-card">
+                        <div class="video-container">
+                            <video id="detail-video-player" controls preload="metadata"></video>
+                        </div>
+                        <div class="video-info">
+                            <div class="r2-link-box">
+                                <span class="r2-label">R2 URL:</span>
+                                <input type="text" id="detail-r2-url" readonly placeholder="배포 시 R2 링크가 생성됩니다.">
+                                <button class="btn-copy btn-small" data-target="detail-r2-url"><i class="fa-regular fa-copy"></i> 복사</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coupang Link Manager -->
+                    <div class="link-manager-card">
+                        <h3><i class="fa-solid fa-link"></i> 쿠팡 파트너스 링크 관리</h3>
+                        
+                        <div class="form-group">
+                            <label>원본 쿠팡 상품 URL</label>
+                            <div class="input-with-action">
+                                <input type="text" id="detail-coupang-url" readonly>
+                                <a href="#" id="btn-visit-coupang" target="_blank" class="btn btn-icon-only" title="원본 페이지 방문">
+                                    <i class="fa-solid fa-external-link"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>쿠팡 파트너스 단축 URL</label>
+                            <div class="input-with-action">
+                                <input type="text" id="detail-short-url" placeholder="단축 링크를 입력하거나 API를 통해 생성하세요.">
+                                <button id="btn-save-short-link" class="btn btn-primary btn-small">
+                                    <i class="fa-solid fa-floppy-disk"></i> 저장
+                                </button>
+                            </div>
+                            <span class="help-text">
+                                <i class="fa-solid fa-info-circle"></i> 단축 URL은 유튜브 설명란 및 DM 발송 템플릿에 자동으로 반영됩니다.
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Buffer Social Publisher Panel -->
+                    <div class="publisher-card">
+                        <h3><i class="fa-solid fa-share-nodes"></i> SNS 채널 일괄 배포 (Buffer API)</h3>
+                        <p class="publisher-desc">영상이 Cloudflare R2 스토리지에 자동 업로드된 후, 지정된 Buffer 채널의 대기열로 즉시 전송됩니다.</p>
+                        
+                        <div class="platform-checkboxes">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="chk-youtube" checked>
+                                <span class="checkmark"></span>
+                                <i class="fa-brands fa-youtube platform-icon yt"></i> YouTube Shorts
+                            </label>
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="chk-tiktok" checked>
+                                <span class="checkmark"></span>
+                                <i class="fa-brands fa-tiktok platform-icon tt"></i> TikTok
+                            </label>
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="chk-instagram" checked>
+                                <span class="checkmark"></span>
+                                <i class="fa-brands fa-instagram platform-icon ig"></i> Instagram Reels
+                            </label>
+                        </div>
+
+                        <div class="publish-status-row">
+                            <div class="status-summary">
+                                <span>배포 상태:</span>
+                                <span id="detail-publish-status" class="badge badge-pending">대기중</span>
+                            </div>
+                            <button id="btn-publish-now" class="btn btn-primary">
+                                <i class="fa-solid fa-paper-plane"></i> 선택 채널로 일괄 배포 실행
+                            </button>
+                        </div>
+
+                        <!-- Platform Release Results Details -->
+                        <div id="publish-results-detail" class="publish-results-detail" style="display: none;">
+                            <!-- Dynamically injected results -->
+                        </div>
+                    </div>
+
+                    <!-- Content Platform Tabs -->
+                    <div class="tabs-card">
+                        <div class="tabs-header">
+                            <button class="tab-btn active" data-tab="tab-youtube">
+                                <i class="fa-brands fa-youtube"></i> YouTube
+                            </button>
+                            <button class="tab-btn" data-tab="tab-sns">
+                                <i class="fa-brands fa-tiktok"></i> TikTok / Reels
+                            </button>
+                            <button class="tab-btn" data-tab="tab-dm">
+                                <i class="fa-solid fa-comment-dots"></i> DM & Comment
+                            </button>
+                            <button class="tab-btn" data-tab="tab-comments">
+                                <i class="fa-solid fa-comments"></i> YouTube 댓글 피드
+                            </button>
+                            <button class="tab-btn" data-tab="tab-manychat">
+                                <i class="fa-solid fa-circle-question"></i> ManyChat 가이드
+                            </button>
+                        </div>
+
+                        <div class="tabs-content">
+                            <!-- Tab: YouTube -->
+                            <div class="tab-panel active" id="tab-youtube">
+                                <div class="content-group">
+                                    <div class="label-row">
+                                        <label>유튜브 제목</label>
+                                        <button class="btn btn-copy" data-target="yt-title"><i class="fa-regular fa-copy"></i> 복사</button>
+                                    </div>
+                                    <input type="text" id="yt-title" class="copyable-input" readonly>
+                                </div>
+                                <div class="content-group">
+                                    <div class="label-row">
+                                        <label>유튜브 설명란</label>
+                                        <button class="btn btn-copy" data-target="yt-desc"><i class="fa-regular fa-copy"></i> 복사</button>
+                                    </div>
+                                    <textarea id="yt-desc" class="copyable-textarea" rows="6" readonly></textarea>
+                                </div>
+                                <div class="content-group">
+                                    <div class="label-row">
+                                        <label>유튜브 태그</label>
+                                        <button class="btn btn-copy" data-target="yt-tags"><i class="fa-regular fa-copy"></i> 복사</button>
+                                    </div>
+                                    <input type="text" id="yt-tags" class="copyable-input" readonly>
+                                </div>
+
+                                <!-- YouTube Trends Search & Benchmarking Section -->
+                                <div class="youtube-trends-section">
+                                    <div class="trends-header">
+                                        <h5><i class="fa-solid fa-chart-line"></i> 유튜브 인기 동영상 제목 분석 (벤치마킹)</h5>
+                                        <span class="cache-badge" id="trends-cache-status" style="display: none;">DB 캐시됨</span>
+                                    </div>
+                                    <p class="trends-desc">관련 키워드로 누적 조회수가 가장 높은 유튜브 동영상 10개의 실제 성과와 제목입니다. 마음에 드는 제목을 클릭하여 수정해 사용해 보세요.</p>
+                                    <div class="trends-search-row">
+                                        <input type="text" id="trends-search-keyword" placeholder="검색할 제품 키워드 입력">
+                                        <button id="btn-search-trends" class="btn btn-secondary btn-small">
+                                            <i class="fa-solid fa-magnifying-glass"></i> 검색 분석
+                                        </button>
+                                        <button id="btn-refresh-trends" class="btn btn-outline btn-small" title="DB 캐시 강제 새로고침">
+                                            <i class="fa-solid fa-rotate"></i>
+                                        </button>
+                                    </div>
+                                    <div id="youtube-trends-list" class="trends-list">
+                                        <div class="trends-empty">
+                                            <p>등록된 상품명으로 분석한 데이터가 캐싱되어 있다면 바로 로드됩니다.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tab: TikTok / Reels -->
+                            <div class="tab-panel" id="tab-sns">
+                                <div class="content-group">
+                                    <div class="label-row">
+                                        <label>소셜 캡션 (틱톡, 릴스 공용)</label>
+                                        <button class="btn btn-copy" data-target="sns-caption"><i class="fa-regular fa-copy"></i> 복사</button>
+                                    </div>
+                                    <textarea id="sns-caption" class="copyable-textarea" rows="8" readonly></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Tab: DM & Comment -->
+                            <div class="tab-panel" id="tab-dm">
+                                <div class="content-group">
+                                    <div class="label-row">
+                                        <label>댓글 안내 문구 (대댓글)</label>
+                                        <button class="btn btn-copy" data-target="dm-reply"><i class="fa-regular fa-copy"></i> 복사</button>
+                                    </div>
+                                    <input type="text" id="dm-reply" class="copyable-input" readonly>
+                                </div>
+                                <div class="content-group">
+                                    <div class="label-row">
+                                        <label>실제 발송할 DM 본문 (단축 링크 포함)</label>
+                                        <button class="btn btn-copy" data-target="dm-text"><i class="fa-regular fa-copy"></i> 복사</button>
+                                    </div>
+                                    <textarea id="dm-text" class="copyable-textarea" rows="8" readonly></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Tab: YouTube Comments Feed -->
+                            <div class="tab-panel" id="tab-comments">
+                                <div class="comments-header">
+                                    <h4>💬 유튜브 실시간 채널 댓글 (최신 20개)</h4>
+                                    <button id="btn-refresh-comments" class="btn btn-secondary btn-small">
+                                        <i class="fa-solid fa-rotate"></i> 새로고침
+                                    </button>
+                                </div>
+                                <div id="youtube-comments-list" class="comments-list">
+                                    <div class="empty-state" style="padding: 2rem 1rem;">
+                                        <i class="fa-regular fa-comment-dots empty-icon" style="font-size: 2rem;"></i>
+                                        <p>불러오기 버튼을 누르거나 설정에서 API Key가 올바른지 확인해 주세요.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tab: ManyChat Guide -->
+                            <div class="tab-panel text-guide-panel" id="tab-manychat">
+                                <h4>💬 ManyChat을 통한 댓글 감지 및 DM 자동화 구축 방법</h4>
+                                <ol class="guide-list">
+                                    <li><strong>ManyChat 회원가입 및 연동</strong>:
+                                        <br><a href="https://manychat.com" target="_blank" class="text-link">ManyChat 공식 홈페이지</a>에 로그인하여 내 인스타그램 비즈니스 및 틱톡 비즈니스 계정을 연결합니다.
+                                    </li>
+                                    <li><strong>새로운 자동화 흐름(Flow) 생성</strong>:
+                                        <br>대시보드에서 <code>Create New Flow</code>를 선택하고 트리거로 <code>User Comments on Post or Reel</code>을 추가합니다.
+                                    </li>
+                                    <li><strong>트리거 규칙 설정</strong>:
+                                        <br>감지할 키워드를 지정합니다. <code>Specific Keywords</code>를 선택한 뒤 <code>링크</code> 또는 <code>{상품번호}</code>를 입력합니다.
+                                    </li>
+                                    <li><strong>답장 액션 추가</strong>:
+                                        <br><strong>대댓글 답장</strong>: <em>"댓글 안내 문구(대댓글)"</em> 탭의 텍스트를 입력해 자동으로 댓글 피드백을 남깁니다.
+                                        <br><strong>자동 DM 발송</strong>: <em>"실제 발송할 DM 본문"</em>을 ManyChat 메시지 입력란에 복사하여 붙여넣고 게시(Publish)합니다.
+                                    </li>
+                                </ol>
+                                <p class="guide-note"><i class="fa-solid fa-circle-check"></i> 이 세팅을 해두면 동영상 자동 업로드 후 유저가 댓글을 달았을 때 24시간 실시간으로 링크가 자동 발송됩니다!</p>
+                            </div>
+                        </div>
+
+                        <div class="card-footer">
+                            <button id="btn-regenerate" class="btn btn-outline">
+                                <i class="fa-solid fa-rotate"></i> AI 홍보글 재작성 (Gemini)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal: Add Item -->
+    <div class="modal-backdrop" id="modal-add-item">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-file-video"></i> 새 동영상 및 제품 등록</h3>
+                <button class="btn-close-modal" id="btn-close-add-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="form-add-item" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group flex-1">
+                            <label for="input-product-no">상품 번호 (숫자)</label>
+                            <input type="number" id="input-product-no" name="product_no" placeholder="예: 1" required min="1">
+                        </div>
+                        <div class="form-group flex-2">
+                            <label for="input-title">상품명</label>
+                            <input type="text" id="input-title" name="title" placeholder="예: 무타공 접이식 테이블" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="input-description">제품 상세 설명 (SNS 문구 생성의 뼈대가 됩니다)</label>
+                        <textarea id="input-description" name="description" placeholder="재질, 가격, 용도 등 제품 특징을 적어주세요. AI가 문구를 풍부하게 만들어 줍니다." rows="3" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="input-coupang-url">원본 쿠팡 파트너스 링크</label>
+                        <input type="url" id="input-coupang-url" name="coupang_url" placeholder="https://link.coupang.com/... 또는 제품 원본 URL" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="input-video">업로드할 숏폼 동영상 파일</label>
+                        <div class="file-upload-box">
+                            <i class="fa-solid fa-cloud-arrow-up file-icon"></i>
+                            <p>클릭하여 비디오 파일을 업로드하세요</p>
+                            <span class="file-subtext">MP4, MOV 등 영상 파일 지원 (비율 9:16 권장)</span>
+                            <input type="file" id="input-video" name="video" accept="video/*" required>
+                        </div>
+                        <div id="file-name-preview" class="file-name-preview" style="display: none;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-add-modal">취소</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-add-item">
+                        <span class="btn-text"><i class="fa-solid fa-paper-plane"></i> 업로드 및 등록</span>
+                        <div class="btn-spinner" style="display: none;"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Settings -->
+    <div class="modal-backdrop" id="modal-settings">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-sliders"></i> 설정 및 API 키 관리</h3>
+                <button class="btn-close-modal" id="btn-close-settings-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="form-settings">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="setting-gemini-key">Gemini API Key</label>
+                        <input type="password" id="setting-gemini-key" name="GEMINI_API_KEY" placeholder="AI 홍보 문구 생성을 위한 Gemini API Key">
+                    </div>
+
+                    <div class="divider"><span>Buffer SNS 연동 토큰</span></div>
+
+                    <div class="form-group">
+                        <label for="setting-buffer-token">Buffer Access Token</label>
+                        <input type="password" id="setting-buffer-token" name="BUFFER_ACCESS_TOKEN" placeholder="Buffer OAuth Access Token">
+                    </div>
+
+                    <div class="divider"><span>Cloudflare R2 스토리지 설정</span></div>
+
+                    <div class="form-group">
+                        <label for="setting-r2-account">R2 Account ID</label>
+                        <input type="text" id="setting-r2-account" name="CLOUDFLARE_ACCOUNT_ID" placeholder="Cloudflare Account ID">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="setting-r2-token">R2 API Token</label>
+                        <input type="password" id="setting-r2-token" name="CLOUDFLARE_API_TOKEN" placeholder="R2 API Token (오브젝트 읽기/쓰기 권한)">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group flex-1">
+                            <label for="setting-r2-bucket">R2 Bucket Name</label>
+                            <input type="text" id="setting-r2-bucket" name="CLOUDFLARE_BUCKET_NAME" placeholder="blog">
+                        </div>
+                        <div class="form-group flex-2">
+                            <label for="setting-r2-url">R2 Public URL Base</label>
+                            <input type="url" id="setting-r2-url" name="CLOUDFLARE_PUBLIC_URL" placeholder="https://pub-xxxxxx.r2.dev">
+                        </div>
+                    </div>
+
+                    <div class="divider"><span>쿠팡 파트너스 API 설정 (선택 사항)</span></div>
+
+                    <div class="form-group">
+                        <label for="setting-coupang-access">Coupang Partners Access Key</label>
+                        <input type="text" id="setting-coupang-access" name="COUPANG_ACCESS_KEY" placeholder="Access Key 입력">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="setting-coupang-secret">Coupang Partners Secret Key</label>
+                        <input type="password" id="setting-coupang-secret" name="COUPANG_SECRET_KEY" placeholder="Secret Key 입력">
+                    </div>
+
+                    <div class="divider"><span>ManyChat API 설정 (선택 사항)</span></div>
+
+                    <div class="form-group">
+                        <label for="setting-manychat-token">ManyChat API Token</label>
+                        <input type="password" id="setting-manychat-token" name="MANYCHAT_API_TOKEN" placeholder="ManyChat API Token 입력">
+                    </div>
+
+                    <div class="divider"><span>YouTube API 설정 (선택 사항)</span></div>
+
+                    <div class="form-group">
+                        <label for="setting-youtube-key">YouTube API Key</label>
+                        <input type="password" id="setting-youtube-key" name="YOUTUBE_API_KEY" placeholder="YouTube Data API Key 입력">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="setting-youtube-channel">YouTube Channel ID</label>
+                        <input type="text" id="setting-youtube-channel" name="YOUTUBE_CHANNEL_ID" placeholder="YouTube Channel ID 입력 (예: UC-b...)">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btn-close-settings-footer">닫기</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-check"></i> 설정 저장
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
