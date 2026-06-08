@@ -15,3 +15,24 @@ uploads/
 
 # OS metadata
 .DS_Store
+
+# YouTube OAuth2 Credentials & Tokens
+client_secrets.json
+client_secret_*.json
+token.json
+google*.json
+credential*.json
+oauth*.json
+*secret*.json
+
+# Temporary output videos & media files
+*.mp4
+*.mov
+test_out.mp4
+
+# Temp frame folders
+static/temp_frames*/
+
+# Scan inputs (except gitkeep)
+input/*
+!input/.gitkeep

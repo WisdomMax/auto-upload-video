@@ -12,20 +12,26 @@ import requests
 from dotenv import load_dotenv
 
 import database
+import youtube_comments
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("app")
 
-# 인접 프로젝트 .env 로드 시도
-ADJACENT_ENV = "/Volumes/NVME/7.AI_vibe_coding/20260413 SNS_automation_writing/.env"
-if os.path.exists(ADJACENT_ENV):
-    logger.info(f"Adjacent .env found at {ADJACENT_ENV}. Loading configurations...")
-    load_dotenv(dotenv_path=ADJACENT_ENV)
-else:
-    load_dotenv()
+# 현재 프로젝트 .env 로드
+load_dotenv()
+
 
 app = FastAPI(title="SNS Automation & Video Auto-Publisher")
+
+@app.on_event("startup")
+async def startup_event():
+    try:
+        from agent_engine import agent_engine
+        agent_engine.start()
+        logger.info("AI Agent Scheduler Engine started in background.")
+    except Exception as e:
+        logger.error(f"Failed to start AI Agent Engine: {e}")
 
 # 디렉토리 생성
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -206,7 +212,7 @@ def upload_video_to_r2(file_path: str, product_no: int) -> str:
         raise Exception(f"R2 업로드 HTTP 실패 ({response.status_code}): {response.text}")
 
 # Buffer를 통한 개별 비디오 포스트 발행 함수
-def publish_post_via_buffer(profile_id: str, text: str, video_url: str, service_type: str, title: str = None) -> dict:
+def publish_post_via_buffer(profile_id: str, text: str, video_url: str, service_type: str, title: str = None, scheduled_at: str = None) -> dict:
     access_token = database.get_setting("BUFFER_ACCESS_TOKEN") or os.getenv("BUFFER_ACCESS_TOKEN")
     if not access_token:
         raise Exception("Buffer Access Token이 누락되었습니다.")
@@ -233,9 +239,14 @@ def publish_post_via_buffer(profile_id: str, text: str, video_url: str, service_
     post_input = {
         "channelId": profile_id,
         "text": text,
-        "schedulingType": "automatic",
-        "mode": "shareNow"
     }
+
+    if scheduled_at:
+        post_input["schedulingType"] = "custom"
+        post_input["scheduledAt"] = scheduled_at
+    else:
+        post_input["schedulingType"] = "automatic"
+        post_input["mode"] = "shareNow"
 
     # 비디오 에셋 지정
     post_input["assets"] = [
@@ -427,30 +438,38 @@ async def get_single_item(item_id: int):
         raise HTTPException(status_code=404, detail="Item not found")
     return item
 
-@app.post("/api/items")
-async def add_item(
-    product_no: int = Form(...),
-    title: str = Form(...),
-    description: str = Form(...),
-    coupang_url: str = Form(...),
-    video: UploadFile = File(...)
-):
-    original_filename = f"prod_{product_no}_{video.filename}"
-    original_path = os.path.join(ORIGINALS_DIR, original_filename)
+# 완전 자동화 백그라운드 파이프라인 함수
+async def auto_process_pipeline_task(item_id: int, auto_publish: bool):
+    logger.info(f"Starting auto-processing pipeline for item {item_id}")
     
-    with open(original_path, "wb") as buffer:
-        shutil.copyfileobj(video.file, buffer)
+    # DB에서 최신 아이템 획득
+    item = database.get_item(item_id)
+    if not item:
+        logger.error(f"Item {item_id} not found in database.")
+        return
         
-    # DB 아이템 생성
-    item_id = database.create_item(
-        product_no=product_no,
-        title=title,
-        description=description,
-        coupang_url=coupang_url,
-        original_video_path=original_path
-    )
+    product_no = item['product_no']
+    coupang_url = item['coupang_url']
     
-    # 쿠팡 API 키 로드 후 링크 단축 시도
+    # Step 1: 쿠팡 크롤링 상품명 추출
+    from coupang_scraper import scrape_coupang_product
+    scraped_title = await scrape_coupang_product(coupang_url)
+    
+    # DB에 크롤링한 상품명 및 설명 업데이트
+    scraped_description = f"{scraped_title}의 솔직 후기 및 가성비 추천 정보입니다."
+    try:
+        conn = database.get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE items SET title = ?, description = ? WHERE id = ?", (scraped_title, scraped_description, item_id))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Failed to update title/desc for item {item_id}: {e}")
+        
+    # 최신화된 아이템 정보 다시 가져오기
+    item = database.get_item(item_id)
+
+    # Step 2: 쿠팡 파트너스 링크 단축 시도
     coupang_access = database.get_setting("COUPANG_ACCESS_KEY") or os.getenv("COUPANG_ACCESS_KEY")
     coupang_secret = database.get_setting("COUPANG_SECRET_KEY") or os.getenv("COUPANG_SECRET_KEY")
     
@@ -460,10 +479,77 @@ async def add_item(
         if short_url:
             database.update_item_coupang_urls(item_id, coupang_url, short_url)
             
-    # AI 멘트/캡션 즉시 생성
-    generate_ai_sns_content(item_id)
+    # Step 3: 내장 템플릿 기반 콘텐츠 자동 완성 (Gemini API 미사용)
+    landing_link = f"http://localhost:18888/p/{product_no}"
+    link = short_url if short_url else landing_link
+
+    youtube_title = f"[No.{product_no}] {scraped_title} 솔직 리뷰 추천! #Shorts"
+    youtube_description = f"영상 속 추천 아이템 정보입니다! 👇\n\n구매 링크: {link}\n\n[제품 설명]\n{scraped_description}\n\n* 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.\n\n#쿠팡추천템 #살림꿀템 #추천아이템"
     
-    return {"status": "success", "item_id": item_id, "short_url": short_url}
+    # 샵 기호 없는 콤마 구분 유튜브 검색 태그 포맷팅
+    clean_title_keyword = scraped_title.split(" ")[0] if scraped_title else "추천상품"
+    youtube_tags = f"쿠팡추천템, 살림꿀템, 꿀템, 생활용품, {clean_title_keyword}, {scraped_title[:15]}"
+    
+    sns_caption = f"이거 하나로 고민 해결! 대박 꿀템 공유해 드립니다 ✨\n\nNo.{product_no} - {scraped_title}\n\n👉 제품의 상세 정보와 단축 링크가 필요하시다면?\n댓글로 '링크' 또는 '{product_no}'를 남겨주시면 DM으로 바로 링크를 쏴드릴게요! 💌\n\n#생활꿀팁 #살림템 #꿀템 #쿠팡추천"
+    comment_reply = f"유튜브 정책상 댓글 링크 클릭이 되지 않아서 네이버 검색을 유도해 드려요! 🔍 네이버 검색창에 '엄마아빠 패션다이어리 {scraped_title}'을 검색하시면 상세 정보와 쿠팡 링크를 바로 확인하실 수 있습니다!"
+    dm_template = f"안녕하세요 크리에이터입니다! 😊\n요청하신 [No.{product_no} - {scraped_title}]의 상세 링크입니다.\n\n👇 쿠팡 즉시구매 링크\n{link}\n\n즐겁고 스마트한 쇼핑 되세요!"
+    
+    database.update_item_generated_contents(
+        item_id,
+        youtube_title,
+        youtube_description,
+        youtube_tags,
+        sns_caption,
+        dm_template,
+        comment_reply
+    )
+    
+    # 에이전트 로그 작성
+    database.create_agent_log(
+        task_type="system",
+        status="success",
+        message=f"🤖 [자동 정보 수집 완료] No. {product_no} 상품의 크롤링 및 유튜브/SNS 캡션 자동 생성이 완료되었습니다."
+    )
+    
+    # Step 4: 자동 배포 예약이 켜진 경우 R2 업로드 및 Buffer 배포 즉시 가동
+    if auto_publish:
+        logger.info(f"Triggering auto-publishing for item {item_id}")
+        distribute_video_task(item_id, ["youtube", "tiktok", "instagram"])
+
+
+@app.post("/api/items")
+async def add_item(
+    coupang_url: str = Form(...),
+    video: UploadFile = File(...),
+    auto_publish: bool = Form(False),
+    background_tasks: BackgroundTasks = None
+):
+    # product_no 자동 발급
+    product_no = database.get_next_product_no()
+    
+    # 임시 제목 및 설명으로 업로드 우선 완료 처리
+    temp_title = f"No. {product_no} 쿠팡 상품 (정보 수집 중...)"
+    temp_desc = "백엔드에서 쿠팡 상품 상세 페이지 크롤링이 진행 중입니다."
+    
+    original_filename = f"prod_{product_no}_{video.filename}"
+    original_path = os.path.join(ORIGINALS_DIR, original_filename)
+    
+    with open(original_path, "wb") as buffer:
+        shutil.copyfileobj(video.file, buffer)
+        
+    # DB 아이템 생성
+    item_id = database.create_item(
+        product_no=product_no,
+        title=temp_title,
+        description=temp_desc,
+        coupang_url=coupang_url,
+        original_video_path=original_path
+    )
+    
+    # 크롤링, 캡션빌드, 자동 업로드/배포 전체 프로세스를 백그라운드에서 논스톱 실행
+    background_tasks.add_task(auto_process_pipeline_task, item_id, auto_publish)
+    
+    return {"status": "success", "item_id": item_id, "product_no": product_no}
 
 @app.post("/api/items/{item_id}/publish")
 async def publish_item(item_id: int, payload: PublishPayload, background_tasks: BackgroundTasks):
@@ -479,19 +565,46 @@ async def publish_item(item_id: int, payload: PublishPayload, background_tasks: 
     return {"status": "success", "message": "배포 작업이 예약되었습니다."}
 
 @app.put("/api/items/{item_id}/short-link")
-async def update_short_link(item_id: int, payload: dict):
+async def update_short_link(item_id: int, payload: dict, background_tasks: BackgroundTasks = None):
     short_url = payload.get("short_url", "")
     coupang_url = payload.get("coupang_url", "")
+    description = payload.get("description", "")
     
     item = database.get_item(item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
         
     new_coupang_url = coupang_url if coupang_url else item['coupang_url']
+    
+    # 쿠팡 원본 주소 사후 입력 시 단축 링크 자동 생성
+    if new_coupang_url and not short_url:
+        coupang_access = database.get_setting("COUPANG_ACCESS_KEY") or os.getenv("COUPANG_ACCESS_KEY")
+        coupang_secret = database.get_setting("COUPANG_SECRET_KEY") or os.getenv("COUPANG_SECRET_KEY")
+        if coupang_access and coupang_secret:
+            short_url = get_coupang_short_link(new_coupang_url, coupang_access, coupang_secret)
+            
     database.update_item_coupang_urls(item_id, new_coupang_url, short_url)
     
+    # 링크가 등록/수정되었으므로 배포 상태를 대기(pending)로 초기화하고 이전 실패 로그를 제거합니다.
+    database.update_item_publish_results(item_id, 'pending', None)
+    
+    # 추가 설명(description) 업데이트
+    if description is not None:
+        try:
+            conn = database.get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE items SET description = ? WHERE id = ?", (description, item_id))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Failed to update description for item {item_id}: {e}")
+            
     # 링크 변경 시 콘텐츠 자동 재생성
     generate_ai_sns_content(item_id)
+    
+    # 정적 웹 카탈로그 즉시 갱신
+    import catalog_builder
+    catalog_builder.build_catalog()
     
     return {"status": "success"}
 
@@ -522,40 +635,17 @@ async def delete_single_item(item_id: int):
 @app.get("/api/settings")
 async def get_settings():
     settings = database.get_all_settings()
-    # Fallback값 병합하여 표시
-    response_settings = {
-        "GEMINI_API_KEY": settings.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY") or "",
-        "COUPANG_ACCESS_KEY": settings.get("COUPANG_ACCESS_KEY") or os.getenv("COUPANG_ACCESS_KEY") or "",
-        "COUPANG_SECRET_KEY": settings.get("COUPANG_SECRET_KEY") or os.getenv("COUPANG_SECRET_KEY") or "",
-        "BUFFER_ACCESS_TOKEN": settings.get("BUFFER_ACCESS_TOKEN") or os.getenv("BUFFER_ACCESS_TOKEN") or "",
-        "CLOUDFLARE_ACCOUNT_ID": settings.get("CLOUDFLARE_ACCOUNT_ID") or os.getenv("CLOUDFLARE_ACCOUNT_ID") or "",
-        "CLOUDFLARE_API_TOKEN": settings.get("CLOUDFLARE_API_TOKEN") or os.getenv("CLOUDFLARE_API_TOKEN") or "",
-        "CLOUDFLARE_BUCKET_NAME": settings.get("CLOUDFLARE_BUCKET_NAME") or os.getenv("CLOUDFLARE_BUCKET_NAME") or "blog",
-        "CLOUDFLARE_PUBLIC_URL": settings.get("CLOUDFLARE_PUBLIC_URL") or os.getenv("CLOUDFLARE_PUBLIC_URL") or "",
-        "MANYCHAT_API_TOKEN": settings.get("MANYCHAT_API_TOKEN") or os.getenv("MANYCHAT_API_TOKEN") or "",
-        "YOUTUBE_API_KEY": settings.get("YOUTUBE_API_KEY") or os.getenv("YOUTUBE_API_KEY") or "",
-        "YOUTUBE_CHANNEL_ID": settings.get("YOUTUBE_CHANNEL_ID") or os.getenv("YOUTUBE_CHANNEL_ID") or ""
+    return {
+        "PUBLISH_YOUTUBE": settings.get("PUBLISH_YOUTUBE", "true"),
+        "PUBLISH_TIKTOK": settings.get("PUBLISH_TIKTOK", "true"),
+        "PUBLISH_INSTAGRAM": settings.get("PUBLISH_INSTAGRAM", "true")
     }
-    
-    # 마스킹 처리
-    masked_settings = {}
-    for k, v in response_settings.items():
-        if v:
-            if any(term in k for term in ["KEY", "SECRET", "TOKEN"]):
-                masked_settings[k] = v[:4] + "*" * (len(v) - 4) if len(v) > 4 else "****"
-            else:
-                masked_settings[k] = v
-        else:
-            masked_settings[k] = ""
-    return masked_settings
 
 @app.post("/api/settings")
 async def update_settings(payload: dict):
     for k, v in payload.items():
-        # 마스킹 값은 스킵
-        if v and (v.startswith("****") or (len(v) > 4 and "*" in v[4:])):
-            continue
-        database.set_setting(k, v)
+        if k in ["PUBLISH_YOUTUBE", "PUBLISH_TIKTOK", "PUBLISH_INSTAGRAM"]:
+            database.set_setting(k, v)
     return {"status": "success"}
 
 @app.get("/api/youtube/comments")
@@ -822,6 +912,255 @@ async def publish_catalog():
 
     except Exception as e:
         logger.error(f"Catalog publish error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- User & Agent integration routes ---
+
+@app.get("/p/{product_no}", response_class=HTMLResponse)
+async def get_user_product_catalog(product_no: int, request: Request):
+    # DB에서 product_no를 가진 아이템 탐색
+    items = database.get_items()
+    item = None
+    for it in items:
+        if it.get("product_no") == product_no:
+            item = it
+            break
+    if not item:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # 비디오 경로 파싱 (R2 우선, 로컬 uploads 차선)
+    video_src = item.get("r2_video_url")
+    if not video_src and item.get("original_video_path"):
+        import re
+        # 로컬 경로 절대/상대 매핑 변환
+        video_src = re.sub(r'^.*uploads/', '/uploads/', item["original_video_path"])
+        if not video_src.startswith("/uploads/"):
+            video_src = "/uploads/originals/" + os.path.basename(item["original_video_path"])
+    
+    # 쿠팡 구매 링크 (단축 링크 우선, 원본 차선)
+    purchase_link = item.get("short_url") or item.get("coupang_url") or "#"
+    
+    return templates.TemplateResponse("catalog_detail.html", {
+        "request": request,
+        "item": item,
+        "video_src": video_src,
+        "purchase_link": purchase_link
+    })
+
+
+@app.post("/api/manychat/webhook")
+async def manychat_webhook(payload: dict):
+    logger.info(f"ManyChat Webhook received payload: {payload}")
+    
+    subscriber_id = payload.get("subscriber_id") or payload.get("subscriber", {}).get("id")
+    username = payload.get("username") or payload.get("subscriber", {}).get("username") or payload.get("subscriber", {}).get("first_name", "고객")
+    product_no = payload.get("product_no")
+    platform = payload.get("platform") or "instagram"
+    
+    if not subscriber_id:
+        return {"status": "error", "message": "subscriber_id가 누락되었습니다."}
+        
+    item = None
+    if product_no:
+        item = database.get_item_by_product_no(product_no)
+        
+    token = os.getenv("MANYCHAT_API_TOKEN") or database.get_setting("MANYCHAT_API_TOKEN")
+    
+    if not token or token == "your_manychat_api_token_here":
+        logger.warning("ManyChat API Token이 설정되어 있지 않아 실제 DM 발송을 스킵합니다.")
+        database.create_agent_log(
+            task_type="manychat_event",
+            status="warning",
+            message=f"ManyChat 토큰 미설정으로 실제 DM 발송 실패: {platform.upper()} 유저 @{username} (No. {product_no})",
+            details=json.dumps(payload, ensure_ascii=False)
+        )
+        return {"status": "success", "message": "ManyChat API Token is not set."}
+        
+    dm_text = ""
+    target_link = ""
+    
+    if item:
+        target_link = item.get("short_url") or item.get("coupang_url")
+        if not target_link:
+            target_link = f"http://localhost:18888/p/{item['product_no']}"
+            
+        template = item.get("dm_template") or ""
+        if template:
+            if "👇 쿠팡 즉시구매 링크" in template and target_link not in template:
+                dm_text = template.strip() + "\n" + target_link
+            else:
+                dm_text = template.replace("[쿠팡 링크]", target_link).replace("구매 링크:", f"구매 링크: {target_link}").strip()
+                if target_link not in dm_text:
+                    dm_text += f"\n\n👇 제품 링크:\n{target_link}"
+        else:
+            dm_text = f"요청하신 제품 상세 정보 및 구매 링크입니다.\n\n👇 제품 링크:\n{target_link}"
+    else:
+        dm_text = f"안녕하세요! 요청하신 상품 정보를 찾지 못했습니다. 번호를 다시 한번 확인해 주세요."
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    
+    api_payload = {
+        "subscriber_id": subscriber_id,
+        "data": {
+            "version": "v2",
+            "content": {
+                "messages": [
+                    {
+                        "type": "text",
+                        "text": dm_text
+                    }
+                ]
+            }
+        }
+    }
+    
+    try:
+        res = requests.post("https://api.manychat.com/fb/sending/sendContent", json=api_payload, headers=headers, timeout=10)
+        
+        if res.status_code == 200:
+            res_data = res.json()
+            if res_data.get("status") == "success":
+                message = f"{platform.upper()} 유저 @{username} 님께 DM 전송 성공"
+                if product_no:
+                    message += f" (No. {product_no} 상품)"
+                
+                database.create_agent_log(
+                    task_type="manychat_event",
+                    status="success",
+                    message=message,
+                    details=json.dumps(payload, ensure_ascii=False)
+                )
+                return {"status": "success"}
+            else:
+                error_msg = res_data.get("message", "알 수 없는 오류")
+                logger.error(f"ManyChat API Send Failed: {error_msg}")
+        else:
+            logger.error(f"ManyChat API HTTP Error: {res.status_code} - {res.text}")
+            
+        database.create_agent_log(
+            task_type="manychat_event",
+            status="failed",
+            message=f"ManyChat API 전송 실패: @{username} (No. {product_no})",
+            details=json.dumps({"payload": payload, "response": res.text}, ensure_ascii=False)
+        )
+        return {"status": "failed", "message": "ManyChat API sending failed."}
+        
+    except Exception as e:
+        logger.error(f"ManyChat webhook execution error: {e}")
+        database.create_agent_log(
+            task_type="manychat_event",
+            status="failed",
+            message=f"ManyChat 연동 중 예외 발생: {str(e)}",
+            details=json.dumps(payload, ensure_ascii=False)
+        )
+        return {"status": "error", "detail": str(e)}
+
+
+@app.get("/api/youtube/auth")
+async def youtube_auth():
+    flow = youtube_comments.get_oauth_flow()
+    if not flow:
+        raise HTTPException(status_code=400, detail="YouTube OAuth설정이 누락되었습니다. 클라이언트 ID와 Secret 또는 client_secrets.json을 준비해 주세요.")
+    
+    authorization_url, state = flow.authorization_url(
+        access_type="offline",
+        include_granted_scopes="true",
+        prompt="consent"
+    )
+    
+    # 생성된 일회용 PKCE 검증 키를 글로벌 메모리에 캐시
+    youtube_comments._oauth_code_verifier = flow.code_verifier
+    
+    return JSONResponse({"url": authorization_url})
+
+
+@app.get("/api/youtube/callback")
+async def youtube_callback(request: Request, code: str = None, error: str = None):
+    if error:
+        return HTMLResponse(f"<h3>인증 실패: {error}</h3>")
+    if not code:
+        raise HTTPException(status_code=400, detail="Code parameter is missing")
+        
+    try:
+        flow = youtube_comments.get_oauth_flow()
+        if not flow:
+            return HTMLResponse("<h3>유튜브 설정 로드 실패</h3>")
+            
+        # 캐싱된 PKCE 검증 키 주입
+        if youtube_comments._oauth_code_verifier:
+            flow.code_verifier = youtube_comments._oauth_code_verifier
+            
+        flow.fetch_token(code=code)
+        credentials = flow.credentials
+        youtube_comments.save_credentials(credentials)
+        
+        # 채널 ID가 아직 설정 안 되어 있으면 가져와서 자동 등록 시도
+        try:
+            from googleapiclient.discovery import build
+            youtube = build("youtube", "v3", credentials=credentials)
+            ch_res = youtube.channels().list(part="id,snippet", mine=True).execute()
+            if ch_res.get("items"):
+                channel_id = ch_res["items"][0]["id"]
+                database.set_setting("YOUTUBE_CHANNEL_ID", channel_id)
+        except Exception as ex:
+            logger.error(f"Failed to auto-save channel id: {ex}")
+            
+        return HTMLResponse("""
+            <html>
+            <body onload="window.close(); window.opener.location.reload();">
+                <h2>유튜브 연동 성공!</h2>
+                <p>창이 자동으로 닫힙니다...</p>
+            </body>
+            </html>
+        """)
+    except Exception as e:
+        logger.error(f"Callback processing failed: {e}", exc_info=True)
+        return HTMLResponse(f"<h3>콜백 처리 중 오류 발생: {str(e)}</h3>")
+
+
+@app.get("/api/youtube/status")
+async def youtube_status():
+    creds = youtube_comments.get_credentials()
+    has_token = creds is not None
+    channel_id = database.get_setting("YOUTUBE_CHANNEL_ID") or ""
+    return {
+        "connected": has_token,
+        "channel_id": channel_id,
+        "token_expired": creds.expired if creds else False
+    }
+
+
+@app.get("/api/agent/logs")
+async def get_agent_activity_logs():
+    logs = database.get_agent_logs(limit=30)
+    return logs
+
+
+@app.post("/api/agent/trigger")
+async def trigger_agent_manually(background_tasks: BackgroundTasks):
+    try:
+        from agent_engine import agent_engine
+        # BackgroundTasks를 사용하여 가비지 컬렉션 위험 방지 및 안전한 백그라운드 구동
+        background_tasks.add_task(agent_engine.run_once)
+        return {"status": "success", "message": "에이전트 루틴 즉시 실행이 예약되었습니다."}
+    except Exception as e:
+        logger.error(f"Manual agent trigger error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/agent/scan")
+async def trigger_scan_manually(background_tasks: BackgroundTasks):
+    try:
+        from agent_engine import agent_engine
+        # 백그라운드 태스크로 input 디렉토리 비디오 스캔만 1회 강제 실행 기동
+        background_tasks.add_task(agent_engine._scan_input_directory)
+        return {"status": "success", "message": "비디오 스캔 즉시 실행이 예약되었습니다."}
+    except Exception as e:
+        logger.error(f"Manual scan trigger error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

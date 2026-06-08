@@ -1,6 +1,82 @@
-{
-  "updated_at": "",
-  "store_name": "Momdad Fashion Diary",
-  "store_description": "엄마아빠의 패션 일기 — 매일 새로운 스타일 추천",
-  "products": []
-}
+[
+  {
+    "id": 8,
+    "product_no": 8,
+    "product_code": "T00008",
+    "title": "엄마아빠 패션다이어리 추천 상품",
+    "description": "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다.",
+    "coupang_url": "https://www.coupang.com/vp/products/9494128919?itemId=28278973495&vendorItemId=95232009842&src=1191000&spec=10999999&addtag=400&ctag=9494128919&lptag=CFM63067944&itime=20260608204446&pageType=PRODUCT&pageValue=9494128919&wPcid=13865526546551124339715&wRef=&wTime=20260608204446&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=00e06426e4ee4cb2a6b5ee523c60c1bc&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "short_url": "https://www.coupang.com/vp/products/9494128919?itemId=28278973495&vendorItemId=95232009842&src=1191000&spec=10999999&addtag=400&ctag=9494128919&lptag=CFM63067944&itime=20260608204446&pageType=PRODUCT&pageValue=9494128919&wPcid=13865526546551124339715&wRef=&wTime=20260608204446&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=00e06426e4ee4cb2a6b5ee523c60c1bc&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "thumbnail_url": "/static/thumbnails/T00008.webp"
+  },
+  {
+    "id": 7,
+    "product_no": 7,
+    "product_code": "T00007",
+    "title": "엄마아빠 패션다이어리 추천 상품",
+    "description": "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다.",
+    "coupang_url": "https://www.coupang.com/vp/products/8658477262?itemId=25129790027&vendorItemId=92128932447&src=1191000&spec=10999999&addtag=400&ctag=8658477262&lptag=CFM63067944&itime=20260608204357&pageType=PRODUCT&pageValue=8658477262&wPcid=13865526546551124339715&wRef=&wTime=20260608204357&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=92aabeb221a943b6b4de43527a892869&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "short_url": "https://www.coupang.com/vp/products/8658477262?itemId=25129790027&vendorItemId=92128932447&src=1191000&spec=10999999&addtag=400&ctag=8658477262&lptag=CFM63067944&itime=20260608204357&pageType=PRODUCT&pageValue=8658477262&wPcid=13865526546551124339715&wRef=&wTime=20260608204357&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=92aabeb221a943b6b4de43527a892869&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "thumbnail_url": "/static/thumbnails/T00007.webp"
+  },
+  {
+    "id": 6,
+    "product_no": 6,
+    "product_code": "T00006",
+    "title": "엄마아빠 패션다이어리 추천 상품",
+    "description": "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다.",
+    "coupang_url": "https://www.coupang.com/vp/products/8658477262?itemId=25129790027&vendorItemId=92128932447&src=1191000&spec=10999999&addtag=400&ctag=8658477262&lptag=CFM63067944&itime=20260608204357&pageType=PRODUCT&pageValue=8658477262&wPcid=13865526546551124339715&wRef=&wTime=20260608204357&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=92aabeb221a943b6b4de43527a892869&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "short_url": "https://www.coupang.com/vp/products/8658477262?itemId=25129790027&vendorItemId=92128932447&src=1191000&spec=10999999&addtag=400&ctag=8658477262&lptag=CFM63067944&itime=20260608204357&pageType=PRODUCT&pageValue=8658477262&wPcid=13865526546551124339715&wRef=&wTime=20260608204357&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=92aabeb221a943b6b4de43527a892869&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "thumbnail_url": "/static/thumbnails/T00006.webp"
+  },
+  {
+    "id": 5,
+    "product_no": 5,
+    "product_code": "T00005",
+    "title": "엄마아빠 패션다이어리 추천 상품",
+    "description": "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다.",
+    "coupang_url": "https://www.coupang.com/vp/products/8733102203?itemId=25376804872&vendorItemId=92370865764&src=1191000&spec=10999999&addtag=400&ctag=8733102203&lptag=CFM63067944&itime=20260608204331&pageType=PRODUCT&pageValue=8733102203&wPcid=13865526546551124339715&wRef=&wTime=20260608204331&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=d546d27d57a54e9ba5b1c9d5bacdb9d3&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "short_url": "https://www.coupang.com/vp/products/8733102203?itemId=25376804872&vendorItemId=92370865764&src=1191000&spec=10999999&addtag=400&ctag=8733102203&lptag=CFM63067944&itime=20260608204331&pageType=PRODUCT&pageValue=8733102203&wPcid=13865526546551124339715&wRef=&wTime=20260608204331&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=d546d27d57a54e9ba5b1c9d5bacdb9d3&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "thumbnail_url": "/static/thumbnails/T00005.webp"
+  },
+  {
+    "id": 4,
+    "product_no": 4,
+    "product_code": "T00004",
+    "title": "엄마아빠 패션다이어리 추천 상품",
+    "description": "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다.",
+    "coupang_url": "https://www.coupang.com/vp/products/9472657866?itemId=28196186418&vendorItemId=95173703507&src=1191000&spec=10999999&addtag=400&ctag=9472657866&lptag=CFM63067944&itime=20260608204254&pageType=PRODUCT&pageValue=9472657866&wPcid=13865526546551124339715&wRef=&wTime=20260608204254&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=172552e955ec49de9e9d8622f534c748&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "short_url": "https://www.coupang.com/vp/products/9472657866?itemId=28196186418&vendorItemId=95173703507&src=1191000&spec=10999999&addtag=400&ctag=9472657866&lptag=CFM63067944&itime=20260608204254&pageType=PRODUCT&pageValue=9472657866&wPcid=13865526546551124339715&wRef=&wTime=20260608204254&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=172552e955ec49de9e9d8622f534c748&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "thumbnail_url": "/static/thumbnails/T00004.webp"
+  },
+  {
+    "id": 3,
+    "product_no": 3,
+    "product_code": "T00003",
+    "title": "엄마아빠 패션다이어리 추천 상품",
+    "description": "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다.",
+    "coupang_url": "https://www.coupang.com/vp/products/8672499311?itemId=25175894935&vendorItemId=92172984855&src=1191000&spec=10999999&addtag=400&ctag=8672499311&lptag=CFM63067944&itime=20260608204237&pageType=PRODUCT&pageValue=8672499311&wPcid=13865526546551124339715&wRef=&wTime=20260608204237&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=b65322138f8b4a0eba9e3961cff0d924&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "short_url": "https://www.coupang.com/vp/products/8672499311?itemId=25175894935&vendorItemId=92172984855&src=1191000&spec=10999999&addtag=400&ctag=8672499311&lptag=CFM63067944&itime=20260608204237&pageType=PRODUCT&pageValue=8672499311&wPcid=13865526546551124339715&wRef=&wTime=20260608204237&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=b65322138f8b4a0eba9e3961cff0d924&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "thumbnail_url": "/static/thumbnails/T00003.webp"
+  },
+  {
+    "id": 2,
+    "product_no": 2,
+    "product_code": "T00002",
+    "title": "엄마아빠 패션다이어리 추천 상품",
+    "description": "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다.",
+    "coupang_url": "https://www.coupang.com/vp/products/9419365819?itemId=27993177474&vendorItemId=94950750899&src=1191000&spec=10999999&addtag=400&ctag=9419365819&lptag=CFM63067944&itime=20260608204311&pageType=PRODUCT&pageValue=9419365819&wPcid=13865526546551124339715&wRef=&wTime=20260608204311&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=fd654b3500494f42b7b6ce7edbd2617b&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "short_url": "https://www.coupang.com/vp/products/9419365819?itemId=27993177474&vendorItemId=94950750899&src=1191000&spec=10999999&addtag=400&ctag=9419365819&lptag=CFM63067944&itime=20260608204311&pageType=PRODUCT&pageValue=9419365819&wPcid=13865526546551124339715&wRef=&wTime=20260608204311&redirect=landing&abTestInfo=100412_group_A%2F%3Fstyle%3Dkakao_existing_ui&mcid=fd654b3500494f42b7b6ce7edbd2617b&sharesource=sharebutton&style=&isshortened=Y&settlement=N",
+    "thumbnail_url": "/static/thumbnails/T00002.webp"
+  },
+  {
+    "id": 1,
+    "product_no": 1,
+    "product_code": "T00001",
+    "title": "엄마아빠 패션다이어리 추천 상품",
+    "description": "테스트 설명",
+    "coupang_url": "https://www.coupang.com/vp/products/8746963965?itemId=25425063962",
+    "short_url": "https://www.coupang.com/vp/products/8746963965?itemId=25425063962",
+    "thumbnail_url": "/static/thumbnails/T00001.webp"
+  }
+]

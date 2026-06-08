@@ -1,30 +1,31 @@
-/* Momdad Fashion Diary CSS Design System (Sleek Dark Theme) */
+/* Momdad Fashion Diary CSS Design System (High-End Editorial Dark Theme) */
 
 :root {
-    --bg-main: #0B0F19;
-    --bg-card: rgba(20, 26, 42, 0.65);
-    --bg-card-hover: rgba(30, 39, 62, 0.8);
-    --border-color: rgba(255, 255, 255, 0.08);
-    --border-color-focus: #8B5CF6;
+    --bg-main: #0a0a0a;             /* Matte Jet Black */
+    --bg-card: #121212;             /* Gallery Charcoal */
+    --bg-card-hover: #181818;       /* Active Frame Grey */
+    --border-color: rgba(255, 255, 255, 0.05); /* Hairline Frame */
+    --border-color-focus: #bca374;  /* Antique Bronze Gold Focus */
     
-    --text-primary: #F3F4F6;
-    --text-secondary: #9CA3AF;
-    --text-muted: #6B7280;
+    --text-primary: #e5e5e5;        /* Off-white */
+    --text-secondary: #8a8a8a;      /* Silver Dust */
+    --text-muted: #555555;          /* Charcoal Dust */
     
-    --primary: #8B5CF6; /* Neon Purple */
-    --primary-glow: rgba(139, 92, 246, 0.35);
-    --secondary: #10B981; /* Neon Emerald */
-    --accent-gold: #F59E0B; /* Warm Gold */
-    --danger: #EF4444; /* Neon Crimson */
+    --primary: #bca374;             /* Antique Bronze Gold */
+    --primary-glow: rgba(188, 163, 116, 0.15);
+    --secondary: #8a8a8a;           /* Muted Silver */
+    --accent-gold: #bca374;         /* Gold Accent */
+    --danger: #9f1c1c;              /* Crimson Wine */
     
-    --radius-large: 16px;
-    --radius-medium: 10px;
-    --radius-small: 6px;
+    --radius-large: 2px;            /* Sharp editorial edges */
+    --radius-medium: 1px;
+    --radius-small: 0px;
     
-    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --transition-normal: 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     
-    --font-outfit: 'Outfit', 'Noto Sans KR', sans-serif;
+    --font-outfit: 'Inter', 'Noto Sans KR', sans-serif;
+    --font-serif: 'Cormorant Garamond', 'Noto Serif KR', serif;
 }
 
 * {
@@ -842,9 +843,9 @@ input[readonly], textarea[readonly] {
 }
 
 .btn-copy {
-    background: rgba(139, 92, 246, 0.12);
+    background: rgba(188, 163, 116, 0.12);
     color: var(--primary);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    border: 1px solid rgba(188, 163, 116, 0.2);
     padding: 3px 8px;
     font-size: 0.75rem;
     border-radius: var(--radius-small);
@@ -1390,3 +1391,268 @@ input[readonly], textarea[readonly] {
     color: var(--text-secondary) !important;
     border: 1px solid var(--border-color) !important;
 }
+
+/* --- AI Agent Hub Styles --- */
+.agent-status-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-large);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+.agent-status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.agent-status-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+.agent-log-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-medium);
+    margin-bottom: 0.75rem;
+    transition: var(--transition-fast);
+}
+.agent-log-item:hover {
+    transform: translateX(4px);
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(139, 92, 246, 0.25);
+}
+.log-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-small);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+.log-content-box {
+    flex-grow: 1;
+    min-width: 0;
+}
+.log-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+.log-task-name {
+    font-weight: 600;
+    font-size: 0.75rem;
+    padding: 1px 6px;
+    border-radius: var(--radius-small);
+}
+.log-time {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+.log-msg {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    word-break: break-all;
+}
+
+/* Status variants for logs */
+.agent-log-item.status-success {
+    border-left: 3px solid var(--secondary);
+}
+.agent-log-item.status-success .log-icon-box {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--secondary);
+}
+.agent-log-item.status-success .log-task-name {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--secondary);
+}
+
+.agent-log-item.status-warning {
+    border-left: 3px solid var(--accent-gold);
+}
+.agent-log-item.status-warning .log-icon-box {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--accent-gold);
+}
+.agent-log-item.status-warning .log-task-name {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--accent-gold);
+}
+
+.agent-log-item.status-failed {
+    border-left: 3px solid var(--danger);
+}
+.agent-log-item.status-failed .log-icon-box {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+}
+.agent-log-item.status-failed .log-task-name {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+/* ==========================================================================
+   Premium Refined Drawer & Horizontal Card Layout CSS 
+   ========================================================================== */
+
+/* 1. Horizontal Item Card Refinements */
+.item-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    gap: 1.15rem !important;
+    padding: 0.85rem !important;
+    background: linear-gradient(135deg, #151515, #0f0f0f) !important;
+    border: 1px solid rgba(255, 255, 255, 0.04) !important;
+    border-radius: var(--radius-large);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.item-card:hover {
+    transform: translateY(-2px) scale(1.01) !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 12px 28px rgba(139, 92, 246, 0.12), 0 0 20px rgba(139, 92, 246, 0.05) !important;
+}
+
+.item-card.active {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(20, 26, 42, 0.85)) !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.2) !important;
+}
+
+.card-thumbnail-box {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* 2. Slide Drawer Panel (fixed on right side) */
+.detail-section {
+    position: fixed !important;
+    right: -520px;
+    top: 0;
+    width: 500px;
+    height: 100vh;
+    z-index: 1000;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border-left: 1px solid var(--border-color) !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    background: rgba(10, 10, 10, 0.98) !important;
+    box-shadow: -15px 0 40px rgba(0, 0, 0, 0.8) !important;
+    transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    padding-bottom: 2rem;
+    display: flex !important;
+}
+
+.detail-section.open {
+    right: 0 !important;
+}
+
+/* Drawer Close Top Bar */
+.drawer-close-bar {
+    display: flex;
+    justify-content: flex-start;
+    padding: 1rem 1.5rem 0.5rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.btn-close-drawer {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-medium);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: var(--transition-fast);
+}
+
+.btn-close-drawer:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--danger);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Drawer Inner layout adjustments */
+.detail-placeholder {
+    padding: 5rem 2rem !important;
+}
+
+/* Core edit inputs cards spacing */
+.core-inputs-card {
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.05);
+    border: 1px solid rgba(139, 92, 246, 0.2) !important;
+}
+
+.core-inputs-card input, .core-inputs-card textarea {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.core-inputs-card input:focus, .core-inputs-card textarea:focus {
+    border-color: var(--primary);
+}
+
+/* YouTube connection badge effects */
+.youtube-status-container button {
+    box-shadow: 0 4px 10px rgba(255, 0, 0, 0.2);
+    transition: var(--transition-fast);
+}
+
+.youtube-status-container button:hover {
+    box-shadow: 0 6px 16px rgba(255, 0, 0, 0.4);
+    transform: translateY(-1px);
+}
+
+/* Mobile responsive drawer scale down */
+@media (max-width: 768px) {
+    .detail-section {
+        width: 100% !important;
+        right: -100%;
+    }
+}
+
+/* 상품 상세 보기 모달 전용 폰트 및 스타일 강화 (시인성 향상) */
+#modal-detail-item label {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: var(--primary) !important;
+    margin-bottom: 0.25rem;
+}
+
+#modal-detail-item input[type="text"],
+#modal-detail-item textarea {
+    font-size: 1.1rem !important;
+    padding: 0.9rem 1.1rem !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: var(--radius-medium) !important;
+}
+
+#modal-detail-item input[type="text"]:focus,
+#modal-detail-item textarea:focus {
+    border-color: var(--primary) !important;
+    background: rgba(255, 255, 255, 0.09) !important;
+}
+
+#modal-detail-item .video-container {
+    max-height: 380px !important;
+}
+
+

@@ -18,7 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailSection = document.getElementById('detail-section');
     const detailPlaceholder = document.getElementById('detail-placeholder');
     const detailContainer = document.getElementById('detail-container');
+    const btnCloseDetail = document.getElementById('btn-close-detail');
+    const modalDetailItem = document.getElementById('modal-detail-item');
+    const btnCancelDetail = document.getElementById('btn-cancel-detail');
     
+
     // Detail Panel fields
     const detailProductNo = document.getElementById('detail-product-no');
     const detailTitle = document.getElementById('detail-title');
@@ -77,6 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // YouTube 댓글 탭 선택 시 자동 새로고침 실행
             if (targetId === 'tab-comments') {
                 fetchYoutubeComments();
+            } else if (targetId === 'tab-agent') {
+                fetchAgentLogs();
             }
         });
     });
@@ -85,16 +91,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const showModal = (modal) => modal.classList.add('show');
     const hideModal = (modal) => modal.classList.remove('show');
 
-    btnAddItem.addEventListener('click', () => showModal(modalAddItem));
-    btnSettings.addEventListener('click', () => {
-        loadSettings();
-        showModal(modalSettings);
-    });
+    if (btnAddItem) btnAddItem.addEventListener('click', () => showModal(modalAddItem));
+    if (btnSettings) {
+        btnSettings.addEventListener('click', () => {
+            loadSettings();
+            showModal(modalSettings);
+        });
+    }
+    if (btnCloseAddModal) btnCloseAddModal.addEventListener('click', () => hideModal(modalAddItem));
+    if (btnCancelAddModal) btnCancelAddModal.addEventListener('click', () => hideModal(modalAddItem));
+    if (btnCloseSettingsModal) btnCloseSettingsModal.addEventListener('click', () => hideModal(modalSettings));
+    if (btnCloseSettingsFooter) btnCloseSettingsFooter.addEventListener('click', () => hideModal(modalSettings));
+    
+    const closeDetailModal = () => {
+        if (modalDetailItem) {
+            hideModal(modalDetailItem);
+        }
+        if (detailVideoPlayer) {
+            detailVideoPlayer.pause();
+        }
+    };
 
-    btnCloseAddModal.addEventListener('click', () => hideModal(modalAddItem));
-    btnCancelAddModal.addEventListener('click', () => hideModal(modalAddItem));
-    btnCloseSettingsModal.addEventListener('click', () => hideModal(modalSettings));
-    btnCloseSettingsFooter.addEventListener('click', () => hideModal(modalSettings));
+    if (btnCloseDetail) {
+        btnCloseDetail.addEventListener('click', closeDetailModal);
+    }
+    if (btnCancelDetail) {
+        btnCancelDetail.addEventListener('click', closeDetailModal);
+    }
+    if (modalDetailItem) {
+        modalDetailItem.addEventListener('click', (e) => {
+            if (e.target === modalDetailItem) {
+                closeDetailModal();
+            }
+        });
+    }
 
     // Input File preview
     inputVideo.addEventListener('change', (e) => {
@@ -107,6 +137,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- API Calls & Integration ---
+
+    // 0. Helper function to extract publish error message
+    function getErrorMessage(item) {
+        if (!item.publish_results) return '';
+        try {
+            const results = typeof item.publish_results === 'string'
+                ? JSON.parse(item.publish_results)
+                : item.publish_results;
+            if (!results) return '';
+            if (results.error || results.global_error) {
+                return results.error || results.global_error;
+            }
+            const failedChannels = [];
+            for (const ch in results) {
+                if (results[ch] && results[ch].status !== 'success') {
+                    failedChannels.push(`${ch.toUpperCase()}: ${results[ch].message}`);
+                }
+            }
+            if (failedChannels.length > 0) {
+                return failedChannels.join(', ');
+            }
+        } catch (e) {
+            console.error('Error parsing publish_results:', e);
+            return '에러 상세 정보 파싱 실패';
+        }
+        return '';
+    }
 
     // 1. Fetch & Render Items List
     async function loadItems(selectedIdAfterLoad = null) {
@@ -132,29 +189,66 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 let statusBadgeClass = 'badge-pending';
                 let statusText = '대기중';
-                if (item.publish_status === 'publishing') {
+                let badgeAttr = '';
+
+                if (item.publish_status === 'pending') {
+                    if (!item.coupang_url || item.coupang_url === '') {
+                        statusBadgeClass = 'badge-pending'; // 황색 계열 골드색
+                        statusText = '링크대기';
+                    } else {
+                        statusBadgeClass = 'badge-pending';
+                        statusText = '배포대기';
+                    }
+                } else if (item.publish_status === 'publishing') {
                     statusBadgeClass = 'badge-processing';
                     statusText = '배포중';
+                } else if (item.publish_status === 'scheduled') {
+                    statusBadgeClass = 'badge-completed';
+                    statusText = '예약됨';
                 } else if (item.publish_status === 'completed') {
                     statusBadgeClass = 'badge-completed';
                     statusText = '배포완료';
                 } else if (item.publish_status === 'partial_failed') {
-                    statusBadgeClass = 'badge-pending';
+                    statusBadgeClass = 'badge-failed';
                     statusText = '부분실패';
+                    const errMsg = getErrorMessage(item);
+                    if (errMsg) {
+                        badgeAttr = `title="${errMsg}" style="cursor: help;"`;
+                    }
                 } else if (item.publish_status === 'failed') {
                     statusBadgeClass = 'badge-failed';
                     statusText = '배포실패';
+                    const errMsg = getErrorMessage(item);
+                    if (errMsg) {
+                        badgeAttr = `title="${errMsg}" style="cursor: help;"`;
+                    }
+                }
+
+                const displayCode = item.product_code || `No. ${item.product_no}`;
+                let scheduleMeta = '';
+                if (item.scheduled_at) {
+                    try {
+                        const sDate = new Date(item.scheduled_at);
+                        const kstTimeStr = sDate.toLocaleDateString('ko-KR', {month:'short', day:'numeric'}) + ' ' + sDate.toLocaleTimeString('ko-KR', {hour: '2-digit', minute:'2-digit'});
+                        scheduleMeta = `<span class="schedule-text" style="color: var(--accent-gold); display: block; margin-top: 4px; font-size: 0.72rem; font-weight: 500;"><i class="fa-regular fa-clock"></i> ${kstTimeStr} KST 예약</span>`;
+                    } catch(e) {}
                 }
 
                 card.innerHTML = `
-                    <div class="card-top">
-                        <span class="product-badge">No. ${item.product_no}</span>
-                        <span class="badge ${statusBadgeClass}">${statusText}</span>
+                    <div class="card-thumbnail-box" style="width: 75px; aspect-ratio: 9/16; border-radius: var(--radius-medium); overflow: hidden; background: #000; flex-shrink: 0;">
+                        <img src="/static/thumbnails/${item.product_code || ''}.webp" alt="썸네일" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=150'">
                     </div>
-                    <h3 class="card-title">${item.title}</h3>
-                    <p class="card-desc">${item.description || ''}</p>
-                    <div class="card-meta">
-                        <span class="date-text">${new Date(item.created_at).toLocaleDateString()}</span>
+                    <div class="card-content-box" style="display: flex; flex-direction: column; flex: 1; min-width: 0; justify-content: space-between;">
+                        <div class="card-top" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="product-badge">${displayCode}</span>
+                            <span class="badge ${statusBadgeClass}" ${badgeAttr}>${statusText}</span>
+                        </div>
+                        <h3 class="card-title" style="margin: 4px 0 2px 0;">${item.title}</h3>
+                        <p class="card-desc" style="margin: 0; font-size: 0.78rem; line-height: 1.4; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; height: 1.1rem;">${item.description || ''}</p>
+                        <div class="card-meta" style="margin-top: 4px; padding-top: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; border-top: 1px solid rgba(255, 255, 255, 0.03);">
+                            <span class="date-text" style="color: var(--text-muted);">${new Date(item.created_at).toLocaleDateString()}</span>
+                            ${scheduleMeta}
+                        </div>
                     </div>
                 `;
 
@@ -186,10 +280,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Show details panel, hide placeholder
-        detailPlaceholder.style.display = 'none';
-        detailSection.style.display = 'flex';
-        detailContainer.style.display = 'block';
+        // Show details panel in central modal
+        if (detailPlaceholder) detailPlaceholder.style.display = 'none';
+        if (detailSection) detailSection.classList.add('open');
+        if (detailContainer) detailContainer.style.display = 'block';
+        if (modalDetailItem) showModal(modalDetailItem);
 
         // Clear poll interval if active
         if (pollInterval) {
@@ -210,90 +305,141 @@ document.addEventListener('DOMContentLoaded', () => {
             // Only update details if this is still the selected item
             if (currentItemId !== item.id) return;
 
-            detailProductNo.innerText = `No. ${item.product_no}`;
-            detailTitle.innerText = item.title;
+            if (detailProductNo) {
+                detailProductNo.innerText = `No. ${item.product_no}`;
+            }
+            if (detailTitle) {
+                detailTitle.innerText = item.title;
+            }
             
             // Video path (Original local preview)
-            detailVideoPlayer.src = item.original_video_path.replace(new RegExp('^.*uploads/originals/'), '/uploads/originals/');
+            if (detailVideoPlayer) {
+                detailVideoPlayer.src = item.original_video_path.replace(new RegExp('^.*uploads/originals/'), '/uploads/originals/');
+            }
             
             // R2 URL
-            detailR2Url.value = item.r2_video_url || '';
+            if (detailR2Url) {
+                detailR2Url.value = item.r2_video_url || '';
+            }
 
             // Status setup
-            detailPublishStatus.className = 'badge';
-            btnPublishNow.disabled = false;
-            
-            if (item.publish_status === 'pending') {
-                detailPublishStatus.classList.add('badge-pending');
-                detailPublishStatus.innerText = '배포 대기중';
-            } else if (item.publish_status === 'publishing') {
-                detailPublishStatus.classList.add('badge-processing');
-                detailPublishStatus.innerText = '배포 진행중...';
-                btnPublishNow.disabled = true;
-                // Poll for updates
-                startPolling(item.id);
-            } else if (item.publish_status === 'completed') {
-                detailPublishStatus.classList.add('badge-completed');
-                detailPublishStatus.innerText = '배포 성공';
-            } else if (item.publish_status === 'partial_failed') {
-                detailPublishStatus.classList.add('badge-pending');
-                detailPublishStatus.innerText = '일부 채널 실패';
-            } else {
-                detailPublishStatus.classList.add('badge-failed');
-                detailPublishStatus.innerText = '배포 실패';
+            if (detailPublishStatus) {
+                detailPublishStatus.className = 'badge';
+                if (btnPublishNow) btnPublishNow.disabled = false;
+                
+                if (item.publish_status === 'pending') {
+                    detailPublishStatus.classList.add('badge-pending');
+                    if (!item.coupang_url || item.coupang_url === "") {
+                        detailPublishStatus.innerText = '링크대기';
+                    } else {
+                        detailPublishStatus.innerText = '배포대기';
+                    }
+                } else if (item.publish_status === 'scheduled') {
+                    detailPublishStatus.classList.add('badge-completed');
+                    detailPublishStatus.innerText = '예약됨';
+                } else if (item.publish_status === 'publishing') {
+                    detailPublishStatus.classList.add('badge-processing');
+                    detailPublishStatus.innerText = '배포중';
+                    if (btnPublishNow) btnPublishNow.disabled = true;
+                    // Poll for updates
+                    startPolling(item.id);
+                } else if (item.publish_status === 'completed') {
+                    detailPublishStatus.classList.add('badge-completed');
+                    detailPublishStatus.innerText = '배포완료';
+                } else if (item.publish_status === 'partial_failed') {
+                    detailPublishStatus.classList.add('badge-failed');
+                    detailPublishStatus.innerText = '부분실패';
+                } else {
+                    detailPublishStatus.classList.add('badge-failed');
+                    detailPublishStatus.innerText = '배포실패';
+                }
+            }
+
+            // Error Message Box control
+            const detailErrorBox = document.getElementById('detail-error-box');
+            const detailErrorMsg = document.getElementById('detail-error-msg');
+            if (detailErrorBox && detailErrorMsg) {
+                if (item.publish_status === 'failed' || item.publish_status === 'partial_failed') {
+                    const errMsg = getErrorMessage(item);
+                    detailErrorMsg.innerText = errMsg || '알 수 없는 배포 오류가 발생했습니다.';
+                    detailErrorBox.style.display = 'block';
+                } else {
+                    detailErrorBox.style.display = 'none';
+                    detailErrorMsg.innerText = '';
+                }
             }
 
             // Publish Results Details Rendering
-            if (item.publish_results) {
-                try {
-                    const results = JSON.parse(item.publish_results);
-                    
-                    if (results.error || results.global_error) {
-                        // Global exception
-                        publishResultsDetail.innerHTML = `
-                            <div class="result-item" style="color: var(--danger)">
-                                <span><i class="fa-solid fa-triangle-exclamation"></i> 오류: ${results.error || results.global_error}</span>
-                            </div>
-                        `;
-                    } else {
-                        // Channel results
-                        let html = '';
-                        for (const platform in results) {
-                            const detail = results[platform];
-                            const isSuccess = detail.status === 'success';
-                            const statusIcon = isSuccess ? '<i class="fa-solid fa-circle-check result-status-ok"></i>' : '<i class="fa-solid fa-circle-xmark result-status-err"></i>';
-                            const statusMsg = isSuccess ? '성공' : `실패 (${detail.message})`;
-                            const msgClass = isSuccess ? 'result-status-ok' : 'result-status-err';
-                            
-                            html += `
-                                <div class="result-item">
-                                    <span class="result-platform">${statusIcon} ${platform.toUpperCase()}</span>
-                                    <span class="${msgClass}">${statusMsg}</span>
+            if (publishResultsDetail) {
+                if (item.publish_results) {
+                    try {
+                        const results = JSON.parse(item.publish_results);
+                        
+                        if (results.error || results.global_error) {
+                            // Global exception
+                            publishResultsDetail.innerHTML = `
+                                <div class="result-item" style="color: var(--danger)">
+                                    <span><i class="fa-solid fa-triangle-exclamation"></i> 오류: ${results.error || results.global_error}</span>
                                 </div>
                             `;
+                        } else {
+                            // Channel results
+                            let html = '';
+                            for (const platform in results) {
+                                const detail = results[platform];
+                                const isSuccess = detail.status === 'success';
+                                const statusIcon = isSuccess ? '<i class="fa-solid fa-circle-check result-status-ok"></i>' : '<i class="fa-solid fa-circle-xmark result-status-err"></i>';
+                                const statusMsg = isSuccess ? '성공' : `실패 (${detail.message})`;
+                                const msgClass = isSuccess ? 'result-status-ok' : 'result-status-err';
+                                
+                                html += `
+                                    <div class="result-item">
+                                        <span class="result-platform">${statusIcon} ${platform.toUpperCase()}</span>
+                                        <span class="${msgClass}">${statusMsg}</span>
+                                    </div>
+                                `;
+                            }
+                            publishResultsDetail.innerHTML = html;
                         }
-                        publishResultsDetail.innerHTML = html;
+                        publishResultsDetail.style.display = 'flex';
+                    } catch (e) {
+                        publishResultsDetail.style.display = 'none';
                     }
-                    publishResultsDetail.style.display = 'flex';
-                } catch (e) {
+                } else {
                     publishResultsDetail.style.display = 'none';
                 }
-            } else {
-                publishResultsDetail.style.display = 'none';
             }
 
             // Coupang Links
-            detailCoupangUrl.value = item.coupang_url;
-            detailShortUrl.value = item.short_url || '';
-            btnVisitCoupang.href = item.coupang_url;
+            if (detailCoupangUrl) {
+                detailCoupangUrl.value = item.coupang_url || '';
+            }
+            if (detailShortUrl) {
+                detailShortUrl.value = item.short_url || '';
+            }
+            if (btnVisitCoupang) {
+                btnVisitCoupang.href = item.coupang_url || '#';
+            }
+            
+            // Description Input Binding
+            const detailDescInput = document.getElementById('detail-description-input');
+            if (detailDescInput) {
+                detailDescInput.value = item.description || '';
+            }
 
             // Platform Contents
-            ytTitle.value = item.youtube_title || '';
-            ytDesc.value = item.youtube_description || '';
-            ytTags.value = item.youtube_tags || '';
-            snsCaption.value = item.sns_caption || '';
-            dmReply.value = item.comment_reply || '';
-            dmText.value = item.dm_template || '';
+            if (ytTitle) ytTitle.value = item.youtube_title || '';
+            if (ytDesc) ytDesc.value = item.youtube_description || '';
+            
+            // ManyChat Mobile Landing URL Binding
+            const detailLandingUrl = document.getElementById('detail-landing-url');
+            if (detailLandingUrl) {
+                detailLandingUrl.value = window.location.origin + '/p/' + item.product_no;
+            }
+            if (ytTags) ytTags.value = item.youtube_tags || '';
+            if (snsCaption) snsCaption.value = item.sns_caption || '';
+            if (dmReply) dmReply.value = item.comment_reply || '';
+            if (dmText) dmText.value = item.dm_template || '';
 
             // YouTube Trends keyword binding & auto load
             if (trendsSearchKeyword) {
@@ -361,182 +507,193 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 4. Update Custom Short Link
-    btnSaveShortLink.addEventListener('click', async () => {
-        if (!currentItemId) return;
+    // 4. Update Custom Short Link & Unified Product Details
+    if (btnSaveShortLink) {
+        btnSaveShortLink.addEventListener('click', async () => {
+            if (!currentItemId) return;
 
-        btnSaveShortLink.disabled = true;
-        btnSaveShortLink.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장중';
+            btnSaveShortLink.disabled = true;
+            btnSaveShortLink.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장 중...';
 
-        try {
-            const res = await fetch(`/api/items/${currentItemId}/short-link`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    short_url: detailShortUrl.value,
-                    coupang_url: detailCoupangUrl.value
-                })
-            });
-            const data = await res.json();
-            if (data.status === 'success') {
-                await fetchItemDetails(currentItemId);
-                alert('링크 및 AI 홍보 문구가 업데이트되었습니다.');
-            } else {
-                alert('업데이트 실패');
+            const detailDescInput = document.getElementById('detail-description-input');
+
+            try {
+                const res = await fetch(`/api/items/${currentItemId}/short-link`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        short_url: '',
+                        coupang_url: detailCoupangUrl ? detailCoupangUrl.value : '',
+                        description: detailDescInput ? detailDescInput.value : ''
+                    })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    closeDetailModal();
+                    await loadItems();
+                    alert('상품 정보가 저장되었습니다. (오후 6시에 자동 배포됩니다)');
+                } else {
+                    alert('저장에 실패했습니다.');
+                }
+            } catch (err) {
+                console.error('Error saving short link:', err);
+                alert('오류가 발생했습니다.');
+            } finally {
+                btnSaveShortLink.disabled = false;
+                btnSaveShortLink.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 저장';
             }
-        } catch (err) {
-            console.error('Error saving short link:', err);
-            alert('오류 발생');
-        } finally {
-            btnSaveShortLink.disabled = false;
-            btnSaveShortLink.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 저장';
-        }
-    });
+        });
+    }
 
     // 5. Trigger Batch Social Publication (R2 + Buffer)
-    btnPublishNow.addEventListener('click', async () => {
-        if (!currentItemId) return;
+    if (btnPublishNow) {
+        btnPublishNow.addEventListener('click', async () => {
+            if (!currentItemId) return;
 
-        const platforms = [];
-        if (chkYoutube.checked) platforms.push('youtube');
-        if (chkTiktok.checked) platforms.push('tiktok');
-        if (chkInstagram.checked) platforms.push('instagram');
+            const platforms = [];
+            if (chkYoutube && chkYoutube.checked) platforms.push('youtube');
+            if (chkTiktok && chkTiktok.checked) platforms.push('tiktok');
+            if (chkInstagram && chkInstagram.checked) platforms.push('instagram');
 
-        if (platforms.length === 0) {
-            alert('배포할 플랫폼 채널을 하나 이상 선택해 주세요.');
-            return;
-        }
+            if (platforms.length === 0) {
+                alert('배포할 플랫폼 채널을 하나 이상 선택해 주세요.');
+                return;
+            }
 
-        btnPublishNow.disabled = true;
-        btnPublishNow.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 배포 요청 전송 중...';
+            btnPublishNow.disabled = true;
+            btnPublishNow.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 배포 요청 전송 중...';
 
-        try {
-            const res = await fetch(`/api/items/${currentItemId}/publish`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ platforms })
-            });
-            const data = await res.json();
-            if (data.status === 'success') {
-                // Instantly update UI status to publishing and start polling
-                detailPublishStatus.className = 'badge badge-processing';
-                detailPublishStatus.innerText = '배포 진행중...';
-                startPolling(currentItemId);
-                loadItems();
-            } else {
-                alert('배포 요청에 실패했습니다.');
+            try {
+                const res = await fetch(`/api/items/${currentItemId}/publish`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ platforms })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    if (detailPublishStatus) {
+                        detailPublishStatus.className = 'badge badge-processing';
+                        detailPublishStatus.innerText = '배포 진행중...';
+                    }
+                    startPolling(currentItemId);
+                    loadItems();
+                } else {
+                    alert('배포 요청에 실패했습니다.');
+                    btnPublishNow.disabled = false;
+                    btnPublishNow.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 선택 채널로 일괄 배포 실행';
+                }
+            } catch (err) {
+                console.error('Error triggering publish:', err);
+                alert('오류 발생');
                 btnPublishNow.disabled = false;
                 btnPublishNow.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 선택 채널로 일괄 배포 실행';
             }
-        } catch (err) {
-            console.error('Error triggering publish:', err);
-            alert('오류 발생');
-            btnPublishNow.disabled = false;
-            btnPublishNow.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 선택 채널로 일괄 배포 실행';
-        }
-    });
+        });
+    }
 
     // 6. Regenerate Content (Gemini)
-    btnRegenerate.addEventListener('click', async () => {
-        if (!currentItemId) return;
+    if (btnRegenerate) {
+        btnRegenerate.addEventListener('click', async () => {
+            if (!currentItemId) return;
 
-        btnRegenerate.disabled = true;
-        btnRegenerate.innerHTML = '<i class="fa-solid fa-rotate fa-spin"></i> AI 집필중...';
+            btnRegenerate.disabled = true;
+            btnRegenerate.innerHTML = '<i class="fa-solid fa-rotate fa-spin"></i> AI 집필중...';
 
-        try {
-            const res = await fetch(`/api/items/${currentItemId}/regenerate`, {
-                method: 'POST'
-            });
-            const data = await res.json();
-            if (data.status === 'success') {
-                await fetchItemDetails(currentItemId);
-            } else {
-                alert('문구 생성에 실패했습니다.');
+            try {
+                const res = await fetch(`/api/items/${currentItemId}/regenerate`, {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    await fetchItemDetails(currentItemId);
+                } else {
+                    alert('문구 생성에 실패했습니다.');
+                }
+            } catch (err) {
+                console.error('Error regenerating content:', err);
+                alert('오류 발생');
+            } finally {
+                btnRegenerate.disabled = false;
+                btnRegenerate.innerHTML = '<i class="fa-solid fa-rotate"></i> AI 홍보글 재작성 (Gemini)';
             }
-        } catch (err) {
-            console.error('Error regenerating content:', err);
-            alert('오류 발생');
-        } finally {
-            btnRegenerate.disabled = false;
-            btnRegenerate.innerHTML = '<i class="fa-solid fa-rotate"></i> AI 홍보글 재작성 (Gemini)';
-        }
-    });
+        });
+    }
 
     // 7. Delete Item
-    btnDeleteItem.addEventListener('click', async () => {
-        if (!currentItemId) return;
-        if (!confirm('정말로 이 상품 및 동영상을 영구 삭제하시겠습니까?')) return;
+    if (btnDeleteItem) {
+        btnDeleteItem.addEventListener('click', async () => {
+            if (!currentItemId) return;
+            if (!confirm('정말로 이 상품 및 동영상을 영구 삭제하시겠습니까?')) return;
 
-        try {
-            const res = await fetch(`/api/items/${currentItemId}`, {
-                method: 'DELETE'
-            });
-            const data = await res.json();
-            if (data.status === 'success') {
-                currentItemId = null;
-                detailContainer.style.display = 'none';
-                detailPlaceholder.style.display = 'flex';
-                if (pollInterval) {
-                    clearInterval(pollInterval);
-                    pollInterval = null;
+            try {
+                const res = await fetch(`/api/items/${currentItemId}`, {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    currentItemId = null;
+                    closeDetailModal();
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                    }
+                    await loadItems();
                 }
-                loadItems();
+            } catch (err) {
+                console.error('Error deleting item:', err);
             }
-        } catch (err) {
-            console.error('Error deleting item:', err);
-        }
-    });
+        });
+    }
 
-    // 8. Settings Management
+    // 8. General Settings Management
     async function loadSettings() {
         try {
             const res = await fetch('/api/settings');
             const settings = await res.json();
             
-            document.getElementById('setting-gemini-key').value = settings.GEMINI_API_KEY || '';
-            document.getElementById('setting-buffer-token').value = settings.BUFFER_ACCESS_TOKEN || '';
-            document.getElementById('setting-r2-account').value = settings.CLOUDFLARE_ACCOUNT_ID || '';
-            document.getElementById('setting-r2-token').value = settings.CLOUDFLARE_API_TOKEN || '';
-            document.getElementById('setting-r2-bucket').value = settings.CLOUDFLARE_BUCKET_NAME || 'blog';
-            document.getElementById('setting-r2-url').value = settings.CLOUDFLARE_PUBLIC_URL || '';
-            document.getElementById('setting-coupang-access').value = settings.COUPANG_ACCESS_KEY || '';
-            document.getElementById('setting-coupang-secret').value = settings.COUPANG_SECRET_KEY || '';
-            document.getElementById('setting-manychat-token').value = settings.MANYCHAT_API_TOKEN || '';
-            document.getElementById('setting-youtube-key').value = settings.YOUTUBE_API_KEY || '';
+            const chkYt = document.getElementById('setting-publish-youtube');
+            const chkTt = document.getElementById('setting-publish-tiktok');
+            const chkIg = document.getElementById('setting-publish-instagram');
+            
+            if (chkYt) chkYt.checked = settings.PUBLISH_YOUTUBE === 'true';
+            if (chkTt) chkTt.checked = settings.PUBLISH_TIKTOK === 'true';
+            if (chkIg) chkIg.checked = settings.PUBLISH_INSTAGRAM === 'true';
         } catch (err) {
             console.error('Error loading settings:', err);
         }
     }
 
-    formSettings.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const formData = new FormData(formSettings);
-        const payload = {};
-        formData.forEach((value, key) => {
-            payload[key] = value;
-        });
+    if (formSettings) {
+        formSettings.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const chkYt = document.getElementById('setting-publish-youtube');
+            const chkTt = document.getElementById('setting-publish-tiktok');
+            const chkIg = document.getElementById('setting-publish-instagram');
+            
+            const payload = {
+                PUBLISH_YOUTUBE: chkYt ? String(chkYt.checked) : 'false',
+                PUBLISH_TIKTOK: chkTt ? String(chkTt.checked) : 'false',
+                PUBLISH_INSTAGRAM: chkIg ? String(chkIg.checked) : 'false'
+            };
 
-        try {
-            const res = await fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            if (data.status === 'success') {
-                hideModal(modalSettings);
-                alert('설정이 안전하게 저장되었습니다.');
-                // Refresh active details in case key was updated
-                if (currentItemId) {
-                    await fetchItemDetails(currentItemId);
+            try {
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    hideModal(modalSettings);
+                    alert('기본 배포 채널 설정이 저장되었습니다.');
                 }
+            } catch (err) {
+                console.error('Error saving settings:', err);
+                alert('설정 저장 중 오류가 발생했습니다.');
             }
-        } catch (err) {
-            console.error('Error saving settings:', err);
-            alert('설정 저장 중 오류가 발생했습니다.');
-        }
-    });
+        });
+    }
 
     // 9. Copy to Clipboard Utility
     const copyButtons = document.querySelectorAll('.btn-copy');
@@ -821,6 +978,148 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- AI Agent Logs & Trigger Logic ---
+    const btnTriggerAgent = document.getElementById('btn-trigger-agent');
+    const btnRefreshAgentLogs = document.getElementById('btn-refresh-agent-logs');
+    const agentLogsList = document.getElementById('agent-logs-list');
+
+    async function fetchAgentLogs() {
+        if (!agentLogsList) return;
+        agentLogsList.innerHTML = '<div class="empty-state" style="padding: 1.5rem 1rem;"><p><i class="fa-solid fa-spinner fa-spin"></i> 로그 데이터를 불러오는 중...</p></div>';
+
+        try {
+            const res = await fetch('/api/agent/logs');
+            const logs = await res.json();
+
+            if (logs && logs.length > 0) {
+                agentLogsList.innerHTML = '';
+                logs.forEach(log => {
+                    const row = document.createElement('div');
+                    row.className = `agent-log-item status-${log.status}`;
+                    
+                    let icon = '<i class="fa-solid fa-gear"></i>';
+                    let taskName = '시스템';
+                    if (log.task_type === 'auto_publish') {
+                        icon = '<i class="fa-solid fa-cloud-arrow-up"></i>';
+                        taskName = '자동 배포';
+                    } else if (log.task_type === 'comment_monitor') {
+                        icon = '<i class="fa-solid fa-comments"></i>';
+                        taskName = '댓글 감지';
+                    } else if (log.task_type === 'manychat_event') {
+                        icon = '<i class="fa-solid fa-paper-plane"></i>';
+                        taskName = 'ManyChat';
+                    }
+
+                    const logTime = new Date(log.created_at).toLocaleString('ko-KR', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+
+                    row.innerHTML = `
+                        <div class="log-icon-box">${icon}</div>
+                        <div class="log-content-box">
+                            <div class="log-meta">
+                                <span class="log-task-name">${taskName}</span>
+                                <span class="log-time">${logTime}</span>
+                            </div>
+                            <p class="log-msg">${log.message}</p>
+                        </div>
+                    `;
+                    agentLogsList.appendChild(row);
+                });
+            } else {
+                agentLogsList.innerHTML = '<div class="empty-state" style="padding: 2rem 1rem;"><p>아직 기록된 에이전트 활동 이력이 없습니다.</p></div>';
+            }
+        } catch (err) {
+            console.error('Error fetching agent logs:', err);
+            agentLogsList.innerHTML = '<div class="empty-state" style="padding: 2rem 1rem;"><p style="color: var(--danger)">로그 데이터를 가져오는 중 오류가 발생했습니다.</p></div>';
+        }
+    }
+
+    if (btnTriggerAgent) {
+        btnTriggerAgent.addEventListener('click', async () => {
+            btnTriggerAgent.disabled = true;
+            btnTriggerAgent.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 기동 요청중...';
+
+            try {
+                const res = await fetch('/api/agent/trigger', { method: 'POST' });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    alert('에이전트가 백그라운드에서 즉시 기동되었습니다. 잠시 후 로그를 새로고침 하세요.');
+                    setTimeout(fetchAgentLogs, 1500);
+                } else {
+                    alert('기동 실패');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('네트워크 오류');
+            } finally {
+                btnTriggerAgent.disabled = false;
+                btnTriggerAgent.innerHTML = '<i class="fa-solid fa-play"></i> 에이전트 즉시 기동';
+            }
+        });
+    }
+
+    if (btnRefreshAgentLogs) {
+        btnRefreshAgentLogs.addEventListener('click', fetchAgentLogs);
+    }
+
+    // --- YouTube OAuth2 Integration Helpers ---
+    const ytConnectionStatus = document.getElementById('youtube-connection-status');
+    
+    async function checkYoutubeStatus() {
+        if (!ytConnectionStatus) return;
+        try {
+            const res = await fetch('/api/youtube/status');
+            const data = await res.json();
+            
+            if (data.connected) {
+                ytConnectionStatus.innerHTML = `
+                    <span class="badge badge-completed" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); height: 36px; display: inline-flex; align-items: center; font-size: 0.82rem; padding: 0 12px; border-radius: var(--radius-medium);">
+                        <i class="fa-brands fa-youtube" style="font-size: 1rem; color: #ff0000; margin-right: 4px;"></i> 연동 완료 (${data.channel_id.substring(0,8)}...)
+                    </span>
+                `;
+            } else {
+                ytConnectionStatus.innerHTML = `
+                    <button id="btn-youtube-connect" class="btn btn-secondary btn-small" style="height: 36px; font-weight: 600; color: #FFF; background: linear-gradient(135deg, #FF0000, #C10000); border: none;">
+                        <i class="fa-brands fa-youtube"></i> 유튜브 연동하기
+                    </button>
+                `;
+                
+                const btnConnect = document.getElementById('btn-youtube-connect');
+                if (btnConnect) {
+                    btnConnect.addEventListener('click', async () => {
+                        try {
+                            const authRes = await fetch('/api/youtube/auth');
+                            const authData = await authRes.json();
+                            if (authData.url) {
+                                const popup = window.open(authData.url, 'YouTube Authentication', 'width=600,height=750,scrollbars=yes');
+                                const timer = setInterval(async () => {
+                                    if (popup.closed) {
+                                        clearInterval(timer);
+                                        await checkYoutubeStatus();
+                                        if (currentItemId) {
+                                            await fetchItemDetails(currentItemId);
+                                        }
+                                    }
+                                }, 1000);
+                            }
+                        } catch (err) {
+                            console.error('Failed to trigger YouTube OAuth:', err);
+                        }
+                    });
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching YouTube connection status:', err);
+        }
+    }
+
     // Initialize Page
     loadItems();
+    checkYoutubeStatus();
+    setInterval(checkYoutubeStatus, 15000);
 });

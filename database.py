@@ -40,7 +40,9 @@ def init_db():
         ("r2_video_url", "TEXT"),
         ("publish_status", "TEXT DEFAULT 'pending'"),
         ("publish_results", "TEXT"),
-        ("youtube_trends", "TEXT")
+        ("youtube_trends", "TEXT"),
+        ("product_code", "TEXT"),
+        ("scheduled_at", "TEXT")
     ]
     for col, col_type in alterations:
         try:
@@ -55,19 +57,31 @@ def init_db():
         value TEXT
     )
     """)
+
+    # 4. agent_logs 테이블 생성
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS agent_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_type TEXT,
+        status TEXT,
+        message TEXT,
+        details TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
     
     conn.commit()
     conn.close()
 
 # --- CRUD for Items ---
 
-def create_item(product_no, title, description, coupang_url, original_video_path):
+def create_item(product_no, title, description, coupang_url, original_video_path, product_code=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
-    INSERT INTO items (product_no, title, description, coupang_url, original_video_path, publish_status)
-    VALUES (?, ?, ?, ?, ?, 'pending')
-    """, (product_no, title, description, coupang_url, original_video_path))
+    INSERT INTO items (product_no, title, description, coupang_url, original_video_path, publish_status, product_code)
+    VALUES (?, ?, ?, ?, ?, 'pending', ?)
+    """, (product_no, title, description, coupang_url, original_video_path, product_code))
     item_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -88,6 +102,59 @@ def get_item(item_id):
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else None
+def get_item_by_product_no(product_no):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        no_val = int(product_no)
+        cursor.execute("SELECT * FROM items WHERE product_no = ?", (no_val,))
+    except ValueError:
+        cursor.execute("SELECT * FROM items WHERE product_code = ? OR product_no = ?", (product_no, product_no))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_next_product_no():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT MAX(product_no) as max_no FROM items")
+    row = cursor.fetchone()
+    conn.close()
+    if row and row['max_no'] is not None:
+        return int(row['max_no']) + 1
+    return 1
+
+def get_next_product_code(category_prefix):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT product_code FROM items WHERE product_code LIKE ? ORDER BY product_code DESC LIMIT 1", (f"{category_prefix}%",))
+    row = cursor.fetchone()
+    conn.close()
+    if row and row['product_code']:
+        last_code = row['product_code']
+        try:
+            num_part = int(last_code[1:])
+            next_num = num_part + 1
+            return f"{category_prefix}{next_num:05d}"
+        except ValueError:
+            pass
+    return f"{category_prefix}00001"
+
+def get_item_by_code(product_code):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM items WHERE product_code = ?", (product_code,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def update_item_scheduled_at(item_id, scheduled_at):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE items SET scheduled_at = ? WHERE id = ?", (scheduled_at, item_id))
+    conn.commit()
+    conn.close()
 
 def update_item_r2_url(item_id, r2_video_url):
     conn = get_db_connection()
@@ -163,6 +230,28 @@ def get_all_settings():
     rows = cursor.fetchall()
     conn.close()
     return {row['key']: row['value'] for row in rows}
+
+# --- CRUD for Agent Logs ---
+
+def create_agent_log(task_type, status, message, details=None):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO agent_logs (task_type, status, message, details)
+    VALUES (?, ?, ?, ?)
+    """, (task_type, status, message, details))
+    log_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return log_id
+
+def get_agent_logs(limit=50):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM agent_logs ORDER BY created_at DESC LIMIT ?", (limit,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
 
 # 모듈이 로드될 때 DB 초기화 자동 진행
 init_db()
