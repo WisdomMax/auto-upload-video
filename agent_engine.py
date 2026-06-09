@@ -245,6 +245,8 @@ class AIAgentEngine:
         now_utc = datetime.now(timezone.utc)
         
         for it in items:
+            if it.get("publish_status") not in ("scheduled", "partial_failed"):
+                continue
             sch_str = it.get("scheduled_at")
             if sch_str:
                 try:
@@ -356,6 +358,9 @@ class AIAgentEngine:
 
         if not pending_items:
             return
+
+        # ID 오름차순(오래된 상품 순)으로 정렬하여 먼저 등록된 상품이 빠른 날짜에 배포 예약되게 함
+        pending_items.sort(key=lambda x: x["id"])
 
         for item in pending_items:
             await self._schedule_item_on_buffer(item["id"])

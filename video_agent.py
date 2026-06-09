@@ -186,16 +186,39 @@ async def process_video_pipeline(video_path):
     
     duration = get_video_duration(video_path)
     
-    # 카테고리 구분을 배제하고 기본 'T' 접두사 일련번호로 통일
+    # 기본값 설정
     category = "T"
     title = "엄마아빠 패션다이어리 추천 상품"
     description = "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다."
     keyword = "패션아이템"
     
+    # 1. 비디오 프레임 추출 및 Gemini 분석 수행
+    try:
+        frames = capture_frames(video_path, duration, num_frames=3)
+        if frames:
+            logger.info(f"Captured {len(frames)} frames for AI analysis: {frames}")
+            ai_data = await analyze_video_frames_with_gemini(frames)
+            if ai_data:
+                category = ai_data.get("category", "T")
+                title = ai_data.get("title", title)
+                description = ai_data.get("description", description)
+                keyword = ai_data.get("keyword", keyword)
+                logger.info(f"Successfully extracted product info via Gemini: {ai_data}")
+            
+            # 임시 프레임 파일 정리
+            for f in frames:
+                if os.path.exists(f):
+                    try:
+                        os.remove(f)
+                    except Exception as rm_err:
+                        logger.error(f"Failed to remove temp frame {f}: {rm_err}")
+    except Exception as ai_err:
+        logger.error(f"Error during AI video analysis: {ai_err}")
+        
     product_code = database.get_next_product_code(category)
     product_no = database.get_next_product_no()
     
-    # 1. ffmpeg drawtext 자막 인코딩 수행
+    # 2. ffmpeg drawtext 자막 인코딩 수행
     originals_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads", "originals")
     os.makedirs(originals_dir, exist_ok=True)
     
@@ -209,7 +232,7 @@ async def process_video_pipeline(video_path):
         shutil.copy2(video_path, output_video_path)
         logger.warning("ffmpeg overlay failed, fallback to copying original video.")
         
-    # 2. webp 전신 썸네일 이미지 추출
+    # 3. webp 전신 썸네일 이미지 추출
     thumbnail_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "thumbnails")
     os.makedirs(thumbnail_dir, exist_ok=True)
     output_thumbnail_path = os.path.join(thumbnail_dir, f"{product_code}.webp")

@@ -61,7 +61,7 @@ def get_coupang_short_link(original_url: str, access_key: str, secret_key: str) 
     import time
     
     host = "api-gateway.coupang.com"
-    path = "/v1/partners/domains/links"
+    path = "/v1/partners/deeplinks"
     url = f"https://{host}{path}"
     method = "POST"
     
@@ -213,7 +213,7 @@ def upload_video_to_r2(file_path: str, product_no: int) -> str:
 
 # Buffer를 통한 개별 비디오 포스트 발행 함수
 def publish_post_via_buffer(profile_id: str, text: str, video_url: str, service_type: str, title: str = None, scheduled_at: str = None) -> dict:
-    access_token = database.get_setting("BUFFER_ACCESS_TOKEN") or os.getenv("BUFFER_ACCESS_TOKEN")
+    access_token = os.getenv("BUFFER_ACCESS_TOKEN") or database.get_setting("BUFFER_ACCESS_TOKEN")
     if not access_token:
         raise Exception("Buffer Access Token이 누락되었습니다.")
 
@@ -242,8 +242,9 @@ def publish_post_via_buffer(profile_id: str, text: str, video_url: str, service_
     }
 
     if scheduled_at:
-        post_input["schedulingType"] = "custom"
-        post_input["scheduledAt"] = scheduled_at
+        post_input["schedulingType"] = "automatic"
+        post_input["mode"] = "customScheduled"
+        post_input["dueAt"] = scheduled_at
     else:
         post_input["schedulingType"] = "automatic"
         post_input["mode"] = "shareNow"
@@ -272,7 +273,8 @@ def publish_post_via_buffer(profile_id: str, text: str, video_url: str, service_
     elif "youtube" in svc:
         metadata["youtube"] = {
             "title": title[:100] if title else "Shorts Video", # 유튜브 제목 최대 100자 한도
-            "privacy": "public"
+            "privacy": "public",
+            "categoryId": "22"
         }
     elif "tiktok" in svc:
         metadata["tiktok"] = {
@@ -325,7 +327,7 @@ def distribute_video_task(item_id: int, platforms: List[str]):
             return
 
     # 2. Buffer 프로필 리스트 획득
-    access_token = database.get_setting("BUFFER_ACCESS_TOKEN") or os.getenv("BUFFER_ACCESS_TOKEN")
+    access_token = os.getenv("BUFFER_ACCESS_TOKEN") or database.get_setting("BUFFER_ACCESS_TOKEN")
     if not access_token:
         database.update_item_publish_results(item_id, "failed", json.dumps({"error": "Buffer Access Token이 누락되었습니다."}))
         return

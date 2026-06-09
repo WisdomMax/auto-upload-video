@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         statusBadgeClass = 'badge-pending'; // 황색 계열 골드색
                         statusText = '링크대기';
                     } else {
-                        statusBadgeClass = 'badge-pending';
+                        statusBadgeClass = 'badge-waiting'; // 파란색 계열
                         statusText = '배포대기';
                     }
                 } else if (item.publish_status === 'publishing') {
@@ -328,10 +328,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (btnPublishNow) btnPublishNow.disabled = false;
                 
                 if (item.publish_status === 'pending') {
-                    detailPublishStatus.classList.add('badge-pending');
                     if (!item.coupang_url || item.coupang_url === "") {
+                        detailPublishStatus.classList.add('badge-pending');
                         detailPublishStatus.innerText = '링크대기';
                     } else {
+                        detailPublishStatus.classList.add('badge-waiting');
                         detailPublishStatus.innerText = '배포대기';
                     }
                 } else if (item.publish_status === 'scheduled') {
