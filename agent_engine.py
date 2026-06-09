@@ -348,12 +348,16 @@ class AIAgentEngine:
     async def _check_and_publish_pending_items(self):
         items = database.get_items()
         
-        # 중요: publish_status가 pending이면서 coupang_url이 채워진 항목들만 필터링해서 예약을 수행
+        # 중요: 단축 제휴 링크가 있고 제목/설명이 실제 정보로 검토 및 기입 완료된 상품만 스케줄 예약 대상으로 승인
         pending_items = [
             it for it in items 
             if it.get("publish_status") == "pending" 
             and it.get("coupang_url") 
             and it.get("coupang_url") != ""
+            and it.get("short_url")
+            and it.get("short_url") != ""
+            and it.get("title") != "엄마아빠 패션다이어리 추천 상품"
+            and it.get("description") != "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다."
         ]
 
         if not pending_items:
