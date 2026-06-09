@@ -97,75 +97,20 @@ def get_coupang_short_link(original_url: str, access_key: str, secret_key: str) 
         
     return ""
 
-# AI SNS 원고 생성 함수
 def generate_ai_sns_content(item_id: int):
     item = database.get_item(item_id)
     if not item:
         return
         
-    api_key = database.get_setting("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
     link = item['short_url'] if item['short_url'] else item['coupang_url']
     
-    if api_key:
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-2.5-flash')
-            
-            prompt = f"""
-            당신은 숏폼(유튜브 쇼츠, 틱톡, 인스타그램 릴스) 마케팅 전문가이자 크리에이터입니다.
-            아래 제품 정보를 바탕으로 소셜 미디어 플랫폼별 최적화된 콘텐츠를 생성해 주세요.
-            
-            [제품 정보]
-            - 브랜드/채널명: 엄마아빠 패션다이어리
-            - 상품 번호: {item['product_no']}
-            - 상품명: {item['title']}
-            - 설명: {item['description']}
-            - 쿠팡 링크: {link}
-            
-            [출력 요구 사항]
-            반드시 아래 JSON 포맷을 준수하여 답변해 주세요. JSON 형식이 깨지지 않도록 백틱(```json) 없이 순수 JSON만 출력하거나 올바른 JSON 문자열로만 응답해 주세요.
-            
-            {{
-                "youtube_title": "유튜브 쇼츠 전용 제목 (공백 포함 50자 내외, 클릭 유도형, 마지막에 #Shorts 포함)",
-                "youtube_description": "유튜브 본문 설명란 텍스트 (제품 구매 링크 {link}를 포함하고, 해시태그와 쿠팡파트너스 안내 문구인 '이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.'가 꼭 들어가도록 작성)",
-                "youtube_tags": "쉼표로 구분된 유튜브 해시태그 및 태그들 (예: #살림템, #쿠팡추천, #꿀템)",
-                "sns_caption": "틱톡 및 인스타그램 릴스 배포용 본문 글 (후킹이 강하고 이모지를 적절히 사용한 3줄 이내의 짧은 캡션. 본문 끝에 시청자가 댓글로 '링크' 또는 '{item['product_no']}'를 남겨두면 DM으로 구매 링크를 발송하겠다는 안내 멘트를 포함해 주세요. 예: 댓글로 '1'을 적어주시면 단축 링크를 DM으로 쏴드려요! 💌)",
-                "comment_reply": "유튜브 쇼츠 댓글 링크 비활성화 정책에 맞춰 작성하는 네이버 검색 유도용 대댓글 답변 템플릿 (예: 유튜브 쇼츠 정책상 링크 클릭이 되지 않아 편리한 검색을 도와드려요! 네이버에서 '엄마아빠 패션다이어리 {item['title']}'를 검색해 주시면 첫 번째 글에서 바로 링크를 확인하실 수 있습니다! 🔍)",
-                "dm_template": "요청한 유저에게 실제로 보낼 인스타/틱톡 DM 템플릿 (인사말, 제품 설명 한 줄, 그리고 바로 쿠팡 단축 링크 {link}를 제공하는 레이아웃)"
-            }}
-            """
-            
-            response = model.generate_content(
-                prompt,
-                generation_config={"response_mime_type": "application/json"}
-            )
-            
-            if response and response.text:
-                data = json.loads(response.text.strip())
-                database.update_item_generated_contents(
-                    item_id,
-                    data.get("youtube_title", ""),
-                    data.get("youtube_description", ""),
-                    data.get("youtube_tags", ""),
-                    data.get("sns_caption", ""),
-                    data.get("dm_template", ""),
-                    data.get("comment_reply", "")
-                )
-                logger.info(f"AI content generated successfully for item {item_id}")
-                return
-        except Exception as e:
-            logger.error(f"Gemini API Content Generation Exception: {e}")
-            
-    # Fallback 템플릿 처리
-    logger.info(f"Using template fallback content for item {item_id}")
     youtube_title = f"[No.{item['product_no']}] {item['title']} 솔직 후기 및 추천! #Shorts"
-    youtube_description = f"영상 속 추천 아이템 정보입니다! 👇\n\n구매 링크: {link}\n\n[제품 설명]\n{item['description']}\n\n* 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.\n\n#쿠팡추천템 #살림꿀템 #추천아이템"
+    youtube_description = f"영상 속 추천 아이템 정보입니다!\n\n구매 링크: {link}\n\n[제품 설명]\n{item['description']}\n\n* 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.\n\n#쿠팡추천템 #살림꿀템 #추천아이템"
     youtube_tags = f"#쿠팡추천, #꿀템, #살림꿀템, #살림템, #생활용품, #{item['title']}"
     
-    sns_caption = f"이거 하나로 고민 해결! 대박 꿀템 공유해 드립니다 ✨\n\nNo.{item['product_no']} - {item['title']}\n\n👉 제품의 상세 정보와 단축 링크가 필요하시다면?\n댓글로 '링크' 또는 '{item['product_no']}'를 남겨주시면 DM으로 바로 링크를 쏴드릴게요! 💌\n\n#생활꿀팁 #살림템 #꿀템 #쿠팡추천"
-    comment_reply = f"유튜브 정책상 댓글 링크 클릭이 되지 않아서 네이버 검색을 유도해 드려요! 🔍 네이버 검색창에 '엄마아빠 패션다이어리 {item['title']}'을 검색하시면 상세 정보와 쿠팡 링크를 바로 확인하실 수 있습니다!"
-    dm_template = f"안녕하세요 크리에이터입니다! 😊\n요청하신 [No.{item['product_no']} - {item['title']}]의 상세 링크입니다.\n\n👇 쿠팡 즉시구매 링크\n{link}\n\n즐겁고 스마트한 쇼핑 되세요!"
+    sns_caption = f"이거 하나로 고민 해결! 대박 꿀템 공유해 드립니다\n\nNo.{item['product_no']} - {item['title']}\n\n제품의 상세 정보와 단축 링크가 필요하시다면?\n댓글로 링크 또는 {item['product_no']}를 남겨주시면 DM으로 바로 링크를 보내드릴게요!\n\n#생활꿀팁 #살림템 #꿀템 #쿠팡추천"
+    comment_reply = f"유튜브 정책상 댓글 링크 클릭이 되지 않아서 네이버 검색을 유도해 드립니다. 네이버 검색창에 '엄마아빠 패션다이어리 {item['title']}'을 검색하시면 상세 정보와 쿠팡 링크를 바로 확인하실 수 있습니다!"
+    dm_template = f"안녕하세요 크리에이터입니다.\n요청하신 [No.{item['product_no']} - {item['title']}]의 상세 링크입니다.\n\n쿠팡 즉시구매 링크\n{link}\n\n즐겁고 스마트한 쇼핑 되세요!"
     
     database.update_item_generated_contents(
         item_id,

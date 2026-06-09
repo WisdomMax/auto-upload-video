@@ -46,61 +46,7 @@ def capture_frames(video_path, duration, num_frames=3):
             
     return frames
 
-async def analyze_video_frames_with_gemini(frame_paths):
-    api_key = database.get_setting("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        logger.warning("GEMINI_API_KEY is not set. Skipping AI frame analysis.")
-        return None
-        
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        
-        images = []
-        for path in frame_paths:
-            if os.path.exists(path):
-                images.append(Image.open(path))
-                
-        if not images:
-            return None
-            
-        prompt = """
-        당신은 숏폼 전문 패션 마케팅 에이전트입니다.
-        제공된 비디오 프레임들을 유심히 분석하여 의류 정보를 분류하고 마케팅 문구를 제안해 주세요.
-        
-        1. 카테고리(category): 아래의 5가지 접두사 중 무조건 하나로만 결정하셔야 합니다.
-           - O: 아우터 (자켓, 코트, 카디건 등)
-           - T: 상의 (티셔츠, 블라우스, 니트, 셔츠, 나시 등)
-           - P: 하의 (슬랙스, 팬츠, 데님, 스커트 등)
-           - D: 원피스 (드레스)
-           - S: 신발 및 패션 잡화 (샌들, 단화, 가방 등)
-        2. 상품명(title): 의류의 특징이나 장점을 포함한 15자 내외의 클릭하고 싶은 상품명.
-        3. 상세설명(description): 린넨, 면 등 재질감이나 시원함/찰랑거림, 추천 코디법을 다정하고 명확하게 적은 2줄 이내의 소개글.
-        4. 주요 키워드(keyword): 대표 검색 키워드 하나 (예: 린넨바지, 어머니원피스 등).
-        
-        반드시 백틱(```json)이나 다른 설명 없이 아래 JSON 규격만 정밀하게 리턴해 주세요.
-        {
-            "category": "T",
-            "title": "린넨 루즈핏 블라우스",
-            "description": "린넨 혼방 소재로 한여름에도 시원하게 입을 수 있는 깔끔한 루즈핏 블라우스입니다. 데님이나 스커트 어디에나 찰떡 코디 가능해요!",
-            "keyword": "린넨블라우스"
-        }
-        """
-        
-        response = model.generate_content(
-            [prompt] + images,
-            generation_config={"response_mime_type": "application/json"}
-        )
-        
-        if response and response.text:
-            data = json.loads(response.text.strip())
-            logger.info(f"AI Frame Analysis Result: {data}")
-            return data
-            
-    except Exception as e:
-        logger.error(f"Gemini AI video frame analysis failed: {e}")
-        
-    return None
+
 
 def overlay_code_subtitles(input_path, output_path, product_code):
     font_paths = [
@@ -192,29 +138,6 @@ async def process_video_pipeline(video_path):
     description = "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다."
     keyword = "패션아이템"
     
-    # 1. 비디오 프레임 추출 및 Gemini 분석 수행
-    try:
-        frames = capture_frames(video_path, duration, num_frames=3)
-        if frames:
-            logger.info(f"Captured {len(frames)} frames for AI analysis: {frames}")
-            ai_data = await analyze_video_frames_with_gemini(frames)
-            if ai_data:
-                category = ai_data.get("category", "T")
-                title = ai_data.get("title", title)
-                description = ai_data.get("description", description)
-                keyword = ai_data.get("keyword", keyword)
-                logger.info(f"Successfully extracted product info via Gemini: {ai_data}")
-            
-            # 임시 프레임 파일 정리
-            for f in frames:
-                if os.path.exists(f):
-                    try:
-                        os.remove(f)
-                    except Exception as rm_err:
-                        logger.error(f"Failed to remove temp frame {f}: {rm_err}")
-    except Exception as ai_err:
-        logger.error(f"Error during AI video analysis: {ai_err}")
-        
     product_code = database.get_next_product_code(category)
     product_no = database.get_next_product_no()
     
