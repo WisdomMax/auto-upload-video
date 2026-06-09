@@ -287,19 +287,43 @@ class AIAgentEngine:
         platforms = enabled_platforms if enabled_platforms else ["youtube", "tiktok", "instagram"]
 
 
+        fixed_yt_id = database.get_setting("YOUTUBE_PROFILE_ID") or os.getenv("YOUTUBE_PROFILE_ID")
+        fixed_tt_id = database.get_setting("TIKTOK_PROFILE_ID") or os.getenv("TIKTOK_PROFILE_ID")
+        fixed_ig_id = database.get_setting("INSTAGRAM_PROFILE_ID") or os.getenv("INSTAGRAM_PROFILE_ID")
+
         for platform in platforms:
             target_channel = None
-            for p in profiles:
-                svc = p['service'].lower()
-                if platform == 'youtube' and 'youtube' in svc:
-                    target_channel = p
-                    break
-                elif platform == 'tiktok' and 'tiktok' in svc:
-                    target_channel = p
-                    break
-                elif platform == 'instagram' and 'instagram' in svc:
-                    target_channel = p
-                    break
+            
+            # 1. 고정 ID 매칭 시도
+            if platform == 'youtube' and fixed_yt_id:
+                for p in profiles:
+                    if p['id'] == fixed_yt_id:
+                        target_channel = p
+                        break
+            elif platform == 'tiktok' and fixed_tt_id:
+                for p in profiles:
+                    if p['id'] == fixed_tt_id:
+                        target_channel = p
+                        break
+            elif platform == 'instagram' and fixed_ig_id:
+                for p in profiles:
+                    if p['id'] == fixed_ig_id:
+                        target_channel = p
+                        break
+                        
+            # 2. 고정 ID 매칭 실패 혹은 미설정 시 기본 서비스명 매칭
+            if not target_channel:
+                for p in profiles:
+                    svc = p['service'].lower()
+                    if platform == 'youtube' and 'youtube' in svc:
+                        target_channel = p
+                        break
+                    elif platform == 'tiktok' and 'tiktok' in svc:
+                        target_channel = p
+                        break
+                    elif platform == 'instagram' and 'instagram' in svc:
+                        target_channel = p
+                        break
 
             if not target_channel:
                 results[platform] = {"status": "error", "message": "Buffer에 연동된 채널을 찾을 수 없습니다."}
