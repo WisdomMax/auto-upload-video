@@ -413,8 +413,21 @@ class AIAgentEngine:
             # 사용자가 세트아님, 단품 등 기입했을 경우 캡션에 강조
             user_extra = f"\n\n[제품 정보 및 구성 안내 📌]\n👉 {description}"
             
-        # 5. SNS 캡션 조립 (자연스러운 이모티콘 사용)
+        # 5. SNS 캡션 조립 (자연스러운 이모티콘 사용 및 youtube-research 대박 제목 패턴 모사 적용)
         youtube_title = f"[No.{product_no}] 60대 70대 어머님들을 위한 {title} 추천! #Shorts"
+        
+        if category == "원피스":
+            youtube_title = f"[No.{product_no}] 60대 이후 옷 잘 입는 분들은 절대 안 입는 원피스 코디법! #Shorts"
+        elif category == "아우터":
+            youtube_title = f"[No.{product_no}] 60대 어머님들 외출하실 때 가디건보다 이게 훨씬 귀티나고 세련돼요! #Shorts"
+        elif category == "바지":
+            youtube_title = f"[No.{product_no}] 60대 이후 입으면 20년 젊어보이는 유행 바지 코디 추천 #Shorts"
+        elif category == "상의":
+            youtube_title = f"[No.{product_no}] 60대 어머님들 이것만 알면 키 5cm는 더 커 보이고 젊어 보여요! #Shorts"
+        elif category == "신발":
+            youtube_title = f"[No.{product_no}] 60대 이후 촌스럽지 않고 발 편해서 걷기 좋은 신발 추천 #Shorts"
+        else:
+            youtube_title = f"[No.{product_no}] 60대 70대 어머님들 비싼 옷 안 입어도 20년 젊어 보이는 동안 코디 공식 #Shorts"
         
         youtube_description = (
             f"영상 속 추천 아이템 정보입니다! 👇\n\n"
