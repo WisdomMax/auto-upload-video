@@ -460,10 +460,10 @@ class AIAgentEngine:
     async def _check_and_publish_pending_items(self):
         items = database.get_items()
         
-        # 1. 쿠팡 URL은 입력되어 있고 상태가 pending(대기)인 모든 상품 추출
+        # 1. 쿠팡 URL이 있고 대기(pending) 상태이거나, 실패(failed)했으나 예약 일정이 잡히지 않은 상품 추출
         raw_pending = [
             it for it in items 
-            if it.get("publish_status") == "pending" 
+            if (it.get("publish_status") == "pending" or (it.get("publish_status") == "failed" and (not it.get("scheduled_at") or it.get("scheduled_at") == "")))
             and it.get("coupang_url") 
             and it.get("coupang_url") != ""
         ]
@@ -475,11 +475,11 @@ class AIAgentEngine:
             except Exception as ex_gen:
                 logger.error(f"Failed to generate intelligent caption for item {item['id']}: {ex_gen}")
                 
-        # 3. 갱신된 정보로 다시 가져온 뒤, 단축링크 처리가 완료된 대기 상품 필터링
+        # 3. 갱신된 정보로 다시 가져온 뒤, 단축링크 처리가 완료되었고 예약 예정인 상품 필터링
         items = database.get_items()
         pending_items = [
             it for it in items 
-            if it.get("publish_status") == "pending" 
+            if (it.get("publish_status") == "pending" or (it.get("publish_status") == "failed" and (not it.get("scheduled_at") or it.get("scheduled_at") == "")))
             and it.get("coupang_url") 
             and it.get("coupang_url") != ""
             and it.get("short_url")
