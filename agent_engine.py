@@ -351,21 +351,28 @@ class AIAgentEngine:
         if not url:
             return
             
-        # 1. Playwright Stealth 모드로 쿠팡 제품명 긁어오기
-        logger.info(f"Stealth scraping product info for item {item_id} from Coupang...")
-        scraped_title = await coupang_scraper.scrape_coupang_product(url)
+        # 기존 title이 유효한 값(디폴트나 빈값이 아님)인지 확인하여 중복 크롤링 방지
+        current_title = item.get("title")
+        is_default_title = current_title in ["엄마아빠 패션다이어리 추천 상품", "쿠팡 추천 상품", None, ""]
         
-        # 상품의 실제 제목을 DB에 업데이트
-        if scraped_title and scraped_title != "쿠팡 추천 상품":
-            try:
-                conn = database.get_db_connection()
-                cursor = conn.cursor()
-                cursor.execute("UPDATE items SET title = ? WHERE id = ?", (scraped_title, item_id))
-                conn.commit()
-                conn.close()
-            except Exception as e:
-                logger.error(f"Failed to update title for item {item_id}: {e}")
-                
+        if is_default_title:
+            # 1. Playwright Stealth 모드로 쿠팡 제품명 긁어오기 (기본값인 경우에만 1회 시도)
+            logger.info(f"Stealth scraping product info for item {item_id} from Coupang...")
+            scraped_title = await coupang_scraper.scrape_coupang_product(url)
+            
+            # 상품의 실제 제목을 DB에 업데이트 (디폴트 타이틀이 아닐 때만)
+            if scraped_title and scraped_title not in ["엄마아빠 패션다이어리 추천 상품", "쿠팡 추천 상품"]:
+                try:
+                    conn = database.get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE items SET title = ? WHERE id = ?", (scraped_title, item_id))
+                    conn.commit()
+                    conn.close()
+                except Exception as e:
+                    logger.error(f"Failed to update title for item {item_id}: {e}")
+        else:
+            logger.info(f"Using existing title for item {item_id}: {current_title} (Scraping skipped)")
+            
         # 최신화된 상품 정보 다시 획득
         item = database.get_item(item_id)
         product_no = item.get("product_no")

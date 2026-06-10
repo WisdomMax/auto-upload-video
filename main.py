@@ -425,21 +425,29 @@ async def auto_process_pipeline_task(item_id: int, auto_publish: bool):
         
     product_no = item['product_no']
     coupang_url = item['coupang_url']
+    current_title = item.get('title')
     
-    # Step 1: 쿠팡 크롤링 상품명 추출
-    from coupang_scraper import scrape_coupang_product
-    scraped_title = await scrape_coupang_product(coupang_url)
+    # 기존에 유효한 상품명이 지정되어 있는지 검사
+    is_default_title = current_title in ["엄마아빠 패션다이어리 추천 상품", "쿠팡 추천 상품", None, ""]
     
-    # DB에 크롤링한 상품명 및 설명 업데이트
-    scraped_description = f"{scraped_title}의 솔직 후기 및 가성비 추천 정보입니다."
-    try:
-        conn = database.get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("UPDATE items SET title = ?, description = ? WHERE id = ?", (scraped_title, scraped_description, item_id))
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        logger.error(f"Failed to update title/desc for item {item_id}: {e}")
+    if is_default_title:
+        # Step 1: 쿠팡 크롤링 상품명 추출 (기본 타이틀 상태인 경우에만 1회 시도)
+        from coupang_scraper import scrape_coupang_product
+        scraped_title = await scrape_coupang_product(coupang_url)
+        
+        # DB에 크롤링한 상품명 및 설명 업데이트 (디폴트 타이틀이 아닐 때만)
+        if scraped_title and scraped_title not in ["엄마아빠 패션다이어리 추천 상품", "쿠팡 추천 상품"]:
+            scraped_description = f"{scraped_title}의 솔직 후기 및 가성비 추천 정보입니다."
+            try:
+                conn = database.get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("UPDATE items SET title = ?, description = ? WHERE id = ?", (scraped_title, scraped_description, item_id))
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                logger.error(f"Failed to update title/desc for item {item_id}: {e}")
+    else:
+        logger.info(f"Using existing title for item {item_id}: {current_title} (Scraping skipped in auto_process)")
         
     # 최신화된 아이템 정보 다시 가져오기
     item = database.get_item(item_id)

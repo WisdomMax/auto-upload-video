@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from urllib.parse import urlparse, parse_qs, unquote
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
 
@@ -7,117 +8,120 @@ logger = logging.getLogger("coupang_scraper")
 
 async def scrape_coupang_product(url: str) -> str:
     """
-    Playwright Stealth 모드로 쿠팡 제품 페이지에 접속하여 상품명을 긁어옵니다.
-    Akamai 방화벽 차단(Access Denied) 우회를 위해 모바일 도메인(m.coupang.com) 변환 및 상세 헤더 주입을 수행합니다.
+    쿠팡 상품 URL에서 상품명을 파싱합니다.
+    1. URL 쿼리 파라미터(q, title, product 등)에 상품 한글명이 있으면 네트워크 요청 없이 즉시 반환합니다.
+    2. 그렇지 않은 경우, playwright-stealth 모드로 모바일 쿠팡 페이지에 딱 1회만 접속을 시도합니다.
+    3. Akamai 방화벽 등에 의해 403 차단되거나 로딩 실패 시, 재시도 없이 즉시 기본값('엄마아빠 패션다이어리 추천 상품')을 반환하여 추가 차단을 방지합니다.
     """
-    logger.info(f"Scraping Coupang URL: {url}")
+    logger.info(f"Scraper requested for URL: {url}")
     
-    if not url or "coupang.com" not in url:
-        logger.warning("Invalid Coupang URL provided.")
-        return "쿠팡 추천 상품"
-
-    # 시도할 URL 후보군 (1차: 원본 URL, 2차: 모바일 도메인으로 치환한 URL)
-    url_candidates = [url]
-    if "www.coupang.com" in url:
-        mobile_url = url.replace("www.coupang.com", "m.coupang.com")
-        url_candidates.append(mobile_url)
-
-    # 쿠팡 상품 정보 페이지의 다양한 제목 셀렉터 목록 (데스크톱 & 모바일 커버)
-    title_selectors = [
-        "h2.prod-buy-header__title",
-        ".prod-buy-header__title",
-        ".prod-buy-header .title",
-        "h1.prod-buy-header__title",
-        "h1.product-title",
-        ".product-name",
-        "h2.title",
-        "h1.title",
-        "h1"
-    ]
-
+    # [Step 1] 무네트워크(Zero-network) URL 파라미터 분석
     try:
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True, args=['--headless=new'])
+        parsed_url = urlparse(url)
+        queries = parse_qs(parsed_url.query)
+        
+        # 흔히 사용되는 검색 키워드 및 상품 이름 관련 파라미터 후보들
+        title_candidates = ["q", "title", "name", "prodName", "productName"]
+        for key in title_candidates:
+            if key in queries and queries[key]:
+                val = unquote(queries[key][0]).strip()
+                # 숫자가 아닌 유의미한 한글/영어 텍스트인 경우 반환
+                if len(val) > 2 and not val.isdigit():
+                    logger.info(f"Successfully extracted product name from URL query parameter '{key}': {val}")
+                    return val
+    except Exception as e:
+        logger.warning(f"Failed to parse URL query parameters: {e}")
+        
+    # [Step 2] 1회성 모바일 접속 시도 (최대한 조심스럽게)
+    try:
+        target_url = url
+        if "www.coupang.com" in url:
+            target_url = url.replace("www.coupang.com", "m.coupang.com")
             
-            # 실제 iPhone 모바일 기기처럼 보이도록 정교한 헤더 및 User-Agent 지정
-            user_agent = (
-                "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
-                "AppleWebKit/605.1.15 (KHTML, like Gecko) "
-                "Version/17.0 Mobile/15E148 Safari/604.1"
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(
+                headless=True,
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-web-security"
+                ]
             )
             
-            extra_headers = {
-                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "accept-language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
-                "upgrade-insecure-requests": "1"
-            }
-            
+            # 모바일(iPhone Safari)로 브라우저 콘텍스트 위장 설정
             context = await browser.new_context(
-                user_agent=user_agent,
+                user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1",
                 viewport={"width": 375, "height": 812},
                 is_mobile=True,
-                extra_http_headers=extra_headers
+                has_touch=True,
+                locale="ko-KR",
+                timezone_id="Asia/Seoul"
             )
             
             page = await context.new_page()
-            # Stealth 모드 적용
-            stealth = Stealth()
-            await stealth.apply_stealth_async(page)
             
-            product_title = None
+            # stealth 적용
+            await Stealth().apply_stealth_async(page)
             
-            for attempt_url in url_candidates:
-                logger.info(f"Navigating to: {attempt_url}")
+            # 타임아웃은 최대 8초로 단축하여 스케줄러 행(Hang) 예방
+            response = await page.goto(target_url, timeout=8000, wait_until="domcontentloaded")
+            
+            if not response or response.status != 200:
+                logger.warning(f"Failed to reach Coupang. Status: {response.status if response else 'None'}. Returning fallback.")
+                await browser.close()
+                return "엄마아빠 패션다이어리 추천 상품"
+                
+            # 상품 제목을 찾기 위한 다양한 셀렉터
+            selectors = [
+                "h2.prod-buy-header__title", 
+                "h1.prod-buy-header__title", 
+                ".prod-buy-header__title",
+                ".prod-title",
+                "h2.title"
+            ]
+            
+            title = None
+            for selector in selectors:
                 try:
-                    await page.goto(attempt_url, wait_until="networkidle", timeout=30000)
-                    
-                    # 디버그용 스크린샷 저장
-                    import os
-                    os.makedirs("static", exist_ok=True)
-                    await page.screenshot(path="static/debug_coupang.png")
-                    
-                    content = await page.content()
-                    if "Access Denied" in content or "You don't have permission" in content:
-                        logger.warning(f"Access Denied on URL: {attempt_url}. Trying next candidate...")
-                        continue  # 차단되었다면 다음 URL 후보(모바일)로 넘어감
-                        
-                    # 제목 셀렉터 순차 매칭
-                    for selector in title_selectors:
-                        try:
-                            title_element = await page.wait_for_selector(selector, timeout=3000)
-                            if title_element:
-                                text = await title_element.inner_text()
-                                if text and text.strip():
-                                    product_title = text.strip()
-                                    logger.info(f"Successfully scraped title with selector '{selector}': {product_title}")
-                                    break
-                        except Exception:
-                            continue
-                            
-                    if product_title:
-                        break  # 제목 추출에 성공했으면 시도 중단
-                        
-                except Exception as ex:
-                    logger.error(f"Navigation or parsing failed for {attempt_url}: {ex}")
+                    element = page.locator(selector)
+                    if await element.count() > 0:
+                        raw_title = await element.first.text_content()
+                        if raw_title:
+                            title = raw_title.strip()
+                            break
+                except Exception:
                     continue
-            
+                    
             await browser.close()
             
-            if product_title:
-                return product_title
+            if title:
+                logger.info(f"Successfully scraped Coupang product title: {title}")
+                return title
             else:
-                logger.warning("Coupang title element not found on page after trying all options.")
-                return "쿠팡 추천 상품"
+                logger.warning("No matching title selectors found. Returning fallback.")
+                return "엄마아빠 패션다이어리 추천 상품"
                 
     except Exception as e:
-        logger.error(f"Exception while scraping Coupang: {e}")
-        return "쿠팡 추천 상품"
+        logger.error(f"Coupang scraper failed: {e}. Returning fallback.")
+        return "엄마아빠 패션다이어리 추천 상품"
 
 if __name__ == "__main__":
-    # 로컬 단독 간이 테스트용
+    # 로컬 단독 테스트용
     async def test():
-        test_url = "https://www.coupang.com/vp/products/8070806412"
-        title = await scrape_coupang_product(test_url)
-        print("Scraped Title Result:", title)
+        # 1) 네트워크를 타지 않고 URL 파라미터에서 바로 한글명을 추출하는 케이스 테스트
+        test_url_query = "https://www.coupang.com/vp/products/8070806412?q=%EB%A9%8B%EC%A7%84%20%EA%B0%80%EB%94%94%EA%B1%B4"
+        title1 = await scrape_coupang_product(test_url_query)
+        print("\n=== Test 1 (URL Query extraction) Result ===")
+        print("Expected: 멋진 가디건, Actual:", title1)
+        
+        # 2) 네트워크를 타는 일반적인 케이스 테스트 (현재 IP 차단 상태라면 기본값 반환할 것)
+        test_url_direct = "https://www.coupang.com/vp/products/8070806412"
+        title2 = await scrape_coupang_product(test_url_direct)
+        print("\n=== Test 2 (Direct network request) Result ===")
+        print("Scraped Title:", title2)
+        print("============================================\n")
     
     asyncio.run(test())
+
+
