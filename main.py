@@ -105,12 +105,12 @@ def generate_ai_sns_content(item_id: int):
     link = item['short_url'] if item['short_url'] else item['coupang_url']
     
     youtube_title = f"[No.{item['product_no']}] {item['title']} 솔직 후기 및 추천! #Shorts"
-    youtube_description = f"영상 속 추천 아이템 정보입니다!\n\n구매 링크: {link}\n(채널 프로필 홈에 연결된 링크를 클릭하시면 모든 제품의 구매 링크를 한눈에 편리하게 확인하실 수 있습니다)\n\n[제품 설명]\n{item['description']}\n\n* 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.\n\n#쿠팡추천템 #살림꿀템 #추천아이템"
+    youtube_description = f"영상 속 추천 아이템 정보입니다! 👇\n\n구매 링크: {link}\n(채널 프로필 홈에 연결된 링크를 클릭하시면 모든 제품의 구매 링크를 한눈에 편리하게 확인하실 수 있습니다)\n\n[제품 설명]\n{item['description']}\n\n* 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.\n\n#쿠팡추천템 #살림꿀템 #추천아이템"
     youtube_tags = f"#쿠팡추천, #꿀템, #살림꿀템, #살림템, #생활용품, #{item['title']}"
     
-    sns_caption = f"이거 하나로 고민 해결! 대박 꿀템 공유해 드립니다\n\nNo.{item['product_no']} - {item['title']}\n\n제품의 상세 정보와 단축 링크가 필요하시다면?\n댓글로 '엄마'를 남겨주시면 DM으로 바로 링크를 보내드릴게요!\n\n#생활꿀팁 #살림템 #꿀템 #쿠팡추천"
-    comment_reply = f"유튜브 정책상 댓글 링크 클릭이 되지 않아서 네이버 검색을 유도해 드립니다. 네이버 검색창에 '엄마아빠 패션다이어리 {item['title']}'을 검색하시면 상세 정보와 쿠팡 링크를 바로 확인하실 수 있습니다!"
-    dm_template = f"안녕하세요 크리에이터입니다.\n요청하신 [No.{item['product_no']} - {item['title']}]의 상세 링크입니다.\n\n쿠팡 즉시구매 링크\n{link}\n\n즐겁고 스마트한 쇼핑 되세요!"
+    sns_caption = f"이거 하나로 고민 해결! 대박 꿀템 공유해 드립니다 ✨\n\nNo.{item['product_no']} - {item['title']}\n\n제품의 상세 정보와 단축 링크가 필요하시다면?\n댓글로 '엄마'를 남겨주시면 DM으로 바로 링크를 보내드릴게요! 💌\n\n#생활꿀팁 #살림템 #꿀템 #쿠팡추천"
+    comment_reply = f"유튜브 정책상 댓글 링크 클릭이 되지 않아서 네이버 검색을 유도해 드려요! 🔍 네이버 검색창에 '엄마아빠 패션다이어리 {item['title']}'을 검색하시면 상세 정보와 쿠팡 링크를 바로 확인하실 수 있습니다!"
+    dm_template = f"안녕하세요 크리에이터입니다! 😊\n요청하신 [No.{item['product_no']} - {item['title']}]의 상세 링크입니다.\n\n👇 쿠팡 즉시구매 링크\n{link}\n\n즐겁고 스마트한 쇼핑 되세요!"
     
     database.update_item_generated_contents(
         item_id,
@@ -459,15 +459,15 @@ async def auto_process_pipeline_task(item_id: int, auto_publish: bool):
     link = short_url if short_url else landing_link
 
     youtube_title = f"[No.{product_no}] {scraped_title} 솔직 리뷰 추천! #Shorts"
-    youtube_description = f"영상 속 추천 아이템 정보입니다!\n\n구매 링크: {link}\n(채널 프로필 홈에 연결된 링크를 클릭하시면 모든 제품의 구매 링크를 한눈에 편리하게 확인하실 수 있습니다)\n\n[제품 설명]\n{scraped_description}\n\n* 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.\n\n#쿠팡추천템 #살림꿀템 #추천아이템"
+    youtube_description = f"영상 속 추천 아이템 정보입니다! 👇\n\n구매 링크: {link}\n(채널 프로필 홈에 연결된 링크를 클릭하시면 모든 제품의 구매 링크를 한눈에 편리하게 확인하실 수 있습니다)\n\n[제품 설명]\n{scraped_description}\n\n* 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.\n\n#쿠팡추천템 #살림꿀템 #추천아이템"
     
     # 샵 기호 없는 콤마 구분 유튜브 검색 태그 포맷팅
     clean_title_keyword = scraped_title.split(" ")[0] if scraped_title else "추천상품"
     youtube_tags = f"쿠팡추천템, 살림꿀템, 꿀템, 생활용품, {clean_title_keyword}, {scraped_title[:15]}"
     
-    sns_caption = f"이거 하나로 고민 해결! 대박 꿀템 공유해 드립니다\n\nNo.{product_no} - {scraped_title}\n\n제품의 상세 정보와 단축 링크가 필요하시다면?\n댓글로 '엄마'를 남겨주시면 DM으로 바로 링크를 보내드릴게요!\n\n#생활꿀팁 #살림템 #꿀템 #쿠팡추천"
-    comment_reply = f"유튜브 정책상 댓글 링크 클릭이 되지 않아서 네이버 검색을 유도해 드립니다. 네이버 검색창에 '엄마아빠 패션다이어리 {scraped_title}'을 검색하시면 상세 정보와 쿠팡 링크를 바로 확인하실 수 있습니다!"
-    dm_template = f"안녕하세요 크리에이터입니다.\n요청하신 [No.{product_no} - {scraped_title}]의 상세 링크입니다.\n\n쿠팡 즉시구매 링크\n{link}\n\n즐겁고 스마트한 쇼핑 되세요!"
+    sns_caption = f"이거 하나로 고민 해결! 대박 꿀템 공유해 드립니다 ✨\n\nNo.{product_no} - {scraped_title}\n\n제품의 상세 정보와 단축 링크가 필요하시다면?\n댓글로 '엄마'를 남겨주시면 DM으로 바로 링크를 보내드릴게요! 💌\n\n#생활꿀팁 #살림템 #꿀템 #쿠팡추천"
+    comment_reply = f"유튜브 정책상 댓글 링크 클릭이 되지 않아서 네이버 검색을 유도해 드려요! 🔍 네이버 검색창에 '엄마아빠 패션다이어리 {scraped_title}'을 검색하시면 상세 정보와 쿠팡 링크를 바로 확인하실 수 있습니다!"
+    dm_template = f"안녕하세요 크리에이터입니다! 😊\n요청하신 [No.{product_no} - {scraped_title}]의 상세 링크입니다.\n\n👇 쿠팡 즉시구매 링크\n{link}\n\n즐겁고 스마트한 쇼핑 되세요!"
     
     database.update_item_generated_contents(
         item_id,
