@@ -492,6 +492,10 @@ class AIAgentEngine:
         # ID 오름차순(오래된 상품 순)으로 정렬하여 먼저 등록된 상품이 빠른 날짜에 배포 예약되게 함
         pending_items.sort(key=lambda x: x["id"])
 
+        # 하루 최대 3일치(3개) 상품까지만 Buffer에 예약을 생성하도록 제한 (4일째부터는 다음 구동 시로 자동 이월)
+        publish_limit = 3
+        items_to_publish = pending_items[:publish_limit]
+
         # 예약 타임슬롯 기준점 계산 (매일 저녁 6시 KST = 18:00 KST = 09:00 UTC)
         future_scheduled = []
         now_utc = datetime.now(timezone.utc)
@@ -522,7 +526,7 @@ class AIAgentEngine:
             else:
                 base_sch = (today_18_kst + timedelta(days=1)).astimezone(timezone.utc)
 
-        for i, item in enumerate(pending_items):
+        for i, item in enumerate(items_to_publish):
             if future_scheduled:
                 next_sch = base_sch + timedelta(days=i + 1)
             else:
