@@ -341,10 +341,142 @@ class AIAgentEngine:
             message=f"[Buffer 배포 예약 완료] 상품 코드: {item.get('product_code') or ('No.'+str(item['product_no']))} -> 예약 시간: {kst_time_str} KST (채널 {success_count}개 예약 완료)"
         )
 
+    async def _generate_intelligent_caption(self, item_id):
+        import coupang_scraper
+        item = database.get_item(item_id)
+        if not item:
+            return
+            
+        url = item.get("coupang_url")
+        if not url:
+            return
+            
+        # 1. Playwright Stealth 모드로 쿠팡 제품명 긁어오기
+        logger.info(f"Stealth scraping product info for item {item_id} from Coupang...")
+        scraped_title = await coupang_scraper.scrape_coupang_product(url)
+        
+        # 상품의 실제 제목을 DB에 업데이트
+        if scraped_title and scraped_title != "쿠팡 추천 상품":
+            try:
+                conn = database.get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("UPDATE items SET title = ? WHERE id = ?", (scraped_title, item_id))
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                logger.error(f"Failed to update title for item {item_id}: {e}")
+                
+        # 최신화된 상품 정보 다시 획득
+        item = database.get_item(item_id)
+        product_no = item.get("product_no")
+        title = item.get("title")
+        description = item.get("description", "") # 사용자가 대시보드 추가설명 란에 적은 내용
+        
+        # 2. 쿠팡 단축 링크 생성 (아직 없는 경우에만)
+        short_url = item.get("short_url")
+        if not short_url:
+            coupang_access = database.get_setting("COUPANG_ACCESS_KEY") or os.getenv("COUPANG_ACCESS_KEY")
+            coupang_secret = database.get_setting("COUPANG_SECRET_KEY") or os.getenv("COUPANG_SECRET_KEY")
+            if coupang_access and coupang_secret:
+                from main import get_coupang_short_link
+                short_url = get_coupang_short_link(url, coupang_access, coupang_secret)
+                if short_url:
+                    database.update_item_coupang_urls(item_id, url, short_url)
+                    
+        link = short_url if short_url else url
+        
+        # 3. 제품 카테고리 판별 (원피스, 가디건 등) 및 문구 셋업
+        title_lower = title.lower()
+        category = "의류"
+        intro_phrase = "어머님들 입으시기 딱 좋은 편안하고 세련된 옷 소개해 드려요"
+        
+        if any(x in title_lower for x in ["원피스", "드레스"]):
+            category = "원피스"
+            intro_phrase = "편안하면서도 고상한 멋이 느껴지는 원피스 소개해 드립니다"
+        elif any(x in title_lower for x in ["가디건", "카디건", "아우터", "재킷", "점퍼", "코트", "조끼", "베스트"]):
+            category = "아우터"
+            intro_phrase = "가볍게 툭 걸치기만 해도 스타일이 사는 외출용 아우터 준비했습니다"
+        elif any(x in title_lower for x in ["바지", "팬츠", "슬랙스", "청바지"]):
+            category = "바지"
+            intro_phrase = "하루 종일 입어도 정말 편안하고 활동성 최고인 밴딩 바지 추천해 드려요"
+        elif any(x in title_lower for x in ["티셔츠", "블라우스", "셔츠", "남방", "니트"]):
+            category = "상의"
+            intro_phrase = "시원하고 부드러운 촉감으로 매일 손이 가는 상의 소개해 드립니다"
+        elif any(x in title_lower for x in ["샌들", "샌달", "구두", "신발", "슬리퍼", "스니커즈", "로퍼"]):
+            category = "신발"
+            intro_phrase = "발이 정말 편안해서 외출하실 때 걷기 좋은 기능성 슈즈 소개해 드려요"
+            
+        # 4. 사용자 추가 설명(description)이 기본 템플릿 문구가 아니고 존재한다면 적극 반영
+        user_extra = ""
+        is_default_desc = description == "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다."
+        if description and not is_default_desc:
+            # 사용자가 세트아님, 단품 등 기입했을 경우 캡션에 강조
+            user_extra = f"\n\n[제품 정보 및 구성 안내 📌]\n👉 {description}"
+            
+        # 5. SNS 캡션 조립 (자연스러운 이모티콘 사용)
+        youtube_title = f"[No.{product_no}] 60대 70대 어머님들을 위한 {title} 추천! #Shorts"
+        
+        youtube_description = (
+            f"영상 속 추천 아이템 정보입니다! 👇\n\n"
+            f"구매 링크: {link}\n"
+            f"(채널 프로필 홈에 연결된 링크를 클릭하시면 모든 제품의 구매 링크를 한눈에 편리하게 확인하실 수 있습니다)\n\n"
+            f"[제품 설명]\n"
+            f"- {intro_phrase}\n"
+            f"- 상품명: {title}"
+        )
+        if user_extra:
+            youtube_description += f"{user_extra}"
+        youtube_description += f"\n\n* 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.\n\n#쿠팡추천템 #살림꿀템 #추천아이템"
+        
+        youtube_tags = f"#쿠팡추천, #꿀템, #60대여성의류, #엄마옷, #시니어패션, #{category}"
+        
+        sns_caption = (
+            f"이거 하나로 고민 해결! 대박 꿀템 공유해 드립니다 ✨\n\n"
+            f"No.{product_no} - {title}"
+        )
+        if user_extra:
+            sns_caption += f"{user_extra}"
+        sns_caption += (
+            f"\n\n제품의 상세 정보와 단축 링크가 필요하시다면?\n"
+            f"댓글로 '엄마'를 남겨주시면 DM으로 바로 링크를 보내드릴게요! 💌\n\n"
+            f"#생활꿀팁 #살림템 #꿀템 #쿠팡추천"
+        )
+        
+        comment_reply = f"유튜브 정책상 댓글 링크 클릭이 되지 않아서 네이버 검색을 유도해 드려요! 🔍 네이버 검색창에 '엄마아빠 패션다이어리 {title}'을 검색하시면 상세 정보와 쿠팡 링크를 바로 확인하실 수 있습니다!"
+        dm_template = f"안녕하세요 크리에이터입니다! 😊\n요청하신 [No.{product_no} - {title}]의 상세 링크입니다.\n\n👇 쿠팡 즉시구매 링크\n{link}\n\n즐겁고 스마트한 쇼핑 되세요!"
+        
+        # DB 업데이트
+        database.update_item_generated_contents(
+            item_id,
+            youtube_title,
+            youtube_description,
+            youtube_tags,
+            sns_caption,
+            dm_template,
+            comment_reply
+        )
+        logger.info(f"Intelligent caption generation completed for item {item_id} ({category})")
+
     async def _check_and_publish_pending_items(self):
         items = database.get_items()
         
-        # 중요: 단축 제휴 링크가 등록된 대기 상품을 스케줄 예약 대상으로 승인
+        # 1. 쿠팡 URL은 입력되어 있고 상태가 pending(대기)인 모든 상품 추출
+        raw_pending = [
+            it for it in items 
+            if it.get("publish_status") == "pending" 
+            and it.get("coupang_url") 
+            and it.get("coupang_url") != ""
+        ]
+        
+        # 2. 각 대기 상품에 대해 Playwright 기반 쿠팡 제목 긁어오기 및 에이전트 지능형 캡션/원고 생성 가동
+        for item in raw_pending:
+            try:
+                await self._generate_intelligent_caption(item["id"])
+            except Exception as ex_gen:
+                logger.error(f"Failed to generate intelligent caption for item {item['id']}: {ex_gen}")
+                
+        # 3. 갱신된 정보로 다시 가져온 뒤, 단축링크 처리가 완료된 대기 상품 필터링
+        items = database.get_items()
         pending_items = [
             it for it in items 
             if it.get("publish_status") == "pending" 
