@@ -185,7 +185,7 @@ class AIAgentEngine:
         except Exception as cleanup_err:
             logger.error(f"Failed to cleanup older input files: {cleanup_err}")
 
-    async def _schedule_item_on_buffer(self, item_id):
+    async def _schedule_item_on_buffer(self, item_id, scheduled_at_dt):
         item = database.get_item(item_id)
         if not item:
             return
@@ -239,39 +239,7 @@ class AIAgentEngine:
             logger.error(f"Buffer Profiles Fetch Exception: {e}")
             return
 
-        # 예약 타임슬롯 계산 (매일 저녁 6시 KST = 18:00 KST = 09:00 UTC)
-        items = database.get_items()
-        future_scheduled = []
-        now_utc = datetime.now(timezone.utc)
-        
-        for it in items:
-            if it.get("publish_status") not in ("scheduled", "partial_failed"):
-                continue
-            sch_str = it.get("scheduled_at")
-            if sch_str:
-                try:
-                    sch_dt = datetime.fromisoformat(sch_str.replace("Z", "+00:00"))
-                    if sch_dt > now_utc:
-                        future_scheduled.append(sch_dt)
-                except Exception:
-                    pass
-                    
-        future_scheduled.sort()
-        
-        if future_scheduled:
-            last_sch = future_scheduled[-1]
-            next_sch = last_sch + timedelta(days=1)
-        else:
-            kst_tz = timezone(timedelta(hours=9))
-            now_kst = datetime.now(kst_tz)
-            today_18_kst = now_kst.replace(hour=18, minute=0, second=0, microsecond=0)
-            
-            if now_kst < today_18_kst:
-                next_sch = today_18_kst.astimezone(timezone.utc)
-            else:
-                next_sch = (today_18_kst + timedelta(days=1)).astimezone(timezone.utc)
-                
-        scheduled_at_str = next_sch.strftime("%Y-%m-%dT%H:%M:%SZ")
+        scheduled_at_str = scheduled_at_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         results = {}
         success_count = 0
@@ -335,6 +303,8 @@ class AIAgentEngine:
             if platform == 'youtube':
                 text = item.get('youtube_description', '')
                 title = item.get('youtube_title') or item.get('title', '')
+            elif platform == 'tiktok':
+                text = item.get('sns_caption', '') + "\n\n(채널 프로필 홈에 연결된 링크를 클릭하시면 모든 제품의 구매 링크를 편리하게 확인하실 수 있습니다)"
 
             try:
                 from main import publish_post_via_buffer
@@ -362,11 +332,11 @@ class AIAgentEngine:
         database.update_item_publish_results(item_id, final_status, json.dumps(results))
         database.update_item_scheduled_at(item_id, scheduled_at_str)
         
-        kst_time_str = next_sch.astimezone(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M")
+        kst_time_str = scheduled_at_dt.astimezone(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M")
         database.create_agent_log(
             task_type="buffer_schedule",
             status="success" if final_status == "scheduled" else "failed",
-            message=f"📅 [Buffer 배포 예약 완료] 상품 코드: {item.get('product_code') or ('No.'+str(item['product_no']))} -> 예약 시간: {kst_time_str} KST (채널 {success_count}개 예약 완료)"
+            message=f"[Buffer 배포 예약 완료] 상품 코드: {item.get('product_code') or ('No.'+str(item['product_no']))} -> 예약 시간: {kst_time_str} KST (채널 {success_count}개 예약 완료)"
         )
 
     async def _check_and_publish_pending_items(self):
@@ -390,8 +360,42 @@ class AIAgentEngine:
         # ID 오름차순(오래된 상품 순)으로 정렬하여 먼저 등록된 상품이 빠른 날짜에 배포 예약되게 함
         pending_items.sort(key=lambda x: x["id"])
 
-        for item in pending_items:
-            await self._schedule_item_on_buffer(item["id"])
+        # 예약 타임슬롯 기준점 계산 (매일 저녁 6시 KST = 18:00 KST = 09:00 UTC)
+        future_scheduled = []
+        now_utc = datetime.now(timezone.utc)
+        
+        for it in items:
+            if it.get("publish_status") not in ("scheduled", "partial_failed"):
+                continue
+            sch_str = it.get("scheduled_at")
+            if sch_str:
+                try:
+                    sch_dt = datetime.fromisoformat(sch_str.replace("Z", "+00:00"))
+                    if sch_dt > now_utc:
+                        future_scheduled.append(sch_dt)
+                except Exception:
+                    pass
+                    
+        future_scheduled.sort()
+        
+        if future_scheduled:
+            base_sch = future_scheduled[-1]
+        else:
+            kst_tz = timezone(timedelta(hours=9))
+            now_kst = datetime.now(kst_tz)
+            today_18_kst = now_kst.replace(hour=18, minute=0, second=0, microsecond=0)
+            
+            if now_kst < today_18_kst:
+                base_sch = today_18_kst.astimezone(timezone.utc)
+            else:
+                base_sch = (today_18_kst + timedelta(days=1)).astimezone(timezone.utc)
+
+        for i, item in enumerate(pending_items):
+            if future_scheduled:
+                next_sch = base_sch + timedelta(days=i + 1)
+            else:
+                next_sch = base_sch + timedelta(days=i)
+            await self._schedule_item_on_buffer(item["id"], next_sch)
 
     async def _monitor_youtube_comments(self):
         try:
