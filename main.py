@@ -61,7 +61,7 @@ def get_coupang_short_link(original_url: str, access_key: str, secret_key: str) 
     import time
     
     host = "api-gateway.coupang.com"
-    path = "/v1/partners/deeplinks"
+    path = "/v2/providers/affiliate_open_api/apis/openapi/v1/deeplink"
     url = f"https://{host}{path}"
     method = "POST"
     
@@ -589,6 +589,10 @@ async def update_short_link(item_id: int, payload: dict, background_tasks: Backg
     import catalog_builder
     catalog_builder.build_catalog()
     
+    # Cloudflare Pages 원격 배포 가동 (git push)
+    if background_tasks:
+        background_tasks.add_task(publish_catalog)
+    
     return {"status": "success"}
 
 @app.post("/api/items/{item_id}/regenerate")
@@ -863,7 +867,7 @@ async def publish_catalog():
             json.dump(catalog, f, ensure_ascii=False, indent=2)
 
         # git add → commit → push
-        subprocess.run(["git", "add", "dist/products.json"], cwd=BASE_DIR, check=True)
+        subprocess.run(["git", "add", "dist/products.json", "dist/index.html", "static/thumbnails/"], cwd=BASE_DIR, check=True)
         commit_msg = f"🛍️ catalog: 상품 목록 업데이트 ({len(products)}개) — {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         result = subprocess.run(
             ["git", "commit", "-m", commit_msg],
@@ -874,10 +878,37 @@ async def publish_catalog():
         if result.returncode not in (0, 1):
             logger.error(f"Git commit error: {result.stderr}")
 
-        push_result = subprocess.run(
-            ["git", "push"],
-            cwd=BASE_DIR, capture_output=True, text=True, timeout=30
-        )
+        # GITHUB_TOKEN이 있으면 인증 주입하여 백그라운드 푸시 실행
+        github_token = os.getenv("GITHUB_TOKEN") or database.get_setting("GITHUB_TOKEN")
+        if github_token:
+            try:
+                get_url = subprocess.run(
+                    ["git", "remote", "get-url", "origin"],
+                    cwd=BASE_DIR, capture_output=True, text=True, check=True
+                )
+                origin_url = get_url.stdout.strip()
+                if "github.com" in origin_url and "@" not in origin_url:
+                    auth_url = origin_url.replace("https://", f"https://{github_token}@")
+                    push_result = subprocess.run(
+                        ["git", "push", auth_url, "main"],
+                        cwd=BASE_DIR, capture_output=True, text=True, timeout=30
+                    )
+                else:
+                    push_result = subprocess.run(
+                        ["git", "push"],
+                        cwd=BASE_DIR, capture_output=True, text=True, timeout=30
+                    )
+            except Exception as e_git:
+                logger.error(f"Git push token insertion failed: {e_git}")
+                push_result = subprocess.run(
+                    ["git", "push"],
+                    cwd=BASE_DIR, capture_output=True, text=True, timeout=30
+                )
+        else:
+            push_result = subprocess.run(
+                ["git", "push"],
+                cwd=BASE_DIR, capture_output=True, text=True, timeout=30
+            )
         
         if push_result.returncode != 0:
             return {
@@ -1149,5 +1180,5 @@ async def trigger_scan_manually(background_tasks: BackgroundTasks):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=18888, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=18888, reload=False)
 

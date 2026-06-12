@@ -34,3 +34,8 @@ graph TD
 - **합성 완료 영상**: uploads/originals/
 - **썸네일 경로**: static/thumbnails/
 - **웹 빌드 대상**: dist/
+
+## 4. 정적 카탈로그 자동 배포 (GitHub Pages / Cloudflare Pages)
+
+- 정적 카탈로그 웹페이지(`dist/index.html`, `dist/products.json`, `static/thumbnails/`)는 새로운 영상 스캔 및 단축 링크 발급 시 자동으로 Git Push를 수행하여 웹사이트에 배포됩니다.
+- 백그라운드 환경에서 인증 팝업 없이 깃 푸시가 정상 작동하려면, 발급받은 GitHub Personal Access Token (PAT)을 `.env` 파일에 `GITHUB_TOKEN=ghp_...` 형태로 등록해 두어야 무인 자동 배포가 완료됩니다.

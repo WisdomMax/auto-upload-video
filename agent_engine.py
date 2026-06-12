@@ -149,6 +149,12 @@ class AIAgentEngine:
                     # 5) 정적 카탈로그 index.html 빌더 실행
                     catalog_builder.build_catalog()
                     
+                    # 6) Cloudflare Pages 자동 배포 트리거
+                    try:
+                        requests.post("http://localhost:18888/api/publish-catalog", timeout=30)
+                    except Exception as e_pub:
+                        logger.error(f"Failed to auto-trigger catalog publish: {e_pub}")
+                    
                     database.create_agent_log(
                         task_type="video_scan",
                         status="success",
