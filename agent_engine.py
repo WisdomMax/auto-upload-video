@@ -96,11 +96,16 @@ class AIAgentEngine:
 
     async def _scan_input_directory(self):
         import time
+        import shutil
+        import re
         base_dir = os.path.dirname(os.path.abspath(__file__))
         input_dir = os.path.join(base_dir, "input")
+        processed_dir = os.path.join(input_dir, "processed")
+        
         if not os.path.exists(input_dir):
             os.makedirs(input_dir, exist_ok=True)
-            return
+            
+        os.makedirs(processed_dir, exist_ok=True)
 
         # 1. DB settings에서 이미 처리 완료된 파일명 캐시 로드
         processed_files_str = database.get_setting("processed_input_files", "[]")
@@ -141,15 +146,26 @@ class AIAgentEngine:
                     from main import generate_ai_sns_content
                     generate_ai_sns_content(item_id)
                     
-                    # 4) 처리 완료 목록에 추가 및 DB 캐시 갱신 (즉시 영상 파일을 지우지 않음!)
+                    # 4) 처리 완료 목록에 추가 및 DB 캐시 갱신
                     processed_files.append(file_name)
                     database.set_setting("processed_input_files", json.dumps(processed_files))
-                    logger.info(f"Marked input file as processed: {file_name} (Preserving for 7 days)")
+                    logger.info(f"Marked input file as processed: {file_name}")
+
+                    # 5) 원본 비디오 파일을 processed 디렉토리로 이동 (중복 스캔 방지)
+                    dest_file_name = file_name
+                    dest_path = os.path.join(processed_dir, dest_file_name)
+                    if os.path.exists(dest_path):
+                        name_part, ext_part = os.path.splitext(file_name)
+                        dest_file_name = f"{name_part}_{int(time.time())}{ext_part}"
+                        dest_path = os.path.join(processed_dir, dest_file_name)
                     
-                    # 5) 정적 카탈로그 index.html 빌더 실행
+                    shutil.move(video_path, dest_path)
+                    logger.info(f"Successfully moved processed file to: {dest_path}")
+                    
+                    # 6) 정적 카탈로그 index.html 빌더 실행
                     catalog_builder.build_catalog()
                     
-                    # 6) Cloudflare Pages 자동 배포 트리거
+                    # 7) Cloudflare Pages 자동 배포 트리거
                     try:
                         requests.post("http://localhost:18888/api/publish-catalog", timeout=30)
                     except Exception as e_pub:
@@ -169,21 +185,28 @@ class AIAgentEngine:
                         message=f"❌ [비디오 처리 실패] 파일 {file_name} 처리 중 오류 발생: {str(e)}"
                     )
 
-        # 3. 보관 기간이 7일 이상 경과한 오래된 영상 파일만 안전하게 순차 정리
+        # 3. 보관 기간이 7일 이상 경과한 오래된 영상 파일만 안전하게 순차 정리 (processed 디렉토리 내 대상)
         try:
             now_sec = time.time()
             limit_sec = 7 * 24 * 3600  # 7일 초 단위
             updated_processed_files = processed_files.copy()
             
-            for file_name in all_files:
-                file_path = os.path.join(input_dir, file_name)
-                if os.path.exists(file_path):
+            if os.path.exists(processed_dir):
+                processed_all_files = [f for f in os.listdir(processed_dir) if os.path.isfile(os.path.join(processed_dir, f))]
+                for file_name in processed_all_files:
+                    file_path = os.path.join(processed_dir, file_name)
                     mtime = os.path.getmtime(file_path)
                     age_sec = now_sec - mtime
                     if age_sec >= limit_sec:
                         os.remove(file_path)
-                        logger.info(f"🗑️ Removed input file older than 7 days: {file_name}")
-                        if file_name in updated_processed_files:
+                        logger.info(f"🗑️ Removed processed input file older than 7 days: {file_name}")
+                        
+                        # 타임스탬프 접미사 등을 정규식으로 걸러서 원본 파일명 매칭 시도
+                        name_part, ext_part = os.path.splitext(file_name)
+                        orig_name = re.sub(r'_\d+$', '', name_part) + ext_part
+                        if orig_name in updated_processed_files:
+                            updated_processed_files.remove(orig_name)
+                        elif file_name in updated_processed_files:
                             updated_processed_files.remove(file_name)
                             
             if updated_processed_files != processed_files:
