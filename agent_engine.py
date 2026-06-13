@@ -537,6 +537,11 @@ class AIAgentEngine:
         logger.info(f"Intelligent caption generation completed for item {item_id}")
 
     async def _check_and_publish_pending_items(self):
+        # 자동 예약 배포 활성화 여부 검사 (사용자 지시 "지금 예약하지마" 대응 기본값: false)
+        if database.get_setting("AUTO_PUBLISH_SCHEDULE", "false") != "true":
+            logger.info("Buffer auto-scheduling is disabled by configuration (AUTO_PUBLISH_SCHEDULE is not 'true'). Skipping.")
+            return
+
         items = database.get_items()
         
         # 1. 쿠팡 URL이 있고 대기(pending) 상태이거나, 실패(failed)했으나 예약 일정이 잡히지 않은 상품 추출
@@ -571,10 +576,6 @@ class AIAgentEngine:
         # ID 오름차순(오래된 상품 순)으로 정렬하여 먼저 등록된 상품이 빠른 날짜에 배포 예약되게 함
         pending_items.sort(key=lambda x: x["id"])
 
-        # 하루 최대 3일치(3개) 상품까지만 Buffer에 예약을 생성하도록 제한 (4일째부터는 다음 구동 시로 자동 이월)
-        publish_limit = 3
-        items_to_publish = pending_items[:publish_limit]
-
         # 예약 타임슬롯 기준점 계산 (매일 저녁 6시 KST = 18:00 KST = 09:00 UTC)
         future_scheduled = []
         now_utc = datetime.now(timezone.utc)
@@ -593,9 +594,25 @@ class AIAgentEngine:
                     
         future_scheduled.sort()
         
+        # 3. 이미 미래에 예약 완료된 활성 포스트 수 계산
+        active_scheduled_count = len(future_scheduled)
+        slots_available = 3 - active_scheduled_count
+        
+        if slots_available <= 0:
+            logger.info(f"Buffer queue is already full with {active_scheduled_count} scheduled posts. Skipping scheduling for now.")
+            return
+            
+        items_to_publish = pending_items[:slots_available]
+        logger.info(f"Buffer queue has {active_scheduled_count} active posts. Scheduling {len(items_to_publish)} new post(s) to maintain 3 days of buffer.")
+        
         if future_scheduled:
+            # 기존 예약된 일정이 있는 경우, 마지막 예약 시점의 다음날부터 하루에 하나씩 추가 배정
             base_sch = future_scheduled[-1]
+            for i, item in enumerate(items_to_publish):
+                next_sch = base_sch + timedelta(days=i + 1)
+                await self._schedule_item_on_buffer(item["id"], next_sch)
         else:
+            # 기존 예약 일정이 없는 경우, 오늘 혹은 내일 18:00 KST 부터 하루에 하나씩 순차 배정
             kst_tz = timezone(timedelta(hours=9))
             now_kst = datetime.now(kst_tz)
             today_18_kst = now_kst.replace(hour=18, minute=0, second=0, microsecond=0)
@@ -605,12 +622,9 @@ class AIAgentEngine:
             else:
                 base_sch = (today_18_kst + timedelta(days=1)).astimezone(timezone.utc)
 
-        for i, item in enumerate(items_to_publish):
-            if future_scheduled:
-                next_sch = base_sch + timedelta(days=i + 1)
-            else:
+            for i, item in enumerate(items_to_publish):
                 next_sch = base_sch + timedelta(days=i)
-            await self._schedule_item_on_buffer(item["id"], next_sch)
+                await self._schedule_item_on_buffer(item["id"], next_sch)
 
     async def _monitor_youtube_comments(self):
         try:
