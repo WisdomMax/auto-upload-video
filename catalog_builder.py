@@ -174,7 +174,37 @@ def build_catalog():
             max-width: 440px;
             margin: 0 auto;
             position: relative;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, top 0.4s ease, width 0.4s ease;
         }
+        
+        /* Floating Sticky mode (Hidden state by default) */
+        .search-container.pinned {
+            position: fixed;
+            top: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 48px);
+            max-width: 440px;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .search-container.pinned input {
+            background: rgba(20, 20, 20, 0.85) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-color: rgba(188, 163, 116, 0.45) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Floating Sticky mode (Visible state) */
+        .search-container.pinned.visible {
+            top: 16px;
+            opacity: 1;
+            pointer-events: auto;
+        }
+
         .search-container input {
             width: 100%;
             padding: 12px 16px 12px 42px;
@@ -452,6 +482,34 @@ def build_catalog():
         searchInput.addEventListener('input', (e) => {
             renderProducts(e.target.value);
         });
+
+        // 스크롤 감지 플로팅 검색창 로직 추가
+        let lastScrollY = window.scrollY;
+        const scrollThreshold = 250;
+
+        window.addEventListener('scroll', () => {
+            const currentScrollY = window.scrollY;
+            
+            if (currentScrollY <= scrollThreshold) {
+                // 스크롤이 최상단 근처일 때는 원래 위치에 배치
+                searchContainer.classList.remove('pinned', 'visible');
+                lastScrollY = currentScrollY;
+                return;
+            }
+            
+            if (currentScrollY < lastScrollY) {
+                // 위로 스크롤 시 플로팅 활성화
+                searchContainer.classList.add('pinned');
+                requestAnimationFrame(() => {
+                    searchContainer.classList.add('visible');
+                });
+            } else {
+                // 아래로 스크롤 시 플로팅 비활성화
+                searchContainer.classList.remove('visible');
+            }
+            
+            lastScrollY = currentScrollY;
+        }, { passive: true });
 
         // 초기화
         renderProducts();
