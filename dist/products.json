@@ -1,35 +1,5 @@
 [
   {
-    "id": 47,
-    "product_no": 14,
-    "product_code": "T00014",
-    "title": "엄마아빠 패션다이어리 추천 상품",
-    "description": "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다.",
-    "coupang_url": "",
-    "short_url": "#",
-    "thumbnail_url": "/static/thumbnails/T00014.webp"
-  },
-  {
-    "id": 46,
-    "product_no": 13,
-    "product_code": "T00013",
-    "title": "엄마아빠 패션다이어리 추천 상품",
-    "description": "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다.",
-    "coupang_url": "",
-    "short_url": "#",
-    "thumbnail_url": "/static/thumbnails/T00013.webp"
-  },
-  {
-    "id": 45,
-    "product_no": 12,
-    "product_code": "T00012",
-    "title": "엄마아빠 패션다이어리 추천 상품",
-    "description": "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다.",
-    "coupang_url": "",
-    "short_url": "#",
-    "thumbnail_url": "/static/thumbnails/T00012.webp"
-  },
-  {
     "id": 44,
     "product_no": 11,
     "product_code": "T00011",
