@@ -97,30 +97,9 @@ def get_coupang_short_link(original_url: str, access_key: str, secret_key: str) 
         
     return ""
 
-def generate_ai_sns_content(item_id: int):
-    item = database.get_item(item_id)
-    if not item:
-        return
-        
-    link = item['short_url'] if item['short_url'] else item['coupang_url']
-    
-    youtube_title = f"[No.{item['product_no']}] {item['title']} 솔직 후기 및 추천! #Shorts"
-    youtube_description = f"영상 속 추천 아이템 정보입니다! 👇\n\n구매 링크: {link}\n(채널 프로필 홈에 연결된 링크를 클릭하시면 모든 제품의 구매 링크를 한눈에 편리하게 확인하실 수 있습니다)\n\n[제품 설명]\n{item['description']}\n\n* 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.\n\n#쿠팡추천템 #살림꿀템 #추천아이템"
-    youtube_tags = f"#쿠팡추천, #꿀템, #살림꿀템, #살림템, #생활용품, #{item['title']}"
-    
-    sns_caption = f"이거 하나로 고민 해결! 대박 꿀템 공유해 드립니다 ✨\n\nNo.{item['product_no']} - {item['title']}\n\n제품의 상세 정보와 단축 링크가 필요하시다면?\n댓글로 '엄마'를 남겨주시면 DM으로 바로 링크를 보내드릴게요! 💌\n\n#생활꿀팁 #살림템 #꿀템 #쿠팡추천"
-    comment_reply = f"유튜브 정책상 댓글 링크 클릭이 되지 않아서 네이버 검색을 유도해 드려요! 🔍 네이버 검색창에 '엄마아빠 패션다이어리 {item['title']}'을 검색하시면 상세 정보와 쿠팡 링크를 바로 확인하실 수 있습니다!"
-    dm_template = f"안녕하세요 크리에이터입니다! 😊\n요청하신 [No.{item['product_no']} - {item['title']}]의 상세 링크입니다.\n\n👇 쿠팡 즉시구매 링크\n{link}\n\n즐겁고 스마트한 쇼핑 되세요!"
-    
-    database.update_item_generated_contents(
-        item_id,
-        youtube_title,
-        youtube_description,
-        youtube_tags,
-        sns_caption,
-        dm_template,
-        comment_reply
-    )
+async def generate_ai_sns_content(item_id: int):
+    from agent_engine import agent_engine
+    await agent_engine._generate_intelligent_caption(item_id)
 
 # Cloudflare R2 동영상 업로드 함수
 def upload_video_to_r2(file_path: str, product_no: int) -> str:
@@ -464,30 +443,9 @@ async def auto_process_pipeline_task(item_id: int, auto_publish: bool):
         if short_url:
             database.update_item_coupang_urls(item_id, coupang_url, short_url)
             
-    # Step 3: 내장 템플릿 기반 콘텐츠 자동 완성 (Gemini API 미사용)
-    landing_link = f"http://localhost:18888/p/{product_no}"
-    link = short_url if short_url else landing_link
-
-    youtube_title = f"[No.{product_no}] {scraped_title} 솔직 리뷰 추천! #Shorts"
-    youtube_description = f"영상 속 추천 아이템 정보입니다! 👇\n\n구매 링크: {link}\n(채널 프로필 홈에 연결된 링크를 클릭하시면 모든 제품의 구매 링크를 한눈에 편리하게 확인하실 수 있습니다)\n\n[제품 설명]\n{scraped_description}\n\n* 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.\n\n#쿠팡추천템 #살림꿀템 #추천아이템"
-    
-    # 샵 기호 없는 콤마 구분 유튜브 검색 태그 포맷팅
-    clean_title_keyword = scraped_title.split(" ")[0] if scraped_title else "추천상품"
-    youtube_tags = f"쿠팡추천템, 살림꿀템, 꿀템, 생활용품, {clean_title_keyword}, {scraped_title[:15]}"
-    
-    sns_caption = f"이거 하나로 고민 해결! 대박 꿀템 공유해 드립니다 ✨\n\nNo.{product_no} - {scraped_title}\n\n제품의 상세 정보와 단축 링크가 필요하시다면?\n댓글로 '엄마'를 남겨주시면 DM으로 바로 링크를 보내드릴게요! 💌\n\n#생활꿀팁 #살림템 #꿀템 #쿠팡추천"
-    comment_reply = f"유튜브 정책상 댓글 링크 클릭이 되지 않아서 네이버 검색을 유도해 드려요! 🔍 네이버 검색창에 '엄마아빠 패션다이어리 {scraped_title}'을 검색하시면 상세 정보와 쿠팡 링크를 바로 확인하실 수 있습니다!"
-    dm_template = f"안녕하세요 크리에이터입니다! 😊\n요청하신 [No.{product_no} - {scraped_title}]의 상세 링크입니다.\n\n👇 쿠팡 즉시구매 링크\n{link}\n\n즐겁고 스마트한 쇼핑 되세요!"
-    
-    database.update_item_generated_contents(
-        item_id,
-        youtube_title,
-        youtube_description,
-        youtube_tags,
-        sns_caption,
-        dm_template,
-        comment_reply
-    )
+    # Step 3: 지능형 캡션/콘텐츠 자동 완성 호출 (agent_engine의 일관된 로직 활용)
+    from agent_engine import agent_engine
+    await agent_engine._generate_intelligent_caption(item_id)
     
     # 에이전트 로그 작성
     database.create_agent_log(
@@ -598,7 +556,7 @@ async def update_short_link(item_id: int, payload: dict, background_tasks: Backg
             logger.error(f"Failed to update description for item {item_id}: {e}")
             
     # 링크 변경 시 콘텐츠 자동 재생성
-    generate_ai_sns_content(item_id)
+    await generate_ai_sns_content(item_id)
     
     # 정적 웹 카탈로그 즉시 갱신
     import catalog_builder
@@ -616,7 +574,7 @@ async def regenerate_contents(item_id: int):
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
         
-    generate_ai_sns_content(item_id)
+    await generate_ai_sns_content(item_id)
     return {"status": "success", "item": database.get_item(item_id)}
 
 @app.delete("/api/items/{item_id}")
@@ -851,39 +809,17 @@ async def publish_catalog():
     """DB의 상품 목록을 dist/products.json에 저장하고 git push → Cloudflare 자동 배포"""
     import subprocess
     from datetime import datetime, timezone
+    import catalog_builder
 
     try:
-        items = database.get_items()
+        # 정적 웹 카탈로그 갱신 빌드 실행 (index.html 및 products.json 정상 포맷 출력)
+        catalog_builder.build_catalog()
         
-        products = []
-        for item in items:
-            products.append({
-                "id": item["id"],
-                "name": item["title"],
-                "description": item.get("description", ""),
-                "short_url": item.get("short_url", ""),
-                "coupang_url": item.get("coupang_url", ""),
-                "video_url": item.get("r2_video_url", ""),
-                "thumbnail_url": ""
-            })
-
-        catalog = {
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "store_name": "Momdad Fashion Diary",
-            "store_description": "엄마아빠의 패션 일기 — 매일 새로운 스타일 추천",
-            "products": products
-        }
-
-        dist_dir = os.path.join(BASE_DIR, "dist")
-        os.makedirs(dist_dir, exist_ok=True)
-        products_path = os.path.join(dist_dir, "products.json")
-
-        with open(products_path, "w", encoding="utf-8") as f:
-            json.dump(catalog, f, ensure_ascii=False, indent=2)
+        items = database.get_items()
 
         # git add → commit → push
-        subprocess.run(["git", "add", "dist/products.json", "dist/index.html", "static/thumbnails/"], cwd=BASE_DIR, check=True)
-        commit_msg = f"🛍️ catalog: 상품 목록 업데이트 ({len(products)}개) — {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        subprocess.run(["git", "add", "dist/products.json", "dist/index.html", "static/thumbnails/", "dist/static/thumbnails/"], cwd=BASE_DIR, check=True)
+        commit_msg = f"🛍️ catalog: 상품 목록 업데이트 ({len(items)}개) — {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         result = subprocess.run(
             ["git", "commit", "-m", commit_msg],
             cwd=BASE_DIR, capture_output=True, text=True
@@ -929,14 +865,15 @@ async def publish_catalog():
             return {
                 "status": "error",
                 "message": f"Git push 실패: {push_result.stderr}",
-                "products_count": len(products)
+                "products_count": len(items)
             }
 
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
         return {
             "status": "success",
-            "message": f"{len(products)}개 상품이 배포됐습니다. Cloudflare Pages가 자동으로 업데이트됩니다.",
-            "products_count": len(products),
-            "updated_at": catalog["updated_at"]
+            "message": f"{len(items)}개 상품이 배포됐습니다. Cloudflare Pages가 자동으로 업데이트됩니다.",
+            "products_count": len(items),
+            "updated_at": now_str
         }
 
     except Exception as e:

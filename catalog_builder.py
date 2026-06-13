@@ -12,8 +12,21 @@ def build_catalog():
     dist_dir = os.path.join(base_dir, "dist")
     os.makedirs(dist_dir, exist_ok=True)
     
-    # 1. DB에서 전체 상품 조회
-    items = database.get_items()
+    # 1. DB에서 전체 상품 중 쿠팡 URL이 비어있지 않은 상품만 필터링하여 조회
+    raw_items = database.get_items()
+    items = [it for it in raw_items if it.get("coupang_url") and it.get("coupang_url").strip() != ""]
+    
+    # 썸네일 폴더를 dist/static/thumbnails/ 로 복사하여 Cloudflare Pages 배포에 포함시킴
+    src_thumb_dir = os.path.join(base_dir, "static", "thumbnails")
+    dist_thumb_dir = os.path.join(dist_dir, "static", "thumbnails")
+    if os.path.exists(src_thumb_dir):
+        import shutil
+        dist_static_dir = os.path.join(dist_dir, "static")
+        os.makedirs(dist_static_dir, exist_ok=True)
+        if os.path.exists(dist_thumb_dir):
+            shutil.rmtree(dist_thumb_dir)
+        shutil.copytree(src_thumb_dir, dist_thumb_dir)
+        logger.info("Thumbnails successfully copied to dist/static/thumbnails")
     
     products_data = []
     for item in items:
@@ -305,94 +318,30 @@ def build_catalog():
             filter: grayscale(0%) contrast(1);
         }
 
-        /* Tiny Premium Badge */
-        .code-badge {
-            position: absolute;
-            top: 16px;
-            left: 16px;
-            background: rgba(10, 10, 10, 0.9);
-            border: 1.5px solid var(--color-gold); /* Thicker border */
-            color: var(--color-gold);
-            font-size: 0.95rem;           /* Enormously scaled up from 0.65rem */
-            font-weight: 600;             /* Bold text */
-            font-family: var(--font-sans);
-            padding: 5px 12px;            /* Increased padding for layout balance */
-            letter-spacing: 0.05em;        /* Narrower letter-spacing for fast reading */
-            backdrop-filter: blur(8px);
-            z-index: 5;
-            text-transform: uppercase;
-        }
-
-        /* Info Section */
+        /* Info Section - Minimalist Display for code only */
         .product-info {
-            padding: 24px 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            background: #0e0e0e;
-            border-top: 1px solid var(--color-border);
-            flex: 1;
-        }
-        
-        .product-title {
-            font-family: var(--font-serif);
-            font-size: 1.12rem;
-            font-weight: 300;
-            color: var(--color-text-primary);
-            letter-spacing: 0.02em;
-            line-height: 1.4;
-            transition: color 0.3s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .product-card:hover .product-title {
-            color: var(--color-gold);
-        }
-        
-        .product-desc {
-            font-family: var(--font-serif);
-            font-size: 0.82rem;
-            font-weight: 300;
-            color: var(--color-text-secondary);
-            line-height: 1.6;
-            height: 2.6rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            opacity: 0.75;
-            transition: opacity 0.3s ease;
-        }
-        .product-card:hover .product-desc {
-            opacity: 1;
-        }
-
-        /* Underlined Editorial Button */
-        .discover-link {
-            font-size: 0.68rem;
-            font-weight: 400;
-            text-transform: uppercase;
-            letter-spacing: 0.2em;
-            color: var(--color-gold);
+            padding: 16px 12px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-top: 6px;
-            padding-bottom: 2px;
-            width: fit-content;
-            border-bottom: 1px solid transparent;
-            transition: border-bottom-color 0.3s ease;
+            justify-content: center;
+            background: #0d0d0d;
+            border-top: 1px solid var(--color-border);
         }
-        .product-card:hover .discover-link {
-            border-bottom-color: var(--color-gold);
+        
+        .product-code-display {
+            font-family: var(--font-serif);
+            font-size: 1.8rem;             /* 1.45rem -> 1.8rem으로 크게 노출 */
+            font-weight: 300;
+            color: var(--color-gold);
+            letter-spacing: 0.18em;        /* 자간을 넓혀 에디토리얼 감성 강화 */
+            text-transform: uppercase;
+            transition: color 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), letter-spacing 0.4s ease;
         }
-        .discover-link i {
-            font-size: 0.8rem;
-            transition: transform 0.3s ease;
-        }
-        .product-card:hover .discover-link i {
-            transform: translateX(4px);
+        
+        .product-card:hover .product-code-display {
+            color: #ffffff;
+            letter-spacing: 0.22em;       /* 호버 시 글자 자간이 미세하게 늘어나는 고급스러운 효과 */
+            transform: scale(1.02);       /* 미세 호버 효과 */
         }
 
         /* Empty search state */
@@ -491,12 +440,9 @@ def build_catalog():
                                     this.classList.add('error');
                                 }
                              ">
-                        <span class="code-badge">${productCode}</span>
                     </div>
                     <div class="product-info">
-                        <h3 class="product-title">${p.title}</h3>
-                        <p class="product-desc">${p.description}</p>
-                        <span class="discover-link">VIEW DETAILS <i class="fa-solid fa-arrow-right-long"></i></span>
+                        <span class="product-code-display">${productCode}</span>
                     </div>
                 `;
                 grid.appendChild(card);

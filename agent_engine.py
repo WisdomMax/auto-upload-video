@@ -442,50 +442,61 @@ class AIAgentEngine:
                     
         link = short_url if short_url else url
         
-        # 3. 제품 카테고리 판별 (원피스, 가디건 등) 및 문구 셋업
+        # 3. 제품 카테고리 판별 및 태그/문구 고도화 셋업
+        import random
+        
+        # 카테고리별 풍부한 태그 풀 정의 (검색 노출 최적화용)
+        tag_pools = {
+            "원피스": ["시니어패션", "60대여성의류", "동안코디", "엄마옷추천", "중년여성패션", "원피스코디", "5060패션", "6070패션", "7080코디", "시니어룩", "중년코디", "우아한룩", "여름원피스", "체형커버코디", "귀티나는코디", "엄마선물", "편안한원피스", "세련된코디"],
+            "아우터": ["시니어룩", "중년패션", "아우터추천", "귀티나는코디", "60대패션", "가디건코디", "엄마옷선물", "6080패션", "5060의류", "시니어자켓", "가벼운아우터", "중년의일상", "모임룩추천", "세련된코디", "동안코디", "체형보정"],
+            "바지": ["60대여성코디", "밴딩바지", "중년여성패션", "세련된코디", "시니어패션", "바지추천", "6070패션", "7080패션", "발편한코디", "일상데일리룩", "편한바지", "체형커버바지", "중년의일상", "5060바지", "엄마옷"],
+            "상의": ["5060패션", "동안스타일링", "엄마옷", "상의코디", "세련된코디", "60대여성의류", "7080코디", "6070패션", "린넨티셔츠", "시원한여름옷", "중년코디", "모임룩추천", "귀티나는룩", "이지웨어"],
+            "신발": ["발편한신발", "효도신발", "시니어룩", "기능성슈즈", "60대여성코디", "중년여성패션", "6080패션", "발편한로퍼", "걷기좋은신발", "엄마신발추천", "5060패션", "데일리슈즈", "편안한구두"],
+            "의류": ["시니어패션", "동안코디", "귀티나는코디", "중년여성패션", "5060패션", "엄마옷추천", "6070패션", "7080패션", "6080코디", "시니어룩", "세련된코디", "중년스타일링", "엄마선물룩", "데일리룩"]
+        }
+
         title_lower = title.lower()
         category = "의류"
-        intro_phrase = "어머님들 입으시기 딱 좋은 편안하고 세련된 옷 소개해 드려요"
+        intro_phrase = f"어머님들이 입으시기 딱 좋은 편안하고 세련된 {title} 소개해 드려요"
         
         if any(x in title_lower for x in ["원피스", "드레스"]):
             category = "원피스"
-            intro_phrase = "편안하면서도 고상한 멋이 느껴지는 원피스 소개해 드립니다"
+            intro_phrase = f"편안하면서도 고상한 멋이 느껴지는 {title} 소개해 드립니다"
+            youtube_title = f"60대 이후 옷 잘 입는 분들은 절대 안 입는 원피스? {title} 코디법! #동안코디 #원피스코디"
         elif any(x in title_lower for x in ["가디건", "카디건", "아우터", "재킷", "점퍼", "코트", "조끼", "베스트"]):
             category = "아우터"
-            intro_phrase = "가볍게 툭 걸치기만 해도 스타일이 사는 외출용 아우터 준비했습니다"
+            intro_phrase = f"가볍게 툭 걸치기만 해도 스타일이 사는 외출용 {title} 준비했습니다"
+            youtube_title = f"60대 어머님들 외출하실 때 일반 가디건보다 이 {title}이 훨씬 귀티나고 세련돼요! #귀티나는코디 #아우터추천"
         elif any(x in title_lower for x in ["바지", "팬츠", "슬랙스", "청바지"]):
             category = "바지"
-            intro_phrase = "하루 종일 입어도 정말 편안하고 활동성 최고인 밴딩 바지 추천해 드려요"
+            intro_phrase = f"하루 종일 입어도 정말 편안하고 활동성 최고인 {title} 추천해 드려요"
+            youtube_title = f"60대 이후 입으면 20년 젊어보이는 {title} 코디 추천 #중년여성패션 #바지코디"
         elif any(x in title_lower for x in ["티셔츠", "블라우스", "셔츠", "남방", "니트"]):
             category = "상의"
-            intro_phrase = "시원하고 부드러운 촉감으로 매일 손이 가는 상의 소개해 드립니다"
+            intro_phrase = f"시원하고 부드러운 촉감으로 매일 손이 가는 {title} 소개해 드립니다"
+            youtube_title = f"60대 어머님들 {title} 하나로 키 5cm는 더 커 보이고 젊어지는 코디법! #세련된코디 #상의코디"
         elif any(x in title_lower for x in ["샌들", "샌달", "구두", "신발", "슬리퍼", "스니커즈", "로퍼"]):
             category = "신발"
-            intro_phrase = "발이 정말 편안해서 외출하실 때 걷기 좋은 기능성 슈즈 소개해 드려요"
-            
+            intro_phrase = f"발이 정말 편안해서 외출하실 때 걷기 좋은 기능성 {title} 소개해 드려요"
+            youtube_title = f"60대 이후 촌스럽지 않고 발 편해서 하루 만 보 걷기 좋은 {title} 추천 #발편한신발 #시니어룩"
+        else:
+            youtube_title = f"60대 70대 어머님들 비싼 옷 안 입어도 20년 젊어 보이는 동안 {title} 코디 공식 #시니어패션 #동안코디"
+
         # 4. 사용자 추가 설명(description)이 기본 템플릿 문구가 아니고 존재한다면 적극 반영
         user_extra = ""
         is_default_desc = description == "에이전트가 영상 분석을 통해 추천하는 고품질 신상품 정보입니다."
         if description and not is_default_desc:
-            # 사용자가 세트아님, 단품 등 기입했을 경우 캡션에 강조
             user_extra = f"\n\n[제품 정보 및 구성 안내 📌]\n👉 {description}"
             
-        # 5. SNS 캡션 조립 (자연스러운 이모티콘 사용 및 youtube-research 대박 제목 패턴 모사 적용)
-        youtube_title = f"[No.{product_no}] 60대 70대 어머님들을 위한 {title} 추천! #Shorts"
-        
-        if category == "원피스":
-            youtube_title = f"[No.{product_no}] 60대 이후 옷 잘 입는 분들은 절대 안 입는 원피스 코디법! #Shorts"
-        elif category == "아우터":
-            youtube_title = f"[No.{product_no}] 60대 어머님들 외출하실 때 가디건보다 이게 훨씬 귀티나고 세련돼요! #Shorts"
-        elif category == "바지":
-            youtube_title = f"[No.{product_no}] 60대 이후 입으면 20년 젊어보이는 유행 바지 코디 추천 #Shorts"
-        elif category == "상의":
-            youtube_title = f"[No.{product_no}] 60대 어머님들 이것만 알면 키 5cm는 더 커 보이고 젊어 보여요! #Shorts"
-        elif category == "신발":
-            youtube_title = f"[No.{product_no}] 60대 이후 촌스럽지 않고 발 편해서 걷기 좋은 신발 추천 #Shorts"
-        else:
-            youtube_title = f"[No.{product_no}] 60대 70대 어머님들 비싼 옷 안 입어도 20년 젊어 보이는 동안 코디 공식 #Shorts"
-        
+        # 5. 유튜브 내부 검색창에 적용될 메타데이터 태그 (콤마로 구분된 7개 무작위 태그 추출)
+        pool = tag_pools.get(category, tag_pools["의류"])
+        selected_tags = random.sample(pool, min(len(pool), 7))
+        youtube_tags = ", ".join(selected_tags)
+
+        # 6. 유튜브 설명 본문용 다이내믹 해시태그 (본문용으로 무작위 4개 추출하여 샵 기호 접두)
+        desc_tags = random.sample(pool, min(len(pool), 4))
+        desc_hashtags_str = " ".join([f"#{t}" for t in desc_tags])
+
         youtube_description = (
             f"영상 속 추천 아이템 정보입니다! 👇\n\n"
             f"구매 링크: {link}\n"
@@ -496,9 +507,7 @@ class AIAgentEngine:
         )
         if user_extra:
             youtube_description += f"{user_extra}"
-        youtube_description += f"\n\n* 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.\n\n#쿠팡추천템 #살림꿀템 #추천아이템"
-        
-        youtube_tags = f"#쿠팡추천, #꿀템, #60대여성의류, #엄마옷, #시니어패션, #{category}"
+        youtube_description += f"\n\n* 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.\n\n{desc_hashtags_str}"
         
         sns_caption = (
             f"이거 하나로 고민 해결! 대박 꿀템 공유해 드립니다 ✨\n\n"
@@ -525,7 +534,7 @@ class AIAgentEngine:
             dm_template,
             comment_reply
         )
-        logger.info(f"Intelligent caption generation completed for item {item_id} ({category})")
+        logger.info(f"Intelligent caption generation completed for item {item_id}")
 
     async def _check_and_publish_pending_items(self):
         items = database.get_items()

@@ -94,7 +94,7 @@ def overlay_code_subtitles(input_path, output_path, product_code):
         return False
 
 def extract_webp_thumbnail(video_path, duration, output_path):
-    sec = duration * 0.8
+    sec = duration * 0.95
     temp_jpeg_path = output_path + ".temp.jpg"
     
     # 1. 임시 JPEG 파일로 비디오 프레임 추출 (코덱 독립적)
