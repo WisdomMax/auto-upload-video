@@ -446,11 +446,13 @@ async def auto_process_pipeline_task(item_id: int, auto_publish: bool):
                 conn.close()
             except Exception as e:
                 logger.error(f"Failed to update title/desc for item {item_id}: {e}")
-    else:
-        logger.info(f"Using existing title for item {item_id}: {current_title} (Scraping skipped in auto_process)")
-        
-    # 최신화된 아이템 정보 다시 가져오기
-    item = database.get_item(item_id)
+        else:
+            logger.info(f"Using existing title for item {item_id}: {current_title} (Scraping skipped in auto_process)")
+            
+        # 최신화된 아이템 정보 다시 가져오기 및 NameError 방지 바인딩
+        item = database.get_item(item_id)
+        scraped_title = item.get('title')
+        scraped_description = item.get('description') or f"{scraped_title}의 솔직 후기 및 가성비 추천 정보입니다."
 
     # Step 2: 쿠팡 파트너스 링크 단축 시도
     coupang_access = database.get_setting("COUPANG_ACCESS_KEY") or os.getenv("COUPANG_ACCESS_KEY")
@@ -505,13 +507,14 @@ async def add_item(
     coupang_url: str = Form(...),
     video: UploadFile = File(...),
     auto_publish: bool = Form(False),
+    title: str = Form(None),
     background_tasks: BackgroundTasks = None
 ):
     # product_no 자동 발급
     product_no = database.get_next_product_no()
     
     # 임시 제목 및 설명으로 업로드 우선 완료 처리
-    temp_title = f"No. {product_no} 쿠팡 상품 (정보 수집 중...)"
+    temp_title = title if title else f"No. {product_no} 쿠팡 상품 (정보 수집 중...)"
     temp_desc = "백엔드에서 쿠팡 상품 상세 페이지 크롤링이 진행 중입니다."
     
     original_filename = f"prod_{product_no}_{video.filename}"
@@ -552,6 +555,7 @@ async def update_short_link(item_id: int, payload: dict, background_tasks: Backg
     short_url = payload.get("short_url", "")
     coupang_url = payload.get("coupang_url", "")
     description = payload.get("description", "")
+    title = payload.get("title", "")
     
     item = database.get_item(item_id)
     if not item:
@@ -571,6 +575,17 @@ async def update_short_link(item_id: int, payload: dict, background_tasks: Backg
     # 링크가 등록/수정되었으므로 배포 상태를 대기(pending)로 초기화하고 이전 실패 로그를 제거합니다.
     database.update_item_publish_results(item_id, 'pending', None)
     
+    # 상품 제목(title) 업데이트
+    if title:
+        try:
+            conn = database.get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE items SET title = ? WHERE id = ?", (title, item_id))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Failed to update title for item {item_id}: {e}")
+
     # 추가 설명(description) 업데이트
     if description is not None:
         try:

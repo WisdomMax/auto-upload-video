@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailR2Url = document.getElementById('detail-r2-url');
     const detailCoupangUrl = document.getElementById('detail-coupang-url');
     const detailShortUrl = document.getElementById('detail-short-url');
+    const detailProductTitle = document.getElementById('detail-product-title');
     const btnSaveShortLink = document.getElementById('btn-save-short-link');
     const btnVisitCoupang = document.getElementById('btn-visit-coupang');
     const btnDeleteItem = document.getElementById('btn-delete-item');
@@ -311,6 +312,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (detailTitle) {
                 detailTitle.innerText = item.title;
             }
+            if (detailProductTitle) {
+                detailProductTitle.value = item.title || '';
+            }
             
             // Video path (Original local preview)
             if (detailVideoPlayer) {
@@ -525,7 +529,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({
                         short_url: '',
                         coupang_url: detailCoupangUrl ? detailCoupangUrl.value : '',
-                        description: detailDescInput ? detailDescInput.value : ''
+                        description: detailDescInput ? detailDescInput.value : '',
+                        title: detailProductTitle ? detailProductTitle.value : ''
                     })
                 });
                 const data = await res.json();
