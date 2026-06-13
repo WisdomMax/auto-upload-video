@@ -484,6 +484,7 @@ def build_catalog():
         });
 
         // 스크롤 감지 플로팅 검색창 로직 추가
+        const searchContainer = document.querySelector('.search-container');
         let lastScrollY = window.scrollY;
         const scrollThreshold = 250;
 
