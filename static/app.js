@@ -38,6 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnRegenerate = document.getElementById('btn-regenerate');
     const btnPublishNow = document.getElementById('btn-publish-now');
     const publishResultsDetail = document.getElementById('publish-results-detail');
+    
+    // Coupang Link Preview elements
+    const btnFetchCoupang = document.getElementById('btn-fetch-coupang');
+    const coupangPreviewBox = document.getElementById('coupang-preview-box');
+    const coupangPreviewTitle = document.getElementById('coupang-preview-title');
+    const btnApplyPreviewTitle = document.getElementById('btn-apply-preview-title');
 
     // YouTube Trends Elements
     const trendsSearchKeyword = document.getElementById('trends-search-keyword');
@@ -110,6 +116,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (detailVideoPlayer) {
             detailVideoPlayer.pause();
+        }
+        if (coupangPreviewBox) {
+            coupangPreviewBox.style.display = 'none';
         }
     };
 
@@ -547,6 +556,54 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 btnSaveShortLink.disabled = false;
                 btnSaveShortLink.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 저장';
+            }
+        });
+    }
+
+    // 4.1 쿠팡 링크 실시간 정보 조회 및 적용 로직 추가
+    if (btnFetchCoupang) {
+        btnFetchCoupang.addEventListener('click', async () => {
+            const url = detailCoupangUrl ? detailCoupangUrl.value.trim() : '';
+            if (!url) {
+                alert('조회할 쿠팡 상품 URL을 먼저 입력해 주세요.');
+                return;
+            }
+
+            btnFetchCoupang.disabled = true;
+            btnFetchCoupang.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            if (coupangPreviewBox) coupangPreviewBox.style.display = 'none';
+
+            try {
+                const res = await fetch(`/api/coupang/preview?url=${encodeURIComponent(url)}`);
+                const data = await res.json();
+                
+                if (data.status === 'success' && data.title) {
+                    if (coupangPreviewTitle) {
+                        coupangPreviewTitle.innerText = data.title;
+                    }
+                    if (coupangPreviewBox) {
+                        coupangPreviewBox.style.display = 'block';
+                    }
+                } else {
+                    alert(data.message || '쿠팡 정보를 가져올 수 없습니다. 직접 입력해 주세요.');
+                }
+            } catch (err) {
+                console.error('Error fetching Coupang preview:', err);
+                alert('쿠팡 서버 연결 오류가 발생했습니다. 직접 입력해 주세요.');
+            } finally {
+                btnFetchCoupang.disabled = false;
+                btnFetchCoupang.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> 불러오기';
+            }
+        });
+    }
+
+    if (btnApplyPreviewTitle) {
+        btnApplyPreviewTitle.addEventListener('click', () => {
+            if (coupangPreviewTitle && detailProductTitle) {
+                detailProductTitle.value = coupangPreviewTitle.innerText;
+                if (coupangPreviewBox) {
+                    coupangPreviewBox.style.display = 'none';
+                }
             }
         });
     }

@@ -579,6 +579,21 @@ async def regenerate_contents(item_id: int):
     await generate_ai_sns_content(item_id)
     return {"status": "success", "item": database.get_item(item_id)}
 
+@app.get("/api/coupang/preview")
+async def coupang_preview(url: str):
+    if not url:
+        raise HTTPException(status_code=400, detail="URL을 입력해 주세요.")
+        
+    import coupang_scraper
+    try:
+        scraped_title = await coupang_scraper.scrape_coupang_product(url)
+        if scraped_title == "엄마아빠 패션다이어리 추천 상품":
+            return {"status": "error", "message": "상품 정보를 자동으로 가져오지 못했습니다. 직접 입력해 주세요."}
+        return {"status": "success", "title": scraped_title}
+    except Exception as e:
+        logger.error(f"Failed to preview Coupang product: {e}")
+        return {"status": "error", "message": str(e)}
+
 @app.delete("/api/items/{item_id}")
 async def delete_single_item(item_id: int):
     item = database.get_item(item_id)
