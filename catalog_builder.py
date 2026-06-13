@@ -174,23 +174,23 @@ def build_catalog():
             max-width: 440px;
             margin: 0 auto;
             position: relative;
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, top 0.4s ease, width 0.4s ease;
         }
         
         /* Floating Sticky mode (Hidden state by default) */
-        .search-container.pinned {
+        .search-container.floating {
             position: fixed;
-            top: -80px;
+            top: 16px;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translateX(-50%) translateY(-120%);
             width: calc(100% - 48px);
             max-width: 440px;
             z-index: 1000;
             opacity: 0;
             pointer-events: none;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
         }
         
-        .search-container.pinned input {
+        .search-container.floating input {
             background: rgba(20, 20, 20, 0.85) !important;
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -199,8 +199,8 @@ def build_catalog():
         }
 
         /* Floating Sticky mode (Visible state) */
-        .search-container.pinned.visible {
-            top: 16px;
+        .search-container.floating.visible {
+            transform: translateX(-50%) translateY(0);
             opacity: 1;
             pointer-events: auto;
         }
@@ -405,6 +405,12 @@ def build_catalog():
         <i class="fa-solid fa-circle-info"></i> 이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.
     </div>
 
+    <!-- Floating Search Bar -->
+    <div class="search-container floating" id="search-floating-container">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="search-input-floating" placeholder="모델명(예: T00001) 또는 상품 키워드 검색">
+    </div>
+
     <div class="container">
         <header>
             <span class="brand-subtitle">Curated Senior Lookbook Collection</span>
@@ -413,7 +419,7 @@ def build_catalog():
         </header>
 
         <!-- Search Bar -->
-        <div class="search-container">
+        <div class="search-container" id="search-original-container">
             <i class="fa-solid fa-magnifying-glass"></i>
             <input type="text" id="search-input" placeholder="모델명(예: T00001) 또는 상품 키워드 검색">
         </div>
@@ -479,34 +485,46 @@ def build_catalog():
             });
         }
 
-        searchInput.addEventListener('input', (e) => {
-            renderProducts(e.target.value);
+        const originalInput = document.getElementById('search-input');
+        const floatingInput = document.getElementById('search-input-floating');
+        const originalContainer = document.getElementById('search-original-container');
+        const floatingContainer = document.getElementById('search-floating-container');
+
+        // 두 입력창 값 동기화 및 렌더링 호출
+        originalInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            floatingInput.value = val;
+            renderProducts(val);
         });
 
-        // 스크롤 감지 플로팅 검색창 로직 추가
-        const searchContainer = document.querySelector('.search-container');
+        floatingInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            originalInput.value = val;
+            renderProducts(val);
+        });
+
+        // 스크롤 감지 플로팅 검색창 로직
         let lastScrollY = window.scrollY;
-        const scrollThreshold = 250;
 
         window.addEventListener('scroll', () => {
             const currentScrollY = window.scrollY;
             
-            if (currentScrollY <= scrollThreshold) {
-                // 스크롤이 최상단 근처일 때는 원래 위치에 배치
-                searchContainer.classList.remove('pinned', 'visible');
+            // 원래 검색창 컨테이너의 하단 위치를 스크롤 기준점으로 계산
+            const originalBottom = originalContainer.getBoundingClientRect().bottom + window.scrollY;
+            
+            if (currentScrollY <= originalBottom) {
+                // 원래 검색창이 화면 내에 머물 때는 플로팅 노출 안함
+                floatingContainer.classList.remove('visible');
                 lastScrollY = currentScrollY;
                 return;
             }
             
             if (currentScrollY < lastScrollY) {
-                // 위로 스크롤 시 플로팅 활성화
-                searchContainer.classList.add('pinned');
-                requestAnimationFrame(() => {
-                    searchContainer.classList.add('visible');
-                });
+                // 위로 스크롤할 때 플로팅 검색창 슥 출현
+                floatingContainer.classList.add('visible');
             } else {
-                // 아래로 스크롤 시 플로팅 비활성화
-                searchContainer.classList.remove('visible');
+                // 아래로 스크롤할 때는 스르륵 퇴장
+                floatingContainer.classList.remove('visible');
             }
             
             lastScrollY = currentScrollY;

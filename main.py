@@ -559,7 +559,9 @@ async def update_short_link(item_id: int, payload: dict, background_tasks: Backg
     await generate_ai_sns_content(item_id)
     
     # 정적 웹 카탈로그 즉시 갱신
+    import importlib
     import catalog_builder
+    importlib.reload(catalog_builder)
     catalog_builder.build_catalog()
     
     # Cloudflare Pages 원격 배포 가동 (git push)
@@ -808,11 +810,13 @@ async def refresh_item_youtube_trends(item_id: int, payload: dict = None):
 async def publish_catalog():
     """DB의 상품 목록을 dist/products.json에 저장하고 git push → Cloudflare 자동 배포"""
     import subprocess
+    import importlib
     from datetime import datetime, timezone
     import catalog_builder
 
     try:
         # 정적 웹 카탈로그 갱신 빌드 실행 (index.html 및 products.json 정상 포맷 출력)
+        importlib.reload(catalog_builder)
         catalog_builder.build_catalog()
         
         items = database.get_items()
