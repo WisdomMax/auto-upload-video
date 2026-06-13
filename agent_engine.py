@@ -185,7 +185,7 @@ class AIAgentEngine:
                         message=f"❌ [비디오 처리 실패] 파일 {file_name} 처리 중 오류 발생: {str(e)}"
                     )
 
-        # 3. 보관 기간이 7일 이상 경과한 오래된 영상 파일만 안전하게 순차 정리 (processed 디렉토리 내 대상)
+        # 3. 보관 기간이 7일 이상 경과한 영상 중, 업로드 배포가 완료된 건들만 안전하게 순차 정리
         try:
             now_sec = time.time()
             limit_sec = 7 * 24 * 3600  # 7일 초 단위
@@ -198,12 +198,33 @@ class AIAgentEngine:
                     mtime = os.path.getmtime(file_path)
                     age_sec = now_sec - mtime
                     if age_sec >= limit_sec:
-                        os.remove(file_path)
-                        logger.info(f"🗑️ Removed processed input file older than 7 days: {file_name}")
-                        
-                        # 타임스탬프 접미사 등을 정규식으로 걸러서 원본 파일명 매칭 시도
+                        # 타임스탬프 접미사 등을 정규식으로 걸러서 원본 파일명 매칭
                         name_part, ext_part = os.path.splitext(file_name)
                         orig_name = re.sub(r'_\d+$', '', name_part) + ext_part
+                        
+                        # DB 연계 조회: 이 원본 파일명과 관련된 모든 상품 정보의 업로드 완료 상태 점검
+                        conn = database.get_db_connection()
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT publish_status FROM items WHERE original_video_path LIKE ?", (f"%{orig_name}",))
+                        related_items = cursor.fetchall()
+                        conn.close()
+                        
+                        should_delete = True
+                        if related_items:
+                            for row in related_items:
+                                status = row['publish_status']
+                                # 하나라도 업로드 완료(success)가 아니면 삭제 유예
+                                if status != 'success':
+                                    should_delete = False
+                                    break
+                                    
+                        if not should_delete:
+                            logger.info(f"⏳ Postponed deletion of {file_name}: associated item upload is not yet completed.")
+                            continue
+                            
+                        os.remove(file_path)
+                        logger.info(f"🗑️ Removed processed input file older than 7 days (Upload complete): {file_name}")
+                        
                         if orig_name in updated_processed_files:
                             updated_processed_files.remove(orig_name)
                         elif file_name in updated_processed_files:
