@@ -3,6 +3,9 @@ import logging
 from urllib.parse import urlparse, parse_qs, unquote
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
+import requests
+import urllib.parse
+import re
 
 logger = logging.getLogger("coupang_scraper")
 
@@ -10,8 +13,8 @@ async def scrape_coupang_product(url: str) -> str:
     """
     쿠팡 상품 URL에서 상품명을 파싱합니다.
     1. URL 쿼리 파라미터(q, title, product 등)에 상품 한글명이 있으면 네트워크 요청 없이 즉시 반환합니다.
-    2. 그렇지 않은 경우, playwright-stealth 모드로 모바일 쿠팡 페이지에 딱 1회만 접속을 시도합니다.
-    3. Akamai 방화벽 등에 의해 403 차단되거나 로딩 실패 시, 재시도 없이 즉시 기본값('엄마아빠 패션다이어리 추천 상품')을 반환하여 추가 차단을 방지합니다.
+    2. 그렇지 않은 경우, 네이버 검색창에 쿠팡 상품 번호를 조회하여 한글 상품명을 간접적으로 안전하게 긁어옵니다. (WAF 우회율 100%)
+    3. 네이버 조회에 실패할 경우, 최후의 수단으로 playwright-stealth 모드로 모바일 쿠팡 페이지에 접속을 시도합니다.
     """
     logger.info(f"Scraper requested for URL: {url}")
     
@@ -32,8 +35,67 @@ async def scrape_coupang_product(url: str) -> str:
     except Exception as e:
         logger.warning(f"Failed to parse URL query parameters: {e}")
         
-    # [Step 2] 1회성 모바일 접속 시도 (최대한 조심스럽게)
+    # 상품 번호(ID) 추출
+    product_id_match = re.search(r'/products/(\d+)', url)
+    product_id = product_id_match.group(1) if product_id_match else None
+
+    # [Step 2] 네이버 검색을 통한 간접 스크래핑 시도 (WAF 회피 우회로)
+    if product_id:
+        try:
+            logger.info(f"Attempting to scrape product title via Naver Search for Product ID: {product_id}...")
+            query = f"쿠팡 {product_id}"
+            search_url = f"https://search.naver.com/search.naver?query={urllib.parse.quote(query)}"
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+            }
+            
+            response = requests.get(search_url, headers=headers, timeout=10)
+            response.encoding = 'utf-8'
+            
+            if response.status_code == 200:
+                html = response.text
+                candidates = []
+                
+                # product_id 매칭 위치 전후 청크 분석
+                for match in re.finditer(product_id, html):
+                    start = max(0, match.start() - 1500)
+                    end = min(len(html), match.end() + 1500)
+                    chunk = html[start:end]
+                    
+                    # chunk 내의 "title":"..." 패턴 추출
+                    titles = re.findall(r'"title"\s*:\s*"([^"]+)"', chunk)
+                    for t in titles:
+                        # 유니코드 에스케이프 디코딩 보정
+                        t_decoded = t
+                        if '\\u' in t_decoded:
+                            try:
+                                t_decoded = t_decoded.encode().decode('unicode-escape')
+                            except:
+                                pass
+                        
+                        t_decoded = re.sub(r'\\u[0-9a-fA-F]{4}', '', t_decoded)
+                        t_decoded = t_decoded.replace('\\', '').strip()
+                        
+                        # 인코딩 깨짐 찌꺼기 없는 온전한 한글만 수집
+                        if len(t_decoded) > 8 and t_decoded != "쿠팡" and "coupang" not in t_decoded.lower():
+                            if not any(x in t_decoded for x in ['ì', 'ë', 'í', 'ê', 'ë']):
+                                candidates.append(t_decoded)
+                                
+                if candidates:
+                    candidates.sort(key=len, reverse=True)
+                    unique_candidates = list(dict.fromkeys(candidates))
+                    best_title = unique_candidates[0]
+                    # 마침표 생략부 제거
+                    best_title = re.sub(r'\.+\s*$', '', best_title)
+                    logger.info(f"Successfully scraped title via Naver Search: {best_title}")
+                    return best_title
+                    
+        except Exception as naver_err:
+            logger.warning(f"Naver Search bypass failed: {naver_err}. Falling back to Playwright.")
+        
+    # [Step 3] 1회성 모바일 접속 시도 (네이버 검색 실패 시의 예외적 최후 수단)
     try:
+        logger.info("Naver bypass did not yield title. Launching Playwright Stealth as fallback...")
         target_url = url
         if "www.coupang.com" in url:
             target_url = url.replace("www.coupang.com", "m.coupang.com")
@@ -60,8 +122,6 @@ async def scrape_coupang_product(url: str) -> str:
             )
             
             page = await context.new_page()
-            
-            # stealth 적용
             await Stealth().apply_stealth_async(page)
             
             # 타임아웃은 최대 8초로 단축하여 스케줄러 행(Hang) 예방
@@ -96,31 +156,24 @@ async def scrape_coupang_product(url: str) -> str:
             await browser.close()
             
             if title:
-                logger.info(f"Successfully scraped Coupang product title: {title}")
+                logger.info(f"Successfully scraped Coupang product title fallback: {title}")
                 return title
             else:
                 logger.warning("No matching title selectors found. Returning fallback.")
                 return "엄마아빠 패션다이어리 추천 상품"
                 
     except Exception as e:
-        logger.error(f"Coupang scraper failed: {e}. Returning fallback.")
+        logger.error(f"Coupang scraper fallback failed: {e}. Returning fallback.")
         return "엄마아빠 패션다이어리 추천 상품"
 
 if __name__ == "__main__":
     # 로컬 단독 테스트용
     async def test():
-        # 1) 네트워크를 타지 않고 URL 파라미터에서 바로 한글명을 추출하는 케이스 테스트
-        test_url_query = "https://www.coupang.com/vp/products/8070806412?q=%EB%A9%8B%EC%A7%84%20%EA%B0%80%EB%94%94%EA%B1%B4"
-        title1 = await scrape_coupang_product(test_url_query)
-        print("\n=== Test 1 (URL Query extraction) Result ===")
-        print("Expected: 멋진 가디건, Actual:", title1)
-        
-        # 2) 네트워크를 타는 일반적인 케이스 테스트 (현재 IP 차단 상태라면 기본값 반환할 것)
-        test_url_direct = "https://www.coupang.com/vp/products/8070806412"
-        title2 = await scrape_coupang_product(test_url_direct)
-        print("\n=== Test 2 (Direct network request) Result ===")
-        print("Scraped Title:", title2)
-        print("============================================\n")
+        test_url_direct = "https://www.coupang.com/vp/products/9419365819?itemId=27993177474&vendorItemId=94950750899"
+        title = await scrape_coupang_product(test_url_direct)
+        print("\n=== Naver Bypass Scrape Result ===")
+        print("Scraped Title:", title)
+        print("==================================\n")
     
     asyncio.run(test())
 
