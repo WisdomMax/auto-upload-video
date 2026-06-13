@@ -185,10 +185,10 @@ class AIAgentEngine:
                         message=f"❌ [비디오 처리 실패] 파일 {file_name} 처리 중 오류 발생: {str(e)}"
                     )
 
-        # 3. 보관 기간이 7일 이상 경과한 영상 중, 업로드 배포가 완료된 건들만 안전하게 순차 정리
+        # 3. 보관 기간이 30일 이상 경과한 영상 중, 업로드 배포가 완료된 건들만 안전하게 순차 정리
         try:
             now_sec = time.time()
-            limit_sec = 7 * 24 * 3600  # 7일 초 단위
+            limit_sec = 30 * 24 * 3600  # 30일 초 단위
             updated_processed_files = processed_files.copy()
             
             if os.path.exists(processed_dir):
