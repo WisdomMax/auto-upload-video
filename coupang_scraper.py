@@ -42,54 +42,67 @@ async def scrape_coupang_product(url: str) -> str:
     # [Step 2] 네이버 검색을 통한 간접 스크래핑 시도 (WAF 회피 우회로)
     if product_id:
         try:
-            logger.info(f"Attempting to scrape product title via Naver Search for Product ID: {product_id}...")
-            query = f"쿠팡 {product_id}"
-            search_url = f"https://search.naver.com/search.naver?query={urllib.parse.quote(query)}"
+            # 1차 시도: 쿠팡 상품 고유 주소 자체를 네이버에 검색 (더 정확한 인덱싱 매칭)
+            # 2차 시도: "쿠팡 상품번호" 키워드로 네이버 검색
+            queries_to_try = [
+                f"https://www.coupang.com/vp/products/{product_id}",
+                f"쿠팡 {product_id}"
+            ]
+            
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
             }
             
-            response = requests.get(search_url, headers=headers, timeout=10)
-            response.encoding = 'utf-8'
-            
-            if response.status_code == 200:
-                html = response.text
-                candidates = []
+            best_title = None
+            for query in queries_to_try:
+                logger.info(f"Attempting to scrape product title via Naver Search with query: {query}...")
+                search_url = f"https://search.naver.com/search.naver?query={urllib.parse.quote(query)}"
                 
-                # product_id 매칭 위치 전후 청크 분석
-                for match in re.finditer(product_id, html):
-                    start = max(0, match.start() - 1500)
-                    end = min(len(html), match.end() + 1500)
-                    chunk = html[start:end]
+                response = requests.get(search_url, headers=headers, timeout=8)
+                response.encoding = 'utf-8'
+                
+                if response.status_code == 200:
+                    html = response.text
+                    candidates = []
                     
-                    # chunk 내의 "title":"..." 패턴 추출
-                    titles = re.findall(r'"title"\s*:\s*"([^"]+)"', chunk)
-                    for t in titles:
-                        # 유니코드 에스케이프 디코딩 보정
-                        t_decoded = t
-                        if '\\u' in t_decoded:
-                            try:
-                                t_decoded = t_decoded.encode().decode('unicode-escape')
-                            except:
-                                pass
+                    # product_id 매칭 위치 전후 청크 분석
+                    for match in re.finditer(product_id, html):
+                        start = max(0, match.start() - 1500)
+                        end = min(len(html), match.end() + 1500)
+                        chunk = html[start:end]
                         
-                        t_decoded = re.sub(r'\\u[0-9a-fA-F]{4}', '', t_decoded)
-                        t_decoded = t_decoded.replace('\\', '').strip()
+                        # chunk 내의 "title":"..." 패턴 추출
+                        titles = re.findall(r'"title"\s*:\s*"([^"]+)"', chunk)
+                        for t in titles:
+                            t_decoded = t
+                            if '\\u' in t_decoded:
+                                try:
+                                    t_decoded = t_decoded.encode().decode('unicode-escape')
+                                except:
+                                    pass
+                            
+                            t_decoded = re.sub(r'\\u[0-9a-fA-F]{4}', '', t_decoded)
+                            t_decoded = t_decoded.replace('\\', '').strip()
+                            
+                            # 온전한 한글 타이틀 필터링
+                            if len(t_decoded) > 8 and t_decoded != "쿠팡" and "coupang" not in t_decoded.lower():
+                                if not any(x in t_decoded for x in ['ì', 'ë', 'í', 'ê', 'ë']):
+                                    # 네이버 통합검색 제목 가공 (검색 찌꺼기 제거)
+                                    clean_t = re.sub(r'\s*:\s*네이버\s*(블로그|쇼핑|카페|통합검색).*$', '', t_decoded, flags=re.IGNORECASE)
+                                    candidates.append(clean_t.strip())
+                                    
+                    if candidates:
+                        candidates.sort(key=len, reverse=True)
+                        unique_candidates = list(dict.fromkeys(candidates))
+                        best_title = unique_candidates[0]
+                        best_title = re.sub(r'\.+\s*$', '', best_title)
+                        best_title = best_title.replace("네이버 쇼핑", "").strip()
+                        logger.info(f"Successfully scraped title via Naver Search: {best_title}")
+                        break
                         
-                        # 인코딩 깨짐 찌꺼기 없는 온전한 한글만 수집
-                        if len(t_decoded) > 8 and t_decoded != "쿠팡" and "coupang" not in t_decoded.lower():
-                            if not any(x in t_decoded for x in ['ì', 'ë', 'í', 'ê', 'ë']):
-                                candidates.append(t_decoded)
-                                
-                if candidates:
-                    candidates.sort(key=len, reverse=True)
-                    unique_candidates = list(dict.fromkeys(candidates))
-                    best_title = unique_candidates[0]
-                    # 마침표 생략부 제거
-                    best_title = re.sub(r'\.+\s*$', '', best_title)
-                    logger.info(f"Successfully scraped title via Naver Search: {best_title}")
-                    return best_title
-                    
+            if best_title:
+                return best_title
+                
         except Exception as naver_err:
             logger.warning(f"Naver Search bypass failed: {naver_err}. Falling back to Playwright.")
         
@@ -176,5 +189,3 @@ if __name__ == "__main__":
         print("==================================\n")
     
     asyncio.run(test())
-
-
