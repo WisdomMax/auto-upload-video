@@ -9,6 +9,22 @@ import youtube_comments
 
 logger = logging.getLogger("agent_engine")
 
+def calculate_file_hash(file_path):
+    import hashlib
+    if not file_path or not os.path.exists(file_path):
+        return None
+    hasher = hashlib.md5()
+    try:
+        with open(file_path, 'rb') as f:
+            buf = f.read(65536)
+            while len(buf) > 0:
+                hasher.update(buf)
+                buf = f.read(65536)
+        return hasher.hexdigest()
+    except Exception as e:
+        logger.error(f"Error calculating hash for {file_path}: {e}")
+        return None
+
 class AIAgentEngine:
     def __init__(self):
         # 10분(600초) 주기로 깨어나서 시간 조건을 매칭
@@ -37,6 +53,17 @@ class AIAgentEngine:
         last_scan_date_hour = None      # 예: "2026-06-08 05" 또는 "2026-06-08 17"
         last_manychat_brief_hour = None # 예: "2026-06-08 09"
         last_publish_date = None        # 예: "2026-06-08"
+        last_recommend_date = None      # 예: "2026-06-08"
+        
+        # [최초 기동 대응] 추천 대기 상품 목록이 비어있다면 즉시 최초 1회 수집 진행
+        try:
+            import recommendation_agent
+            recs = database.get_recommended_items(status="pending")
+            if not recs:
+                logger.info("[서버 기동 최초 실행] AI 추천 상품 대기 목록이 비어있어 최초 수집을 시작합니다...")
+                await recommendation_agent.run_recommendation_batch(max_items_to_add=2)
+        except Exception as startup_rec_err:
+            logger.error(f"Failed to run startup recommendation batch: {startup_rec_err}")
         
         while self.is_running:
             try:
@@ -88,6 +115,17 @@ class AIAgentEngine:
                         )
                         await self._check_and_publish_pending_items()
                         last_publish_date = today_str
+                        
+                # 5. AI 추천 상품 정기 발굴: 매일 오전 4시 (04:00 KST)에 1회 구동
+                if hour == 4:
+                    if last_recommend_date != today_str:
+                        logger.info("[오전 4시 정기 AI 추천 상품 발굴] 상품 탐색 가동...")
+                        try:
+                            import recommendation_agent
+                            await recommendation_agent.run_recommendation_batch(max_items_to_add=2)
+                        except Exception as e_rec:
+                            logger.error(f"Failed to run recommendation batch: {e_rec}")
+                        last_recommend_date = today_str
 
             except Exception as e:
                 logger.error(f"Error in Agent Scheduler loop: {e}", exc_info=True)
@@ -118,6 +156,23 @@ class AIAgentEngine:
         all_files = [f for f in os.listdir(input_dir) if f.lower().endswith(('.mp4', '.mov', '.avi'))]
         new_files = [f for f in all_files if f not in processed_files]
 
+        # [방치 파일 자동 정리 가드]
+        # 이미 스캔이 끝났으나 어떤 이유로 input/ 폴더에 방치된 파일들을 processed/ 폴더로 자동 격리시킵니다.
+        stray_files = [f for f in all_files if f in processed_files]
+        for file_name in stray_files:
+            video_path = os.path.join(input_dir, file_name)
+            dest_file_name = file_name
+            dest_path = os.path.join(processed_dir, dest_file_name)
+            if os.path.exists(dest_path):
+                name_part, ext_part = os.path.splitext(file_name)
+                dest_file_name = f"{name_part}_{int(time.time())}{ext_part}"
+                dest_path = os.path.join(processed_dir, dest_file_name)
+            try:
+                shutil.move(video_path, dest_path)
+                logger.info(f"🧹 Auto-cleared stray processed file from input/: {file_name}")
+            except Exception as e_stray:
+                logger.error(f"Failed to move stray file {file_name}: {e_stray}")
+
         if not new_files:
             logger.info("No new video files found in /input directory.")
         else:
@@ -129,22 +184,90 @@ class AIAgentEngine:
                 logger.info(f"New video detected in input: {video_path}")
                 
                 try:
-                    # 1) 비디오 파이프라인 실행 (Gemini 분석, 코드 발급, 자막 오버레이, webp 썸네일 캡처)
-                    result = await video_agent.process_video_pipeline(video_path)
+                    # 비디오 파일 해시 계산을 통한 중복 스캔 방지
+                    file_hash = calculate_file_hash(video_path)
+                    if file_hash:
+                        dup_item = database.get_item_by_video_hash(file_hash)
+                        if dup_item:
+                            logger.warning(f"Duplicate video file detected! File '{file_name}' matches product {dup_item['product_code']} (ID: {dup_item['id']})")
+                            database.create_agent_log(
+                                task_type="video_scan",
+                                status="warning",
+                                message=f"⚠️ [중복 스캔 방지] 파일 '{file_name}'의 내용이 이미 등록된 {dup_item['product_code']}번 상품과 동일하여 등록을 건너뛰었습니다."
+                            )
+                            # 중복 파일도 처리 완료 목록에 넣어 다시 스캔 안 되도록 함
+                            processed_files.append(file_name)
+                            database.set_setting("processed_input_files", json.dumps(processed_files))
+                            
+                            # processed/ 폴더로 이동하여 격리
+                            dest_file_name = file_name
+                            dest_path = os.path.join(processed_dir, dest_file_name)
+                            if os.path.exists(dest_path):
+                                name_part, ext_part = os.path.splitext(file_name)
+                                dest_file_name = f"{name_part}_{int(time.time())}{ext_part}"
+                                dest_path = os.path.join(processed_dir, dest_file_name)
+                            try:
+                                shutil.move(video_path, dest_path)
+                                logger.info(f"Moved duplicate file to processed: {dest_path}")
+                            except Exception as e_move:
+                                logger.error(f"Failed to move duplicate file {file_name}: {e_move}")
+                            continue
+
+                    # 파일명이 숫자로만 되어있는지 체크 (예: 14.mp4)
+                    num_match = re.match(r'^(\d+)\.(mp4|mov|avi)$', file_name, re.IGNORECASE)
                     
-                    # 2) DB에 아이템 최초 인서트 (쿠팡 주소는 빈 상태)
-                    item_id = database.create_item(
-                        product_no=result["product_no"],
-                        title=result["title"],
-                        description=result["description"],
-                        coupang_url="",
-                        original_video_path=result["original_video_path"],
-                        product_code=result["product_code"]
-                    )
+                    if num_match:
+                        target_no = int(num_match.group(1))
+                        # DB에서 매칭되는 'waiting_video' 아이템 조회
+                        waiting_item = database.get_item_by_product_no(target_no)
+                        
+                        if waiting_item and waiting_item.get("publish_status") == "waiting_video":
+                            logger.info(f"Matching 'waiting_video' item found: {waiting_item['product_code']} (ID: {waiting_item['id']})")
+                            
+                            # 1) 기존 예약 코드로 비디오 파이프라인 실행
+                            result = await video_agent.process_video_pipeline(
+                                video_path, 
+                                product_code=waiting_item['product_code'], 
+                                product_no=waiting_item['product_no']
+                            )
+                            
+                            # 2) 기존 DB 아이템 업데이트
+                            item_id = waiting_item["id"]
+                            conn = database.get_db_connection()
+                            cursor = conn.cursor()
+                            cursor.execute("UPDATE items SET publish_status = 'pending', original_video_path = ?, video_hash = ? WHERE id = ?", (result["original_video_path"], file_hash, item_id))
+                            conn.commit()
+                            conn.close()
+                            
+                            log_msg = f"📹 [비디오 자동 결합 완료] 대기 상품 {waiting_item['product_code']}번에 {file_name} 비디오가 매핑 결합되어 배포 준비 상태로 전환되었습니다."
+                        else:
+                            logger.warning(f"Number format filename '{file_name}' skipped. No corresponding 'waiting_video' item for product_no: {target_no}")
+                            database.create_agent_log(
+                                task_type="video_scan",
+                                status="warning",
+                                message=f"⚠️ [비디오 매핑 대기] 파일명이 {file_name}(숫자)이지만 대시보드에 [동영상 대기]로 등록된 {target_no}번 상품이 없습니다. 승인을 먼저 진행해 주세요."
+                            )
+                            continue  # 처리 완료 목록에 넣지 않고 보류
+                    else:
+                        # 기존 방식: 일반 텍스트 파일명 -> 신규 아이템 생성
+                        # 1) 비디오 파이프라인 실행 (Gemini 분석, 코드 발급, 자막 오버레이, webp 썸네일 캡처)
+                        result = await video_agent.process_video_pipeline(video_path)
+                        
+                        # 2) DB에 아이템 최초 인서트 (쿠팡 주소는 빈 상태)
+                        item_id = database.create_item(
+                            product_no=result["product_no"],
+                            title=result["title"],
+                            description=result["description"],
+                            coupang_url="",
+                            original_video_path=result["original_video_path"],
+                            product_code=result["product_code"],
+                            video_hash=file_hash
+                        )
+                        log_msg = f"📹 [비디오 감지 완료] 코드 {result['product_code']} 상품의 자막 합성 및 webp 썸네일 생성이 완료되었습니다. 대시보드에서 쿠팡 링크 입력을 기다리는 대기 상태로 등록되었습니다."
                     
                     # 3) SNS 본문 글 및 유튜브 캡션 자동 생성 (Fallback 자동완성)
                     from main import generate_ai_sns_content
-                    generate_ai_sns_content(item_id)
+                    await generate_ai_sns_content(item_id)
                     
                     # 4) 처리 완료 목록에 추가 및 DB 캐시 갱신
                     processed_files.append(file_name)
@@ -174,7 +297,7 @@ class AIAgentEngine:
                     database.create_agent_log(
                         task_type="video_scan",
                         status="success",
-                        message=f"📹 [비디오 감지 완료] 코드 {result['product_code']} 상품의 자막 합성 및 webp 썸네일 생성이 완료되었습니다. 대시보드에서 쿠팡 링크 입력을 기다리는 대기 상태로 등록되었습니다."
+                        message=log_msg
                     )
                     
                 except Exception as e:

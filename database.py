@@ -42,7 +42,8 @@ def init_db():
         ("publish_results", "TEXT"),
         ("youtube_trends", "TEXT"),
         ("product_code", "TEXT"),
-        ("scheduled_at", "TEXT")
+        ("scheduled_at", "TEXT"),
+        ("video_hash", "TEXT")
     ]
     for col, col_type in alterations:
         try:
@@ -88,13 +89,13 @@ def init_db():
 
 # --- CRUD for Items ---
 
-def create_item(product_no, title, description, coupang_url, original_video_path, product_code=None):
+def create_item(product_no, title, description, coupang_url, original_video_path, product_code=None, video_hash=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
-    INSERT INTO items (product_no, title, description, coupang_url, original_video_path, publish_status, product_code)
-    VALUES (?, ?, ?, ?, ?, 'pending', ?)
-    """, (product_no, title, description, coupang_url, original_video_path, product_code))
+    INSERT INTO items (product_no, title, description, coupang_url, original_video_path, publish_status, product_code, video_hash)
+    VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
+    """, (product_no, title, description, coupang_url, original_video_path, product_code, video_hash))
     item_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -159,6 +160,16 @@ def get_item_by_code(product_code):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM items WHERE product_code = ?", (product_code,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def get_item_by_video_hash(video_hash):
+    if not video_hash:
+        return None
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM items WHERE video_hash = ?", (video_hash,))
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else None

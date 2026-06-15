@@ -587,12 +587,90 @@ async def coupang_preview(url: str):
     import coupang_scraper
     try:
         scraped_title = await coupang_scraper.scrape_coupang_product(url)
-        if scraped_title == "엄마아빠 패션다이어리 추천 상품":
-            return {"status": "error", "message": "상품 정보를 자동으로 가져오지 못했습니다. 직접 입력해 주세요."}
+        # 만약 스크래핑에 실패하여 기본 대체 텍스트가 나왔거나 결과가 없는 경우 경고 상태로 리턴
+        if not scraped_title or scraped_title == "엄마아빠 패션다이어리 추천 상품":
+            return {
+                "status": "warning", 
+                "title": "", 
+                "message": "상품 정보를 자동으로 가져오지 못했습니다. 아래 상품명 입력란에 직접 입력해 주세요."
+            }
         return {"status": "success", "title": scraped_title}
     except Exception as e:
         logger.error(f"Failed to preview Coupang product: {e}")
-        return {"status": "error", "message": str(e)}
+        return {
+            "status": "warning", 
+            "title": "", 
+            "message": "상품 정보를 자동으로 가져오지 못했습니다. 아래 상품명 입력란에 직접 입력해 주세요."
+        }
+
+# --- Coupang Product Recommendations APIs ---
+
+@app.get("/api/coupang/recommendations")
+async def get_coupang_recommendations():
+    recs = database.get_recommended_items(status="pending")
+    return {"status": "success", "recommendations": recs}
+
+@app.post("/api/coupang/recommendations/{rec_id}/reject")
+async def reject_coupang_recommendation(rec_id: int):
+    database.update_recommendation_status(rec_id, "rejected")
+    return {"status": "success"}
+
+@app.post("/api/coupang/recommendations/{rec_id}/approve")
+async def approve_coupang_recommendation(rec_id: int):
+    rec = database.get_recommended_item(rec_id)
+    if not rec:
+        raise HTTPException(status_code=404, detail="Recommendation not found")
+        
+    import recommendation_agent
+    
+    # 1. 쿠팡 파트너스 숏링크 실시간 생성
+    logger.info(f"Generating Coupang Partners short url for: {rec['coupang_url']}")
+    short_url = recommendation_agent.generate_partners_short_link(rec['coupang_url'])
+    
+    # 만약 발급에 실패했다면 원본 URL을 폴백으로 기입하되 숏링크 생성을 시도했다는 로그 남김
+    if not short_url:
+        logger.warning(f"Failed to generate Partners short link, fallback to original url.")
+        short_url = rec['coupang_url']
+        
+    # 2. 다음 고유 상품 코드 및 번호 조회
+    category = "T"
+    product_code = database.get_next_product_code(category)
+    product_no = database.get_next_product_no()
+    
+    # 3. items 테이블에 waiting_video 상태로 아이템 추가
+    conn = database.get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO items (
+        product_no, title, description, coupang_url, short_url, 
+        publish_status, product_code, original_video_path
+    )
+    VALUES (?, ?, ?, ?, ?, 'waiting_video', ?, NULL)
+    """, (product_no, rec['product_name'], "에이전트가 추천한 고품질 신상품 정보입니다.", rec['coupang_url'], short_url, product_code))
+    conn.commit()
+    conn.close()
+    
+    # 4. 추천 항목 상태를 approved로 업데이트
+    database.update_recommendation_status(rec_id, "approved")
+    
+    return {
+        "status": "success", 
+        "product_code": product_code, 
+        "product_no": product_no,
+        "item_title": rec['product_name']
+    }
+
+@app.get("/api/coupang/recommend-keywords")
+async def get_recommend_keywords():
+    import recommendation_agent
+    kws = recommendation_agent.get_keywords_list()
+    return {"status": "success", "keywords": ",".join(kws)}
+
+@app.post("/api/coupang/recommend-keywords")
+async def save_recommend_keywords(payload: dict):
+    kws_str = payload.get("keywords", "").strip()
+    database.set_setting("coupang_recommend_keywords", kws_str)
+    return {"status": "success"}
 
 @app.delete("/api/items/{item_id}")
 async def delete_single_item(item_id: int):

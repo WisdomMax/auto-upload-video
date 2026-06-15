@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // State Variables
     let currentItemId = null;
     let pollInterval = null;
+    let lastFetchedCoupangUrl = "";
+    let coupangFetchTimeout = null;
 
     // DOM Elements - Modals & Buttons
     const btnAddItem = document.getElementById('btn-add-item');
@@ -40,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const publishResultsDetail = document.getElementById('publish-results-detail');
     
     // Coupang Link Preview elements
-    const btnFetchCoupang = document.getElementById('btn-fetch-coupang');
+    const coupangLoadingSpinner = document.getElementById('coupang-loading-spinner');
     const coupangPreviewBox = document.getElementById('coupang-preview-box');
     const coupangPreviewTitle = document.getElementById('coupang-preview-title');
     const btnApplyPreviewTitle = document.getElementById('btn-apply-preview-title');
@@ -201,7 +203,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 let statusText = '대기중';
                 let badgeAttr = '';
 
-                if (item.publish_status === 'pending') {
+                if (item.publish_status === 'waiting_video') {
+                    statusBadgeClass = 'badge-pending'; // 황색/주황 계열 재활용
+                    statusText = '동영상 대기';
+                } else if (item.publish_status === 'pending') {
                     if (!item.coupang_url || item.coupang_url === '') {
                         statusBadgeClass = 'badge-pending'; // 황색 계열 골드색
                         statusText = '링크대기';
@@ -244,14 +249,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     } catch(e) {}
                 }
 
-                card.innerHTML = `
+                let thumbnailHtml = `
                     <div class="card-thumbnail-box" style="width: 75px; aspect-ratio: 9/16; border-radius: var(--radius-medium); overflow: hidden; background: #000; flex-shrink: 0;">
                         <img src="/static/thumbnails/${item.product_code || ''}.webp" alt="썸네일" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=150'">
                     </div>
+                `;
+                
+                if (item.publish_status === 'waiting_video') {
+                    thumbnailHtml = `
+                        <div class="card-thumbnail-box" style="width: 75px; aspect-ratio: 9/16; border-radius: var(--radius-medium); overflow: hidden; background: rgba(188, 163, 116, 0.1); border: 1px dashed rgba(188, 163, 116, 0.35); flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--primary); padding: 4px; text-align: center;">
+                            <i class="fa-solid fa-file-video" style="font-size: 1.2rem; opacity: 0.8;"></i>
+                            <span style="font-size: 0.6rem; font-weight: 700; white-space: nowrap; color: var(--text-primary);">${item.product_no}.mp4</span>
+                            <span style="font-size: 0.52rem; opacity: 0.7; color: var(--text-muted);">대기중</span>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    ${thumbnailHtml}
                     <div class="card-content-box" style="display: flex; flex-direction: column; flex: 1; min-width: 0; justify-content: space-between;">
                         <div class="card-top" style="display: flex; justify-content: space-between; align-items: center;">
                             <span class="product-badge">${displayCode}</span>
-                            <span class="badge ${statusBadgeClass}" ${badgeAttr}>${statusText}</span>
+                            <span class="badge ${statusBadgeClass}" ${badgeAttr} style="white-space: nowrap;">${statusText}</span>
                         </div>
                         <h3 class="card-title" style="margin: 4px 0 2px 0;">${item.title}</h3>
                         <p class="card-desc" style="margin: 0; font-size: 0.78rem; line-height: 1.4; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; height: 1.1rem;">${item.description || ''}</p>
@@ -327,7 +346,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Video path (Original local preview)
             if (detailVideoPlayer) {
-                detailVideoPlayer.src = item.original_video_path.replace(new RegExp('^.*uploads/originals/'), '/uploads/originals/');
+                if (item.original_video_path) {
+                    detailVideoPlayer.src = item.original_video_path.replace(new RegExp('^.*uploads/originals/'), '/uploads/originals/');
+                } else {
+                    detailVideoPlayer.src = '';
+                }
             }
             
             // R2 URL
@@ -427,12 +450,22 @@ document.addEventListener('DOMContentLoaded', () => {
             // Coupang Links
             if (detailCoupangUrl) {
                 detailCoupangUrl.value = item.coupang_url || '';
+                lastFetchedCoupangUrl = detailCoupangUrl.value.trim();
+            }
+            if (coupangPreviewBox) {
+                coupangPreviewBox.style.display = 'none';
             }
             if (detailShortUrl) {
                 detailShortUrl.value = item.short_url || '';
             }
             if (btnVisitCoupang) {
                 btnVisitCoupang.href = item.coupang_url || '#';
+            }
+            const btnVisitDetailCoupang = document.getElementById('btn-visit-detail-coupang');
+            if (btnVisitDetailCoupang) {
+                btnVisitDetailCoupang.href = item.coupang_url || '#';
+                btnVisitDetailCoupang.style.pointerEvents = item.coupang_url ? 'auto' : 'none';
+                btnVisitDetailCoupang.style.opacity = item.coupang_url ? '1' : '0.4';
             }
             
             // Description Input Binding
@@ -560,40 +593,65 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 4.1 쿠팡 링크 실시간 정보 조회 및 적용 로직 추가
-    if (btnFetchCoupang) {
-        btnFetchCoupang.addEventListener('click', async () => {
-            const url = detailCoupangUrl ? detailCoupangUrl.value.trim() : '';
-            if (!url) {
-                alert('조회할 쿠팡 상품 URL을 먼저 입력해 주세요.');
-                return;
+    // 4.1 쿠팡 링크 입력 시 실시간 백그라운드 자동 조회 로직
+    if (detailCoupangUrl) {
+        detailCoupangUrl.addEventListener('input', () => {
+            const url = detailCoupangUrl.value.trim();
+            const btnVisitDetailCoupang = document.getElementById('btn-visit-detail-coupang');
+            if (btnVisitDetailCoupang) {
+                btnVisitDetailCoupang.href = url || '#';
+                btnVisitDetailCoupang.style.pointerEvents = url ? 'auto' : 'none';
+                btnVisitDetailCoupang.style.opacity = url ? '1' : '0.4';
+            }
+            
+            if (coupangFetchTimeout) {
+                clearTimeout(coupangFetchTimeout);
             }
 
-            btnFetchCoupang.disabled = true;
-            btnFetchCoupang.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            if (coupangPreviewBox) coupangPreviewBox.style.display = 'none';
-
-            try {
-                const res = await fetch(`/api/coupang/preview?url=${encodeURIComponent(url)}`);
-                const data = await res.json();
+            coupangFetchTimeout = setTimeout(async () => {
+                const url = detailCoupangUrl.value.trim();
                 
-                if (data.status === 'success' && data.title) {
-                    if (coupangPreviewTitle) {
-                        coupangPreviewTitle.innerText = data.title;
+                // 입력값이 비어있거나, 이전 조회했던 주소와 동일하다면 중단
+                if (!url || url === lastFetchedCoupangUrl) {
+                    if (!url && coupangPreviewBox) {
+                        coupangPreviewBox.style.display = 'none';
                     }
-                    if (coupangPreviewBox) {
-                        coupangPreviewBox.style.display = 'block';
-                    }
-                } else {
-                    alert(data.message || '쿠팡 정보를 가져올 수 없습니다. 직접 입력해 주세요.');
+                    return;
                 }
-            } catch (err) {
-                console.error('Error fetching Coupang preview:', err);
-                alert('쿠팡 서버 연결 오류가 발생했습니다. 직접 입력해 주세요.');
-            } finally {
-                btnFetchCoupang.disabled = false;
-                btnFetchCoupang.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> 불러오기';
-            }
+
+                // 쿠팡 도메인이 포함된 유효 링크일 때만 조회 트리거
+                if (!url.includes('coupang.com')) {
+                    if (coupangPreviewBox) coupangPreviewBox.style.display = 'none';
+                    return;
+                }
+
+                lastFetchedCoupangUrl = url;
+
+                // 스피너 활성화 및 기존 프리뷰 박스 초기화
+                if (coupangLoadingSpinner) coupangLoadingSpinner.style.display = 'inline-block';
+                if (coupangPreviewBox) coupangPreviewBox.style.display = 'none';
+
+                try {
+                    const res = await fetch(`/api/coupang/preview?url=${encodeURIComponent(url)}`);
+                    const data = await res.json();
+                    
+                    if (data.status === 'success' && data.title) {
+                        if (coupangPreviewTitle) {
+                            coupangPreviewTitle.innerText = data.title;
+                        }
+                        if (coupangPreviewBox) {
+                            coupangPreviewBox.style.display = 'block';
+                        }
+                    } else {
+                        // 자동 백그라운드 탐색 실패 시에는 사용자가 수동 타이핑을 할 수 있도록 침묵(Silent Fail) 처리
+                        console.log("Auto-fetch coupang product title failed or returned warning.");
+                    }
+                } catch (err) {
+                    console.error('Error auto-fetching Coupang preview:', err);
+                } finally {
+                    if (coupangLoadingSpinner) coupangLoadingSpinner.style.display = 'none';
+                }
+            }, 600); // 0.6초 대기 디바운스
         });
     }
 
@@ -721,6 +779,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (chkYt) chkYt.checked = settings.PUBLISH_YOUTUBE === 'true';
             if (chkTt) chkTt.checked = settings.PUBLISH_TIKTOK === 'true';
             if (chkIg) chkIg.checked = settings.PUBLISH_INSTAGRAM === 'true';
+
+            // AI 추천 키워드 로드
+            const kwRes = await fetch('/api/coupang/recommend-keywords');
+            const kwData = await kwRes.json();
+            const settingKeywords = document.getElementById('setting-recommend-keywords');
+            if (settingKeywords && kwData.status === 'success') {
+                settingKeywords.value = kwData.keywords || '';
+            }
         } catch (err) {
             console.error('Error loading settings:', err);
         }
@@ -746,10 +812,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                
+                // AI 추천 키워드 저장
+                const settingKeywords = document.getElementById('setting-recommend-keywords');
+                if (settingKeywords) {
+                    await fetch('/api/coupang/recommend-keywords', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ keywords: settingKeywords.value })
+                    });
+                }
+
                 const data = await res.json();
                 if (data.status === 'success') {
                     hideModal(modalSettings);
-                    alert('기본 배포 채널 설정이 저장되었습니다.');
+                    alert('기본 배포 채널 및 AI 키워드 설정이 저장되었습니다.');
                 }
             } catch (err) {
                 console.error('Error saving settings:', err);
@@ -1178,6 +1255,164 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (err) {
             console.error('Error fetching YouTube connection status:', err);
+        }
+    }
+
+    // --- AI Product Recommendation Integration ---
+    const tabRegistered = document.getElementById('tab-registered-items');
+    const tabRecommend = document.getElementById('tab-recommend-items');
+    const itemsGridEl = document.getElementById('items-grid');
+    const recommendationsGridEl = document.getElementById('recommendations-grid');
+    const btnAddItemEl = document.getElementById('btn-add-item');
+
+    // 탭 상태 변수
+    let currentTab = 'registered'; // 'registered' or 'recommend'
+
+    if (tabRegistered && tabRecommend && itemsGridEl && recommendationsGridEl) {
+        tabRegistered.addEventListener('click', () => {
+            currentTab = 'registered';
+            tabRegistered.classList.add('active');
+            tabRecommend.classList.remove('active');
+            
+            // 스타일 갱신
+            tabRegistered.style.color = 'var(--primary)';
+            tabRegistered.style.borderBottom = '2px solid var(--primary)';
+            tabRegistered.style.fontWeight = '700';
+            
+            tabRecommend.style.color = 'var(--text-secondary)';
+            tabRecommend.style.borderBottom = '2px solid transparent';
+            tabRecommend.style.fontWeight = '500';
+            
+            itemsGridEl.style.display = 'grid';
+            recommendationsGridEl.style.display = 'none';
+            if (btnAddItemEl) btnAddItemEl.style.display = 'block';
+            
+            loadItems();
+        });
+
+        tabRecommend.addEventListener('click', () => {
+            currentTab = 'recommend';
+            tabRecommend.classList.add('active');
+            tabRegistered.classList.remove('active');
+            
+            // 스타일 갱신
+            tabRecommend.style.color = 'var(--primary)';
+            tabRecommend.style.borderBottom = '2px solid var(--primary)';
+            tabRecommend.style.fontWeight = '700';
+            
+            tabRegistered.style.color = 'var(--text-secondary)';
+            tabRegistered.style.borderBottom = '2px solid transparent';
+            tabRegistered.style.fontWeight = '500';
+            
+            itemsGridEl.style.display = 'none';
+            recommendationsGridEl.style.display = 'grid';
+            if (btnAddItemEl) btnAddItemEl.style.display = 'none'; // 추천 탭에서는 개별 등록 버튼 가림
+            
+            loadRecommendations();
+        });
+    }
+
+    async function loadRecommendations() {
+        if (!recommendationsGridEl) return;
+        
+        try {
+            recommendationsGridEl.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem;"></i>
+                    <p>인기 상품 목록을 불러오는 중...</p>
+                </div>
+            `;
+            
+            const res = await fetch('/api/coupang/recommendations');
+            const data = await res.json();
+            
+            if (data.status !== 'success' || !data.recommendations || data.recommendations.length === 0) {
+                recommendationsGridEl.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fa-solid fa-wand-magic-sparkles empty-icon" style="color: var(--primary); opacity: 0.6;"></i>
+                        <p>현재 추천 대기 중인 상품이 없습니다. 매일 새벽 시니어 인기 의류가 자동으로 탐색됩니다.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            recommendationsGridEl.innerHTML = '';
+            data.recommendations.forEach(rec => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.style = 'border: 1px solid var(--border-color); border-radius: var(--radius-large); background: rgba(255, 255, 255, 0.02); overflow: hidden; display: flex; flex-direction: column; transition: all 0.2s;';
+                card.innerHTML = `
+                    <a href="${rec.coupang_url}" target="_blank" rel="noopener noreferrer" style="width: 100%; aspect-ratio: 1; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; position: relative; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: opacity 0.2s; text-decoration: none;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                        <img src="${rec.original_image_url}" alt="${rec.product_name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=300'">
+                        <span style="position: absolute; bottom: 8px; right: 8px; background: rgba(0, 0, 0, 0.85); color: var(--accent-gold); font-size: 0.72rem; padding: 2px 6px; border-radius: var(--radius-small); font-weight: 700;">${rec.price.toLocaleString()}원</span>
+                    </a>
+                    <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; justify-content: space-between;">
+                        <div>
+                            <span style="font-size: 0.65rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 4px; margin-bottom: 4px;"><i class="fa-solid fa-sparkles"></i> AI 추천 아이템</span>
+                            <h4 style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary); margin: 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 2.8em;" title="${rec.product_name}">
+                                <a href="${rec.coupang_url}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-primary)'">
+                                    ${rec.product_name}
+                                </a>
+                            </h4>
+                        </div>
+                        <div style="display: flex; gap: 6px; margin-top: auto;">
+                            <button type="button" class="btn btn-primary btn-approve-rec" data-id="${rec.id}" style="flex: 1; padding: 8px 0; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; height: 32px; background: linear-gradient(135deg, var(--primary), #bc9f65); border: none; color: #000; border-radius: var(--radius-small);">
+                                <i class="fa-solid fa-check"></i> 승인
+                            </button>
+                            <button type="button" class="btn btn-danger btn-reject-rec" data-id="${rec.id}" style="padding: 0 10px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; cursor: pointer; height: 32px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); color: var(--danger); border-radius: var(--radius-small);" title="거절 및 삭제">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // 이벤트 처리 바인딩
+                const btnApprove = card.querySelector('.btn-approve-rec');
+                const btnReject = card.querySelector('.btn-reject-rec');
+                
+                btnApprove.addEventListener('click', async () => {
+                    btnApprove.disabled = true;
+                    btnApprove.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                    
+                    try {
+                        const approveRes = await fetch(`/api/coupang/recommendations/${rec.id}/approve`, { method: 'POST' });
+                        const approveData = await approveRes.json();
+                        
+                        if (approveData.status === 'success') {
+                            alert(`🎉 [승인 완료] "${approveData.item_title}" 예약 등록 완료!\n영상 파일명을 "${approveData.product_no}.mp4"로 하여 input 폴더에 넣어주세요!`);
+                            loadRecommendations();
+                        } else {
+                            alert('승인 중 오류 발생');
+                            btnApprove.disabled = false;
+                            btnApprove.innerHTML = '<i class="fa-solid fa-check"></i> 승인';
+                        }
+                    } catch (err) {
+                        console.error('Error approving recommendation:', err);
+                        alert('통신 오류');
+                        btnApprove.disabled = false;
+                        btnApprove.innerHTML = '<i class="fa-solid fa-check"></i> 승인';
+                    }
+                });
+                
+                btnReject.addEventListener('click', async () => {
+                    if (!confirm('이 추천 상품을 삭제하시겠습니까?')) return;
+                    
+                    try {
+                        const rejectRes = await fetch(`/api/coupang/recommendations/${rec.id}/reject`, { method: 'POST' });
+                        const rejectData = await rejectRes.json();
+                        if (rejectData.status === 'success') {
+                            loadRecommendations();
+                        }
+                    } catch (err) {
+                        console.error('Error rejecting recommendation:', err);
+                    }
+                });
+                
+                recommendationsGridEl.appendChild(card);
+            });
+            
+        } catch (err) {
+            console.error('Error loading recommendations:', err);
         }
     }
 
