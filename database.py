@@ -70,6 +70,19 @@ def init_db():
     )
     """)
     
+    # 5. recommended_items 테이블 생성
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS recommended_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_name TEXT NOT NULL,
+        coupang_url TEXT NOT NULL,
+        original_image_url TEXT,
+        price INTEGER,
+        status TEXT DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    
     conn.commit()
     conn.close()
 
@@ -85,6 +98,7 @@ def create_item(product_no, title, description, coupang_url, original_video_path
     item_id = cursor.lastrowid
     conn.commit()
     conn.close()
+    backup_db()  # 데이터 생성 후 백업 실행
     return item_id
 
 def get_items():
@@ -176,6 +190,7 @@ def update_item_coupang_urls(item_id, coupang_url, short_url):
     cursor.execute("UPDATE items SET coupang_url = ?, short_url = ? WHERE id = ?", (coupang_url, short_url, item_id))
     conn.commit()
     conn.close()
+    backup_db()  # 정보 업데이트 후 백업 실행
 
 def update_item_generated_contents(item_id, youtube_title, youtube_description, youtube_tags, sns_caption, dm_template, comment_reply):
     conn = get_db_connection()
@@ -201,6 +216,7 @@ def delete_item(item_id):
     cursor.execute("DELETE FROM items WHERE id = ?", (item_id,))
     conn.commit()
     conn.close()
+    backup_db()  # 데이터 삭제 후 백업 실행
 
 # --- Settings Management ---
 
@@ -253,5 +269,121 @@ def get_agent_logs(limit=50):
     conn.close()
     return [dict(row) for row in rows]
 
-# 모듈이 로드될 때 DB 초기화 자동 진행
+# --- CRUD for Recommended Items ---
+
+def create_recommended_item(product_name, coupang_url, original_image_url, price):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO recommended_items (product_name, coupang_url, original_image_url, price, status)
+    VALUES (?, ?, ?, ?, 'pending')
+    """, (product_name, coupang_url, original_image_url, price))
+    rec_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return rec_id
+
+def get_recommended_items(status="pending"):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM recommended_items WHERE status = ? ORDER BY created_at DESC", (status,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def get_recommended_item(rec_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM recommended_items WHERE id = ?", (rec_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def update_recommendation_status(rec_id, status):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE recommended_items SET status = ? WHERE id = ?", (status, rec_id))
+    conn.commit()
+    conn.close()
+
+def delete_recommended_item(rec_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM recommended_items WHERE id = ?", (rec_id,))
+    conn.commit()
+    conn.close()
+
+# --- Auto Backup & Integrity Restoration System ---
+
+def backup_db():
+    try:
+        import shutil
+        from datetime import datetime
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        backup_dir = os.path.join(base_dir, "db_backups")
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        # 현재 DB 파일이 존재하고 크기가 유효할 때만 백업
+        if os.path.exists(DB_PATH) and os.path.getsize(DB_PATH) > 0:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_path = os.path.join(backup_dir, f"db_backup_{timestamp}.sqlite")
+            shutil.copy2(DB_PATH, backup_path)
+            
+            # 백업 파일 보관 개수 제한 (최대 20개)
+            backups = sorted(
+                [os.path.join(backup_dir, f) for f in os.listdir(backup_dir) if f.startswith("db_backup_") and f.endswith(".sqlite")],
+                key=os.path.getmtime
+            )
+            while len(backups) > 20:
+                old_backup = backups.pop(0)
+                os.remove(old_backup)
+    except Exception as e:
+        print(f"[DB Backup Error] {e}")
+
+def auto_restore_if_needed():
+    try:
+        import shutil
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        backup_dir = os.path.join(base_dir, "db_backups")
+        
+        current_count = 0
+        if os.path.exists(DB_PATH):
+            try:
+                # sqlite 커넥션을 직접 맺어 테스트 (재귀 임포트 방지)
+                conn = sqlite3.connect(DB_PATH)
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) as cnt FROM items")
+                current_count = cursor.fetchone()['cnt']
+                conn.close()
+            except Exception:
+                current_count = -1  # DB 파일 깨짐
+        else:
+            current_count = -1  # DB 파일 없음
+
+        # DB가 깨졌거나, 상품 개수가 비정상적으로 5개 미만인 경우 복구 동작 가동
+        if current_count < 5:
+            if os.path.exists(backup_dir):
+                backups = sorted(
+                    [os.path.join(backup_dir, f) for f in os.listdir(backup_dir) if f.startswith("db_backup_") and f.endswith(".sqlite")],
+                    key=os.path.getmtime,
+                    reverse=True
+                )
+                if backups:
+                    latest_backup = backups[0]
+                    # 백업 파일 정밀 검증
+                    conn_bak = sqlite3.connect(latest_backup)
+                    cur_bak = conn_bak.cursor()
+                    cur_bak.execute("SELECT COUNT(*) as cnt FROM items")
+                    bak_count = cur_bak.fetchone()[0]
+                    conn_bak.close()
+                    
+                    if bak_count > current_count:
+                        shutil.copy2(latest_backup, DB_PATH)
+                        print(f"🚨 [DB 자동 복구 성공] 손상/누락된 DB를 {os.path.basename(latest_backup)} 파일로부터 복구했습니다. (상품 개수: {bak_count}개)")
+    except Exception as e:
+        print(f"[DB Auto Recovery Error] {e}")
+
+# 모듈이 로드될 때 안전 무결성 검증 후 DB 초기화 진행
+auto_restore_if_needed()
 init_db()

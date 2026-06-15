@@ -16,6 +16,15 @@ def build_catalog():
     raw_items = database.get_items()
     items = [it for it in raw_items if it.get("coupang_url") and it.get("coupang_url").strip() != ""]
     
+    # [배포 무결성 검증 가드]
+    # 연동된 상품이 0개이거나 최소 기준(예: 3개) 미만인 경우, 비정상적인 데이터 초기화로 보고 빌드를 강제 중단
+    # (외국의 빈 템플릿이 배포되어 실서비스 옷 카탈로그가 백지화되는 대형 장애 방지)
+    if len(items) < 3:
+        raise ValueError(
+            f"❌ [배포 무결성 검증 실패] 쿠팡 URL이 연동된 상품이 {len(items)}개입니다. "
+            "비정상적인 데이터 유실로 판단되어 카탈로그 빌드 및 배포가 차단되었습니다. DB 복구를 확인해 주세요."
+        )
+    
     # 썸네일 폴더를 dist/static/thumbnails/ 로 복사하여 Cloudflare Pages 배포에 포함시킴
     src_thumb_dir = os.path.join(base_dir, "static", "thumbnails")
     dist_thumb_dir = os.path.join(dist_dir, "static", "thumbnails")
