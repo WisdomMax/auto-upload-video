@@ -516,6 +516,35 @@ class AIAgentEngine:
 
     async def _generate_intelligent_caption(self, item_id):
         import coupang_scraper
+        import re
+        import random
+        
+        def clean_product_title(raw_title: str) -> str:
+            if not raw_title:
+                return ""
+            # 1. 수량 및 묶음 표시 제거 (예: 1+1, 2장묶음, 3묶음 등)
+            cleaned = re.sub(r'\d+\+\d+', '', raw_title)
+            cleaned = re.sub(r'\d+장묶음|\d+묶음|\d+장', '', cleaned)
+            # 2. 대괄호, 중괄호, 소괄호 내용 제거
+            cleaned = re.sub(r'\[[^\]]*\]', '', cleaned)
+            cleaned = re.sub(r'\([^\)]*\)', '', cleaned)
+            cleaned = re.sub(r'\{[^\}]*\}', '', cleaned)
+            # 3. 영문+숫자 혼합 코드 제거 (예: SX68335, GW1780, XINNIX 등)
+            cleaned = re.sub(r'[A-Za-z]+[0-9]+[A-Za-z0-9]*', '', cleaned)
+            cleaned = re.sub(r'[0-9]+[A-Za-z]+[A-Za-z0-9]*', '', cleaned)
+            # 4. 광고성 유입용 과도한 키워드 및 중복 제거
+            keywords_to_remove = [
+                "엄마옷", "할머니옷", "중년여성의류", "중년여성옷", "중년여성", "중녕여성",
+                "마마복", "여성의류", "봄여름", "여름", "가을", "겨울", "신상품", "추천",
+                "코디", "패션", "하객룩", "모임룩", "하객원", "외출복", "빅사이즈", "포함"
+            ]
+            for kw in keywords_to_remove:
+                cleaned = cleaned.replace(kw, "")
+            # 5. 불필요한 특수문자 제거 및 공백 정리
+            cleaned = re.sub(r'[^가-힣a-zA-Z0-9\s]', ' ', cleaned)
+            cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+            return cleaned
+
         item = database.get_item(item_id)
         if not item:
             return
@@ -566,7 +595,6 @@ class AIAgentEngine:
         link = short_url if short_url else url
         
         # 3. 제품 카테고리 판별 및 태그/문구 고도화 셋업
-        import random
         
         # 카테고리별 풍부한 태그 풀 정의 (검색 노출 최적화용)
         tag_pools = {
@@ -578,32 +606,118 @@ class AIAgentEngine:
             "의류": ["시니어패션", "동안코디", "귀티나는코디", "중년여성패션", "5060패션", "엄마옷추천", "6070패션", "7080패션", "6080코디", "시니어룩", "세련된코디", "중년스타일링", "엄마선물룩", "데일리룩"]
         }
 
+        # 카테고리별 다변화된 오프닝 제목 풀 정의 (랜덤성 부여)
+        dress_intros = [
+            "60대 이후 옷 잘 입는 분들은 절대 안 입는 원피스? ",
+            "60대 어머님들, 원피스 살 때 이거 모르면 진짜 후회해요! ",
+            "시니어 코디 고민 끝! 50대 60대가 입으면 10년 젊어 보이는 ",
+            "모임에서 기죽지 않는 60대 엄마들의 우아한 ",
+            "뱃살은 쏙 감춰주고 품격은 올려주는 중년 ",
+            "귀티 나는 60대 여성분들이 여름에 꼭 입는 ",
+            "주변에서 다 물어보는 60대 엄마의 화사한 ",
+            "여름 내내 입어도 편하고 세련된 50대 60대 명품 핏 ",
+            "나이보다 20년 젊어 보이는 동안 ",
+            "더운 여름에도 시원하고 고급스럽게 입는 중년 ",
+            "50대 60대 엄마들이 가장 만족해하는 인생 ",
+            "엄마 선물로 딱! 60대 여성들을 위한 프리미엄 "
+        ]
+        
+        outer_intros = [
+            "60대 어머님들 외출하실 때 일반 가디건보다 이 옷이 훨씬 귀티나요! ",
+            "가볍게 걸쳐도 부티가 좔좔 흐르는 5060 ",
+            "중년의 품격을 높여주는 60대 엄마 추천 ",
+            "일교차 큰 날에 딱! 60대 옷 잘 입는 분들의 세련된 ",
+            "툭 걸치기만 해도 10살은 젊어 보이는 동안 ",
+            "중년 여성분들 모임 룩에 찰떡인 고급 ",
+            "나이 들수록 아우터가 중요한 이유! 귀티 나는 시니어 ",
+            "엄마들이 매일 입는 외출용 데일리 ",
+            "실물 깡패! 50대 60대 엄마들이 매일 입는 편안한 ",
+            "고급스러운 실루엣으로 시선을 사로잡는 중년 "
+        ]
+        
+        pants_intros = [
+            "60대 이후 입으면 20년 젊어보이는 바지 코디 추천! ",
+            "하루 종일 입어도 세상 편한 5060 인생 ",
+            "뱃살 허벅지살 완벽 커버! 60대 엄마들의 날씬해 보이는 ",
+            "한번 입으면 다른 바지 못 입는 6070 명품 핏 ",
+            "엄마들 외출할 때 무조건 챙겨 입는 세련된 ",
+            "다리가 길어 보이고 슬림해 보이는 중년 여성 ",
+            "시원하고 편안해서 매일 손이 가는 60대 데일리 ",
+            "핏이 너무 예쁜 50대 60대 밴딩 ",
+            "체형 보정은 물론 활동성까지 극대화한 중년 "
+        ]
+        
+        top_intros = [
+            "60대 어머님들 이 옷 하나로 키 5cm는 더 커 보이고 젊어지는 코디법! ",
+            "티셔츠 하나 입었을 뿐인데 귀티가 나는 60대 엄마들의 ",
+            "더운 여름에도 화사하고 시원하게 입는 5060 ",
+            "얼굴이 환해 보이는 동안 ",
+            "목선은 예쁘게 드러내고 나잇살은 감춰주는 중년 ",
+            "격식 있는 자리에 딱 어울리는 세련된 60대 ",
+            "데일리로 막 입어도 명품 같은 느낌을 주는 엄마들의 ",
+            "50대 60대 시니어가 입었을 때 가장 우아해 보이는 "
+        ]
+        
+        shoes_intros = [
+            "60대 이후 촌스럽지 않고 발 편해서 하루 만 보 걷기 좋은 ",
+            "발볼 넓은 어머님들도 구름을 걷는 듯 편안한 효도 ",
+            "발 건강과 스타일을 동시에 잡은 5060 인생 ",
+            "오래 걸어도 발 피로 없는 60대 엄마 외출 ",
+            "신는 순간 스타일이 사는 편안한 시니어 ",
+            "중년 여성들의 발걸음을 가볍게 만들어 줄 명품 ",
+            "한번 신으면 다른 신발 못 신는 마법의 편한 "
+        ]
+        
+        general_intros = [
+            "60대 70대 어머님들 비싼 옷 안 입어도 20년 젊어 보이는 동안 ",
+            "중년 여성이 입으면 무조건 고급스러워 보이는 데일리 ",
+            "나이 들수록 옷 입는 법이 중요합니다! 60대 귀티 ",
+            "동네 마실 갈 때도 세련됨 폭발하는 5060 동안 ",
+            "단정한데 스타일리시해 보이는 60대 엄마들의 ",
+            "누가 입어도 날씬해 보이고 귀티 나는 중년의 여름 ",
+            "어머님들이 뽑은 올 여름 가장 만족도 높은 코디 "
+        ]
+
         title_lower = title.lower()
         category = "의류"
         intro_phrase = f"어머님들이 입으시기 딱 좋은 편안하고 세련된 {title} 소개해 드려요"
         
+        cleaned_title = clean_product_title(title)
+        endings = [" 코디법!", " 추천!", " 코디 제안!", " 스타일링 공식!", " 추천 정보!", " 코디 비법!", " 스타일!"]
+        ending = random.choice(endings)
+        
         if any(x in title_lower for x in ["원피스", "드레스"]):
             category = "원피스"
             intro_phrase = f"편안하면서도 고상한 멋이 느껴지는 {title} 소개해 드립니다"
-            youtube_title = f"60대 이후 옷 잘 입는 분들은 절대 안 입는 원피스? {title} 코디법! #동안코디 #원피스코디"
+            intro = random.choice(dress_intros)
+            youtube_title = f"{intro}{cleaned_title}{ending} #동안코디 #원피스코디"
         elif any(x in title_lower for x in ["가디건", "카디건", "아우터", "재킷", "점퍼", "코트", "조끼", "베스트"]):
             category = "아우터"
             intro_phrase = f"가볍게 툭 걸치기만 해도 스타일이 사는 외출용 {title} 준비했습니다"
-            youtube_title = f"60대 어머님들 외출하실 때 일반 가디건보다 이 {title}이 훨씬 귀티나고 세련돼요! #귀티나는코디 #아우터추천"
+            intro = random.choice(outer_intros)
+            youtube_title = f"{intro}{cleaned_title}{ending} #귀티나는코디 #아우터추천"
         elif any(x in title_lower for x in ["바지", "팬츠", "슬랙스", "청바지"]):
             category = "바지"
             intro_phrase = f"하루 종일 입어도 정말 편안하고 활동성 최고인 {title} 추천해 드려요"
-            youtube_title = f"60대 이후 입으면 20년 젊어보이는 {title} 코디 추천 #중년여성패션 #바지코디"
+            intro = random.choice(pants_intros)
+            youtube_title = f"{intro}{cleaned_title}{ending} #중년여성패션 #바지코디"
         elif any(x in title_lower for x in ["티셔츠", "블라우스", "셔츠", "남방", "니트"]):
             category = "상의"
             intro_phrase = f"시원하고 부드러운 촉감으로 매일 손이 가는 {title} 소개해 드립니다"
-            youtube_title = f"60대 어머님들 {title} 하나로 키 5cm는 더 커 보이고 젊어지는 코디법! #세련된코디 #상의코디"
+            intro = random.choice(top_intros)
+            youtube_title = f"{intro}{cleaned_title}{ending} #세련된코디 #상의코디"
         elif any(x in title_lower for x in ["샌들", "샌달", "구두", "신발", "슬리퍼", "스니커즈", "로퍼"]):
             category = "신발"
             intro_phrase = f"발이 정말 편안해서 외출하실 때 걷기 좋은 기능성 {title} 소개해 드려요"
-            youtube_title = f"60대 이후 촌스럽지 않고 발 편해서 하루 만 보 걷기 좋은 {title} 추천 #발편한신발 #시니어룩"
+            intro = random.choice(shoes_intros)
+            youtube_title = f"{intro}{cleaned_title}{ending} #발편한신발 #시니어룩"
         else:
-            youtube_title = f"60대 70대 어머님들 비싼 옷 안 입어도 20년 젊어 보이는 동안 {title} 코디 공식 #시니어패션 #동안코디"
+            intro = random.choice(general_intros)
+            youtube_title = f"{intro}{cleaned_title}{ending} #시니어패션 #동안코디"
+
+        # 글자수가 너무 길 경우 자르기 (최대 90자)
+        if len(youtube_title) > 90:
+            youtube_title = youtube_title[:87] + "..."
 
         # 4. 사용자 추가 설명(description)이 기본 템플릿 문구가 아니고 존재한다면 적극 반영
         user_extra = ""
