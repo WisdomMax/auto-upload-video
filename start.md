@@ -50,18 +50,27 @@ graph TD
 
 1. **DB 미완료 상품 감지 및 스캔**:
    - 프로젝트 내 `database.py` 라이브러리를 임포트하여 현재 등록된 상품 리스트를 가져옵니다.
-   - 아직 캡션 작성이 안 되었거나 기본 제목 상태(예: `'No. X 쿠팡 상품 (정보 수집 중...)'` 또는 `'엄마아빠 패션다이어리 추천 상품'`)인 미완료 상품을 필터링합니다.
+   - 아직 SEO 최적화 작문이 적용되지 않은 미완료 상품을 스캔하고, 이미 완료된 상품과 분류하여 현황을 파악합니다.
+   - **[SEO 미완료 판정 기준]**:
+     * 유튜브 제목(`youtube_title`)이 비어 있거나 디폴트 텍스트인 경우.
+     * 유튜브 제목이 이전의 고정 템플릿 패턴(`"60대 이후 옷 잘 입는..."`, `"60대 어머님들..."`, `"60대 이후 입으면..."`, `"60대 70대 어머님들..."` 등)으로 시작하여 에이전트의 개별 작문이 적용되지 않은 경우.
+     * 유튜브 설명글(`youtube_description`)에 상품에 대한 다정한 코디/스토리 멘트가 없이 기본 대체 문구만 적혀 있는 경우.
    - 필터링용 파이썬 스니펫 예시:
      ```python
      import database
      items = database.get_items()
      pending_items = []
+     default_prefixes = ["60대 이후 옷 잘 입는", "60대 어머님들", "60대 이후 입으면", "60대 70대 어머님들"]
      for item in items:
          title = item.get("title") or ""
          yt_title = item.get("youtube_title") or ""
-         is_default = title in ["엄마아빠 패션다이어리 추천 상품", "쿠팡 추천 상품", ""] or "정보 수집 중" in title
-         is_caption_empty = not yt_title or "정보 수집 중" in yt_title or not item.get("youtube_description")
-         if is_default or is_caption_empty:
+         yt_desc = item.get("youtube_description") or ""
+         
+         is_empty = not yt_title or not yt_desc
+         is_default_title = any(yt_title.startswith(p) for p in default_prefixes) or "엄마아빠 패션다이어리" in yt_title or "추천 상품" in yt_title
+         is_default_desc = "에이전트가 영상 분석을 통해" in yt_desc or "에이전트가 추천한" in yt_desc or not yt_desc
+         
+         if is_empty or is_default_title or is_default_desc:
              pending_items.append(item)
      ```
 
