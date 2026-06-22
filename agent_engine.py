@@ -565,6 +565,23 @@ class AIAgentEngine:
                     
         link = short_url if short_url else url
         
+        # 2.5 SEO 완료 상태 체크 (가드 로직)
+        current_yt_title = item.get("youtube_title") or ""
+        current_yt_desc = item.get("youtube_description") or ""
+        
+        default_prefixes = ["60대 이후 옷 잘 입는", "60대 어머님들", "60대 이후 입으면", "60대 70대 어머님들"]
+        
+        is_empty = not current_yt_title or not current_yt_desc
+        is_default_title = any(current_yt_title.startswith(p) for p in default_prefixes) or "엄마아빠 패션다이어리" in current_yt_title or "추천 상품" in current_yt_title
+        is_default_desc = "에이전트가 영상 분석을 통해" in current_yt_desc or "에이전트가 추천한" in current_yt_desc or not current_yt_desc
+        
+        is_seo_completed = not is_empty and not is_default_title and not is_default_desc
+        
+        if is_seo_completed:
+            logger.info(f"SEO caption is already customized for item {item_id}. Overwrite skipped by SEO Guard.")
+            return
+
+        
         # 3. 제품 카테고리 판별 및 태그/문구 고도화 셋업
         import random
         
