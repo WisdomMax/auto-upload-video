@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (item.publish_status === 'scheduled') {
                     statusBadgeClass = 'badge-completed';
                     statusText = '예약됨';
-                } else if (item.publish_status === 'completed') {
+                } else if (item.publish_status === 'completed' || item.publish_status === 'success') {
                     statusBadgeClass = 'badge-completed';
                     statusText = '배포완료';
                 } else if (item.publish_status === 'partial_failed') {
@@ -380,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (btnPublishNow) btnPublishNow.disabled = true;
                     // Poll for updates
                     startPolling(item.id);
-                } else if (item.publish_status === 'completed') {
+                } else if (item.publish_status === 'completed' || item.publish_status === 'success') {
                     detailPublishStatus.classList.add('badge-completed');
                     detailPublishStatus.innerText = '배포완료';
                 } else if (item.publish_status === 'partial_failed') {
