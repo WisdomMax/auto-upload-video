@@ -684,6 +684,22 @@ class AIAgentEngine:
 
         items = database.get_items()
         
+        # 0. 예약 시간이 만료된(이미 배포 완료된) scheduled 상태의 아이템들을 success로 자동 업데이트
+        from datetime import datetime, timezone as dt_timezone
+        now_utc = datetime.now(dt_timezone.utc)
+        for it in items:
+            if it.get("publish_status") == "scheduled" and it.get("scheduled_at"):
+                try:
+                    sched_time = datetime.fromisoformat(it["scheduled_at"].replace("Z", "+00:00"))
+                    if sched_time <= now_utc:
+                        database.update_item_publish_results(it["id"], "success", it.get("publish_results"))
+                        logger.info(f"Auto-promoted item {it['id']} (No {it.get('product_no')}) from 'scheduled' to 'success' as scheduled time ({it['scheduled_at']}) has passed.")
+                except Exception as ex_time:
+                    logger.error(f"Failed to check/update status for scheduled item {it['id']}: {ex_time}")
+                    
+        # 갱신된 정보로 다시 가져옴
+        items = database.get_items()
+        
         # 1. 쿠팡 URL이 있고 대기(pending) 상태이거나, 실패(failed)했으나 예약 일정이 잡히지 않은 상품 추출
         raw_pending = [
             it for it in items 
