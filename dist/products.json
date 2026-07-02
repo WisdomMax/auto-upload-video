@@ -1,5 +1,35 @@
 [
   {
+    "id": 82,
+    "product_no": 25,
+    "product_code": "T00025",
+    "title": "지고다그 중년 여성 니트 가디건 겨울 아우터 루즈핏 따뜻한 자켓 ZXC43301",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9034442176&itemId=26502633897&vendorItemId=93477358565&traceid=V0-153-1516d9303d5d585e&requestid=20260616074404580179338436&token=31850C%7CMIXED",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9034442176&itemId=26502633897&vendorItemId=93477358565&traceid=V0-153-1516d9303d5d585e&requestid=20260616074404580179338436&token=31850C%7CMIXED",
+    "thumbnail_url": "/static/thumbnails/T00025.webp"
+  },
+  {
+    "id": 81,
+    "product_no": 24,
+    "product_code": "T00024",
+    "title": "NUNUHANA 중년여성 캐주얼 버튼 긴팔 루즈핏 카디건 아우터",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9052956496&itemId=26572055401&vendorItemId=93546203478&traceid=V0-153-3e2792293c96d3a3&clickBeacon=53d98d40-675a-11f1-925b-b633ac704a0d%7E3&requestid=20260614040147559100448593&token=31850C%7CMIXED",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9052956496&itemId=26572055401&vendorItemId=93546203478&traceid=V0-153-3e2792293c96d3a3&clickBeacon=53d98d40-675a-11f1-925b-b633ac704a0d%7E3&requestid=20260614040147559100448593&token=31850C%7CMIXED",
+    "thumbnail_url": "/static/thumbnails/T00024.webp"
+  },
+  {
+    "id": 80,
+    "product_no": 23,
+    "product_code": "T00023",
+    "title": "50대60대 여성 카라 셔츠 와이드팬츠 데일리 루즈핏 상하의 세트 투피스",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9563103550&itemId=28538821329&vendorItemId=95483711322&traceid=V0-153-c2bb119187e80d89&requestid=20260614040147559100448593&token=31850C%7CMIXED",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9563103550&itemId=28538821329&vendorItemId=95483711322&traceid=V0-153-c2bb119187e80d89&requestid=20260614040147559100448593&token=31850C%7CMIXED",
+    "thumbnail_url": "/static/thumbnails/T00023.webp"
+  },
+  {
     "id": 79,
     "product_no": 22,
     "product_code": "T00022",
