@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """5개 샘플 상품을 DB에 삽입하는 스크립트"""
 import sys
+sys.exit("seed_products.py is disabled to prevent database overwrite.")
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 

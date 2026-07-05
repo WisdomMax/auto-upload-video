@@ -8,7 +8,6 @@ __pycache__/
 *.pyd
 
 # Local database
-db.sqlite
 
 # Media uploads (user data)
 uploads/
