@@ -1,5 +1,15 @@
 [
   {
+    "id": 83,
+    "product_no": 26,
+    "product_code": "T00026",
+    "title": "아라모드 중년 여성 여름 찰랑 린넨 와이드 팬츠",
+    "description": "몸에 달라붙지 않아 입는 순간 깃털처럼 가볍고 시원한 린넨 소재의 와이드 바지입니다. 60대 어머님들의 최대 고민인 뱃살과 허벅지 군살을 완벽히 커버해주는 마법 같은 핏을 선사합니다.",
+    "coupang_url": "https://www.coupang.com/vp/products/12345678",
+    "short_url": "https://link.coupang.com/a/testLink123",
+    "thumbnail_url": "/static/thumbnails/T00026.webp"
+  },
+  {
     "id": 82,
     "product_no": 25,
     "product_code": "T00025",
