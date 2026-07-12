@@ -1,12 +1,22 @@
 [
   {
-    "id": 83,
+    "id": 85,
+    "product_no": 27,
+    "product_code": "T00027",
+    "title": "여름 에스닉 면 마 원피스 여 고급 허리 조임 루즈핏 날씬해 보이는 기질 린넨 스커트 개량 한복 일상복 나들이룩",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8605028571&itemId=24953934046&vendorItemId=92055154038&traceid=V0-153-2d2b7b8642b415dc&clickBeacon=c938ac40-7c92-11f1-94cb-38d0ad626437%7E3&requestid=20260711040850749030030514&token=31850C%7CMIXED",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8605028571&itemId=24953934046&vendorItemId=92055154038&traceid=V0-153-2d2b7b8642b415dc&clickBeacon=c938ac40-7c92-11f1-94cb-38d0ad626437%7E3&requestid=20260711040850749030030514&token=31850C%7CMIXED",
+    "thumbnail_url": "/static/thumbnails/T00027.webp"
+  },
+  {
+    "id": 84,
     "product_no": 26,
     "product_code": "T00026",
-    "title": "아라모드 중년 여성 여름 찰랑 린넨 와이드 팬츠",
-    "description": "몸에 달라붙지 않아 입는 순간 깃털처럼 가볍고 시원한 린넨 소재의 와이드 바지입니다. 60대 어머님들의 최대 고민인 뱃살과 허벅지 군살을 완벽히 커버해주는 마법 같은 핏을 선사합니다.",
-    "coupang_url": "https://www.coupang.com/vp/products/12345678",
-    "short_url": "https://link.coupang.com/a/testLink123",
+    "title": "우일 여성 인견 플리츠 반팔 원피스",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8670059021&itemId=25168052327&vendorItemId=75111610003&traceid=V0-153-725d1099796fb1f7&clickBeacon=e92d8d50-6b48-11f1-abae-06aaf7b078c7%7E3&requestid=20260619040711812142532391&token=31850C%7CMIXED",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8670059021&itemId=25168052327&vendorItemId=75111610003&traceid=V0-153-725d1099796fb1f7&clickBeacon=e92d8d50-6b48-11f1-abae-06aaf7b078c7%7E3&requestid=20260619040711812142532391&token=31850C%7CMIXED",
     "thumbnail_url": "/static/thumbnails/T00026.webp"
   },
   {
