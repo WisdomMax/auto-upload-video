@@ -180,9 +180,25 @@ def build_catalog():
         /* Search Section */
         .search-container {
             width: 100%;
-            max-width: 440px;
+            max-width: 500px;
             margin: 0 auto;
             position: relative;
+        }
+        
+        .search-label-text {
+            text-align: center;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 12px;
+            letter-spacing: 0.03em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .search-label-text span {
+            color: var(--color-gold);
         }
         
         /* Floating Sticky mode (Hidden state by default) */
@@ -192,7 +208,7 @@ def build_catalog():
             left: 50%;
             transform: translateX(-50%) translateY(-120%);
             width: calc(100% - 48px);
-            max-width: 440px;
+            max-width: 500px;
             z-index: 1000;
             opacity: 0;
             pointer-events: none;
@@ -200,11 +216,10 @@ def build_catalog():
         }
         
         .search-container.floating input {
-            background: rgba(20, 20, 20, 0.85) !important;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-color: rgba(188, 163, 116, 0.45) !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            background: #ffffff !important;
+            border-color: var(--color-gold) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8) !important;
+            color: #111111 !important;
         }
 
         /* Floating Sticky mode (Visible state) */
@@ -216,38 +231,81 @@ def build_catalog():
 
         .search-container input {
             width: 100%;
-            padding: 12px 16px 12px 42px;
-            background: #141414;           /* Solid charcoal surface */
-            border: 1px solid rgba(255, 255, 255, 0.12); /* Pronounced border */
-            border-radius: 2px;
-            color: var(--color-text-primary);
-            font-size: 0.88rem;
+            padding: 16px 20px 16px 54px;
+            background: #ffffff;
+            border: 3px solid var(--color-gold);
+            border-radius: 8px;
+            color: #111111;
+            font-size: 1.1rem;
             font-family: var(--font-sans);
-            font-weight: 300;
+            font-weight: 600;
             outline: none;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.02em;
             transition: all 0.3s ease;
-            text-align: center;
+            text-align: left;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         }
         .search-container input::placeholder {
-            color: var(--color-text-secondary);
-            opacity: 0.75;                 /* Highly visible placeholder */
+            color: #666666;
+            opacity: 1;
+            font-weight: 500;
         }
         .search-container input:focus {
-            border-color: var(--color-gold);
-            background: #181818;
-            box-shadow: 0 0 10px rgba(188, 163, 116, 0.08);
+            border-color: #ffffff;
+            box-shadow: 0 0 15px rgba(188, 163, 116, 0.4);
+            background: #fdfdfd;
         }
         .search-container i {
             position: absolute;
-            left: 16px;
+            left: 20px;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--color-gold);
-            font-size: 0.9rem;
-            opacity: 0.75;                 /* Brighter icon */
+            color: #333333;
+            font-size: 1.3rem;
             pointer-events: none;
             z-index: 5;
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 16px;
+                gap: 28px;
+            }
+            header {
+                padding: 36px 0 16px 0;
+                gap: 8px;
+            }
+            header h1 {
+                font-size: 1.7rem;
+                white-space: nowrap;
+            }
+            header .brand-subtitle {
+                letter-spacing: 0.25em;
+            }
+            .search-label-text {
+                font-size: 0.92rem;
+                flex-direction: column;
+                gap: 6px;
+                line-height: 1.4;
+            }
+            .search-container input {
+                padding: 14px 16px 14px 44px;
+                font-size: 0.95rem;
+            }
+            .search-container i {
+                left: 16px;
+                font-size: 1.1rem;
+            }
+            .catalog-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 16px !important;
+            }
+            .product-code-display {
+                font-size: 1.4rem !important;
+                letter-spacing: 0.12em !important;
+            }
+            .product-info {
+                padding: 10px 8px !important;
+            }
         }
 
         /* Grid Layout */
@@ -417,7 +475,7 @@ def build_catalog():
     <!-- Floating Search Bar -->
     <div class="search-container floating" id="search-floating-container">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" id="search-input-floating" placeholder="모델명(예: T00001) 또는 상품 키워드 검색">
+        <input type="text" id="search-input-floating" placeholder="상품 번호 또는 이름 검색">
     </div>
 
     <div class="container">
@@ -428,9 +486,12 @@ def build_catalog():
         </header>
 
         <!-- Search Bar -->
+        <div class="search-label-text">
+            <i class="fa-solid fa-circle-question"></i> 찾으시는 <span>상품 번호(예: T00025)</span>를 검색해 보세요
+        </div>
         <div class="search-container" id="search-original-container">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="search-input" placeholder="모델명(예: T00001) 또는 상품 키워드 검색">
+            <input type="text" id="search-input" placeholder="상품 번호 또는 이름 검색">
         </div>
 
         <!-- Cards Grid -->
@@ -448,8 +509,17 @@ def build_catalog():
             grid.innerHTML = '';
             
             const filtered = products.filter(p => {
-                const searchStr = (p.title + ' ' + p.product_code + ' ' + p.description).toLowerCase();
-                return searchStr.includes(filterText.toLowerCase().trim());
+                const filterTextClean = filterText.toLowerCase().trim();
+                if (!filterTextClean) return true;
+
+                // 1. 순수 텍스트 매칭용 인덱스 조립 (상품 번호 텍스트 포함)
+                const searchStr = (p.title + ' ' + p.product_code + ' ' + String(p.product_no) + ' ' + p.description).toLowerCase();
+                
+                // 2. 검색어에 숫자만 포함된 경우와 정수 매칭 검증
+                const inputDigits = filterTextClean.replace(/[^0-9]/g, '');
+                const isNumberMatch = inputDigits !== '' && String(p.product_no) === inputDigits;
+
+                return searchStr.includes(filterTextClean) || isNumberMatch;
             });
 
             if (filtered.length === 0) {

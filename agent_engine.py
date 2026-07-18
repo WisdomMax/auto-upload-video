@@ -249,21 +249,29 @@ class AIAgentEngine:
                             )
                             continue  # 처리 완료 목록에 넣지 않고 보류
                     else:
-                        # 기존 방식: 일반 텍스트 파일명 -> 신규 아이템 생성
-                        # 1) 비디오 파이프라인 실행 (Gemini 분석, 코드 발급, 자막 오버레이, webp 썸네일 캡처)
-                        result = await video_agent.process_video_pipeline(video_path)
-                        
-                        # 2) DB에 아이템 최초 인서트 (쿠팡 주소는 빈 상태)
-                        item_id = database.create_item(
-                            product_no=result["product_no"],
-                            title=result["title"],
-                            description=result["description"],
-                            coupang_url="",
-                            original_video_path=result["original_video_path"],
-                            product_code=result["product_code"],
-                            video_hash=file_hash
+                        # [안전 가드 적용]: 숫자가 아닌 일반 문자형 파일명이 들어오는 경우
+                        # 대기 상품 롤백 및 임의 상품 자동 생성 차단을 위해 수집을 건너뜁니다.
+                        logger.warning(f"Scan skipped: filename '{file_name}' must be numeric (e.g. 26.mp4) to bind to an existing waiting_video item.")
+                        database.create_agent_log(
+                            task_type="video_scan",
+                            status="warning",
+                            message=f"⚠️ [비디오 매핑 거부] 파일명 '{file_name}'이 숫자가 아닙니다. 매핑 대기 중인 상품에 비디오를 연결하려면 파일명을 '숫자.mp4'(예: 26.mp4) 형태로 변경해 주세요."
                         )
-                        log_msg = f"📹 [비디오 감지 완료] 코드 {result['product_code']} 상품의 자막 합성 및 webp 썸네일 생성이 완료되었습니다. 대시보드에서 쿠팡 링크 입력을 기다리는 대기 상태로 등록되었습니다."
+                        
+                        # 원본 비디오 파일을 processed 디렉토리로 이동시켜 중복 경고 방지 및 정리
+                        dest_file_name = file_name
+                        dest_path = os.path.join(processed_dir, dest_file_name)
+                        if os.path.exists(dest_path):
+                            name_part, ext_part = os.path.splitext(file_name)
+                            dest_file_name = f"{name_part}_{int(time.time())}{ext_part}"
+                            dest_path = os.path.join(processed_dir, dest_file_name)
+                        try:
+                            shutil.move(video_path, dest_path)
+                            logger.info(f"Moved invalid filename video to processed folder: {dest_path}")
+                        except Exception as e_move_invalid:
+                            logger.error(f"Failed to move invalid file {file_name}: {e_move_invalid}")
+                            
+                        continue
                     
                     # 3) SNS 본문 글 및 유튜브 캡션 자동 생성 (Fallback 자동완성)
                     from main import generate_ai_sns_content
@@ -402,15 +410,32 @@ class AIAgentEngine:
             res = requests.post("https://api.buffer.com", json={"query": query}, headers=headers, timeout=15)
             profiles = []
             if res.status_code == 200:
-                orgs = res.json().get("data", {}).get("account", {}).get("organizations", [])
-                for org in orgs:
-                    for channel in org.get("channels", []):
-                        profiles.append(channel)
+                res_data = res.json()
+                if res_data and res_data.get("data"):
+                    orgs = res_data.get("data", {}).get("account", {}).get("organizations", [])
+                    for org in orgs:
+                        for channel in org.get("channels", []):
+                            profiles.append(channel)
+                else:
+                    logger.warning(f"Buffer GraphQL response contains no data or has errors: {res_data}")
             else:
                 raise Exception(f"Buffer HTTP {res.status_code}")
         except Exception as e:
             logger.error(f"Buffer Profiles Fetch Exception: {e}")
-            return
+
+        # profiles 가져오기에 실패했거나 비어있더라도 고정 ID가 있으면 복구
+        if not profiles:
+            fixed_yt_id = database.get_setting("YOUTUBE_PROFILE_ID") or os.getenv("YOUTUBE_PROFILE_ID")
+            fixed_tt_id = database.get_setting("TIKTOK_PROFILE_ID") or os.getenv("TIKTOK_PROFILE_ID")
+            fixed_ig_id = database.get_setting("INSTAGRAM_PROFILE_ID") or os.getenv("INSTAGRAM_PROFILE_ID")
+            
+            if fixed_yt_id:
+                profiles.append({"id": fixed_yt_id, "name": "YouTube Shorts", "service": "youtube"})
+            if fixed_tt_id:
+                profiles.append({"id": fixed_tt_id, "name": "TikTok", "service": "tiktok"})
+            if fixed_ig_id:
+                profiles.append({"id": fixed_ig_id, "name": "Instagram Reels", "service": "instagram"})
+            logger.info(f"Fallback profiles loaded: {[p['service'] for p in profiles]}")
 
         scheduled_at_str = scheduled_at_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -573,9 +598,9 @@ class AIAgentEngine:
         
         is_empty = not current_yt_title or not current_yt_desc
         is_default_title = any(current_yt_title.startswith(p) for p in default_prefixes) or "엄마아빠 패션다이어리" in current_yt_title or "추천 상품" in current_yt_title
-        is_default_desc = "에이전트가 영상 분석을 통해" in current_yt_desc or "에이전트가 추천한" in current_yt_desc or not current_yt_desc
         
-        is_seo_completed = not is_empty and not is_default_title and not is_default_desc
+        # 제목이 비어있지 않고 기본 템플릿(접두사) 패턴으로 시작하지 않는다면 수동 작문 완료로 판단하여 덮어쓰기 방지
+        is_seo_completed = not is_empty and not is_default_title
         
         if is_seo_completed:
             logger.info(f"SEO caption is already customized for item {item_id}. Overwrite skipped by SEO Guard.")

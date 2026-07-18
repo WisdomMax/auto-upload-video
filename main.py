@@ -1013,114 +1013,158 @@ async def get_user_product_catalog(product_no: int, request: Request):
 
 
 @app.post("/api/manychat/webhook")
-async def manychat_webhook(payload: dict):
-    logger.info(f"ManyChat Webhook received payload: {payload}")
-    
-    subscriber_id = payload.get("subscriber_id") or payload.get("subscriber", {}).get("id")
-    username = payload.get("username") or payload.get("subscriber", {}).get("username") or payload.get("subscriber", {}).get("first_name", "고객")
-    product_no = payload.get("product_no")
-    platform = payload.get("platform") or "instagram"
-    
-    if not subscriber_id:
-        return {"status": "error", "message": "subscriber_id가 누락되었습니다."}
-        
-    item = None
-    if product_no:
-        item = database.get_item_by_product_no(product_no)
-        
-    token = os.getenv("MANYCHAT_API_TOKEN") or database.get_setting("MANYCHAT_API_TOKEN")
-    
-    if not token or token == "your_manychat_api_token_here":
-        logger.warning("ManyChat API Token이 설정되어 있지 않아 실제 DM 발송을 스킵합니다.")
-        database.create_agent_log(
-            task_type="manychat_event",
-            status="warning",
-            message=f"ManyChat 토큰 미설정으로 실제 DM 발송 실패: {platform.upper()} 유저 @{username} (No. {product_no})",
-            details=json.dumps(payload, ensure_ascii=False)
-        )
-        return {"status": "success", "message": "ManyChat API Token is not set."}
-        
-    dm_text = ""
-    target_link = ""
-    
-    if item:
-        target_link = item.get("short_url") or item.get("coupang_url")
-        if not target_link:
-            target_link = f"http://localhost:18888/p/{item['product_no']}"
-            
-        template = item.get("dm_template") or ""
-        if template:
-            if "👇 쿠팡 즉시구매 링크" in template and target_link not in template:
-                dm_text = template.strip() + "\n" + target_link
-            else:
-                dm_text = template.replace("[쿠팡 링크]", target_link).replace("구매 링크:", f"구매 링크: {target_link}").strip()
-                if target_link not in dm_text:
-                    dm_text += f"\n\n👇 제품 링크:\n{target_link}"
-        else:
-            dm_text = f"요청하신 제품 상세 정보 및 구매 링크입니다.\n\n👇 제품 링크:\n{target_link}"
-    else:
-        dm_text = f"안녕하세요! 요청하신 상품 정보를 찾지 못했습니다. 번호를 다시 한번 확인해 주세요."
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-    
-    api_payload = {
-        "subscriber_id": subscriber_id,
-        "data": {
-            "version": "v2",
-            "content": {
-                "messages": [
-                    {
-                        "type": "text",
-                        "text": dm_text
-                    }
-                ]
-            }
-        }
-    }
-    
+async def manychat_webhook(request: Request, background_tasks: BackgroundTasks):
     try:
-        res = requests.post("https://api.manychat.com/fb/sending/sendContent", json=api_payload, headers=headers, timeout=10)
+        body_bytes = await request.body()
+        body_str = body_bytes.decode("utf-8")
+        logger.info(f"Received Manychat webhook event: {body_str}")
         
-        if res.status_code == 200:
-            res_data = res.json()
-            if res_data.get("status") == "success":
-                message = f"{platform.upper()} 유저 @{username} 님께 DM 전송 성공"
-                if product_no:
-                    message += f" (No. {product_no} 상품)"
-                
-                database.create_agent_log(
-                    task_type="manychat_event",
-                    status="success",
-                    message=message,
-                    details=json.dumps(payload, ensure_ascii=False)
-                )
-                return {"status": "success"}
-            else:
-                error_msg = res_data.get("message", "알 수 없는 오류")
-                logger.error(f"ManyChat API Send Failed: {error_msg}")
-        else:
-            logger.error(f"ManyChat API HTTP Error: {res.status_code} - {res.text}")
+        payload = {}
+        if body_str:
+            try:
+                payload = json.loads(body_str)
+            except Exception:
+                # 폼 데이터 파싱 fallback
+                from urllib.parse import parse_qs
+                parsed = parse_qs(body_str)
+                payload = {k: v[0] for k, v in parsed.items()}
+
+        subscriber_id = payload.get("subscriber_id")
+        if not subscriber_id:
+            # Manychat API v1 payload 표준 subscriber.id 필드 파싱 감지
+            sub_obj = payload.get("subscriber", {})
+            if isinstance(sub_obj, dict):
+                subscriber_id = sub_obj.get("id")
             
-        database.create_agent_log(
-            task_type="manychat_event",
-            status="failed",
-            message=f"ManyChat API 전송 실패: @{username} (No. {product_no})",
-            details=json.dumps({"payload": payload, "response": res.text}, ensure_ascii=False)
-        )
-        return {"status": "failed", "message": "ManyChat API sending failed."}
+        post_id = payload.get("post_id")
+        comment_text = payload.get("comment_text", "")
         
+        logger.info(f"Parsed Manychat webhook: subscriber_id={subscriber_id}, post_id={post_id}, comment={comment_text}")
+        
+        if not subscriber_id:
+            return JSONResponse({"status": "ignored", "reason": "No subscriber_id found in payload"})
+
+        # 백그라운드 태스크로 연동 처리 실행 (FastAPI 응답 즉시 리턴하여 Manychat HTTP 타임아웃 방지)
+        background_tasks.add_task(process_manychat_event, int(subscriber_id), post_id, comment_text)
+        return {"status": "success", "message": "Webhook received and processing started in background."}
     except Exception as e:
-        logger.error(f"ManyChat webhook execution error: {e}")
+        logger.error(f"Error processing Manychat webhook route: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+async def process_manychat_event(subscriber_id: int, post_id: str, comment_text: str):
+    import manychat_api
+    logger.info(f"Start processing Manychat event for subscriber {subscriber_id}")
+    
+    flow_id = os.getenv("MANYCHAT_FLOW_ID")
+    if not flow_id:
+        # DB 세팅값에서도 가져오기 시도
+        flow_id = database.get_setting("MANYCHAT_FLOW_ID")
+        
+    if not flow_id:
+        logger.error("MANYCHAT_FLOW_ID is not configured in .env or settings. Aborting DM dispatch.")
         database.create_agent_log(
-            task_type="manychat_event",
-            status="failed",
-            message=f"ManyChat 연동 중 예외 발생: {str(e)}",
-            details=json.dumps(payload, ensure_ascii=False)
+            task_type="manychat_webhook",
+            status="error",
+            message="❌ [Manychat 자동화 실패] MANYCHAT_FLOW_ID 환경 변수가 구성되지 않아 메시지를 발송할 수 없습니다."
         )
-        return {"status": "error", "detail": str(e)}
+        return
+
+    # 1. 포스트 매핑 상품 조회
+    matched_item = None
+    if post_id:
+        post_id_clean = str(post_id).strip()
+        items = database.get_items()
+        for it in items:
+            results_str = it.get("publish_results")
+            if results_str:
+                try:
+                    res_json = json.loads(results_str)
+                    insta_res = res_json.get("instagram", {})
+                    insta_post_id = str(insta_res.get("post_id", "")).strip()
+                    if insta_post_id and (post_id_clean in insta_post_id or insta_post_id in post_id_clean):
+                        matched_item = it
+                        logger.info(f"Matched product {it['product_code']} (ID: {it['id']}) by instagram post_id: {post_id_clean}")
+                        break
+                except Exception:
+                    continue
+
+    # 2. 매칭 실패 시 최신 성공/예약 상품 폴백 처리
+    if not matched_item:
+        logger.warning(f"Failed to match product by post_id {post_id}. Fallback to latest successfully published product...")
+        # success 또는 scheduled 상태인 제품 중 가장 번호가 높은 제품 1개 추출
+        conn = database.get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, product_no, short_url, coupang_url, product_code FROM items WHERE publish_status IN ('success', 'scheduled') ORDER BY product_no DESC LIMIT 1")
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            matched_item = {
+                "id": row[0],
+                "product_no": row[1],
+                "short_url": row[2],
+                "coupang_url": row[3],
+                "product_code": row[4]
+            }
+            logger.info(f"Fallback matched latest product {matched_item['product_code']} (ID: {matched_item['id']})")
+
+    if not matched_item:
+        logger.error("No product matched and fallback failed. Aborting DM dispatch.")
+        database.create_agent_log(
+            task_type="manychat_webhook",
+            status="error",
+            message="❌ [Manychat 자동화 실패] 댓글 대상 포스트에 매핑되는 상품이 없고 폴백 대상도 찾지 못했습니다."
+        )
+        return
+
+    # 단축 링크 우선, 없으면 쿠팡 원본 URL 사용
+    coupang_link = matched_item.get("short_url") or matched_item.get("coupang_url")
+    if not coupang_link or coupang_link == "#":
+        # 징검다리 주소 생성 (어르신 전용 piella 도메인 적용)
+        coupang_link = f"https://6070.piella.shop/p/{matched_item['product_no']}"
+
+    # 3. Manychat Custom User Field 갱신 API 호출
+    success_field = await manychat_api.set_subscriber_custom_field(
+        subscriber_id=subscriber_id,
+        field_name="coupang_link",
+        field_value=coupang_link
+    )
+    
+    if not success_field:
+        logger.error(f"Failed to set Custom User Field for subscriber {subscriber_id}")
+        database.create_agent_log(
+            task_type="manychat_webhook",
+            status="error",
+            message=f"❌ [Manychat 자동화 실패] 사용자 {subscriber_id}의 Custom Field(coupang_link) 갱신 API 호출이 실패했습니다."
+        )
+        return
+
+    # 4. Manychat Flow 트리거 API 호출
+    success_flow = await manychat_api.trigger_flow(
+        subscriber_id=subscriber_id,
+        flow_id=flow_id
+    )
+    
+    if success_flow:
+        logger.info(f"Manychat automation sequence successfully executed for subscriber {subscriber_id}")
+        database.create_agent_log(
+            task_type="manychat_webhook",
+            status="success",
+            message=f"💬 [Manychat 자동화 성공] 상품 {matched_item['product_code']} 링크를 사용자 {subscriber_id}의 DM으로 정상 동적 발송 완료했습니다.",
+            details=json.dumps({
+                "subscriber_id": subscriber_id,
+                "product_code": matched_item['product_code'],
+                "coupang_link": coupang_link,
+                "flow_id": flow_id
+            }, ensure_ascii=False)
+        )
+    else:
+        logger.error(f"Failed to trigger Flow {flow_id} for subscriber {subscriber_id}")
+        database.create_agent_log(
+            task_type="manychat_webhook",
+            status="error",
+            message=f"❌ [Manychat 자동화 실패] 사용자 {subscriber_id}의 구매 링크 발송 Flow({flow_id}) 실행 API 호출이 실패했습니다."
+        )
 
 
 @app.get("/api/youtube/auth")
@@ -1225,6 +1269,9 @@ async def trigger_scan_manually(background_tasks: BackgroundTasks):
     except Exception as e:
         logger.error(f"Manual scan trigger error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
 
 
 if __name__ == "__main__":
