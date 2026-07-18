@@ -532,14 +532,24 @@ def build_catalog():
                 const filterTextClean = filterText.toLowerCase().trim();
                 if (!filterTextClean) return true;
 
-                // 1. 순수 텍스트 매칭용 인덱스 조립 (상품 번호 텍스트 포함)
-                const searchStr = (p.title + ' ' + p.product_code + ' ' + String(p.product_no) + ' ' + p.description).toLowerCase();
-                
-                // 2. 검색어에 숫자만 포함된 경우와 정수 매칭 검증
-                const inputDigits = filterTextClean.replace(/[^0-9]/g, '');
-                const isNumberMatch = inputDigits !== '' && String(p.product_no) === inputDigits;
+                // 1. 입력값이 오직 숫자로만 구성되었는지 검사 (예: "21")
+                const isOnlyDigits = /^[0-9]+$/.test(filterTextClean);
 
-                return searchStr.includes(filterTextClean) || isNumberMatch;
+                // 2. 입력값이 상품 코드 패턴(T로 시작하고 뒤에 숫자가 붙은 패턴)인지 검사 (예: "t21", "t00021")
+                const isProductCodePattern = /^t[0-9]+$/.test(filterTextClean);
+
+                if (isOnlyDigits) {
+                    return p.product_no === parseInt(filterTextClean, 10);
+                }
+
+                if (isProductCodePattern) {
+                    const cleanNum = parseInt(filterTextClean.replace(/[^0-9]/g, ''), 10);
+                    return p.product_no === cleanNum || p.product_code.toLowerCase().includes(filterTextClean);
+                }
+
+                // 3. 일반 텍스트 검색 (타이틀 및 설명, 코드 포함 검색)
+                const searchStr = (p.title + ' ' + p.product_code + ' ' + p.description).toLowerCase();
+                return searchStr.includes(filterTextClean);
             });
 
             if (filtered.length === 0) {
