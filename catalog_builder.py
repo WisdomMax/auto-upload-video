@@ -651,5 +651,135 @@ def build_catalog():
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(final_html)
         
+    # 3. 개별 상품 리다이렉트 페이지(dist/p/{product_no}/index.html) 생성
+    p_dir = os.path.join(dist_dir, "p")
+    os.makedirs(p_dir, exist_ok=True)
+    
+    redirect_template = """<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>이동 중...</title>
+    <meta http-equiv="refresh" content="0; url={target_url}">
+    <script>window.location.href = "{target_url}";</script>
+</head>
+<body>
+    잠시 후 상품 페이지로 이동합니다. 이동하지 않으면 <a href="{target_url}">여기</a>를 클릭하세요.
+</body>
+</html>"""
+
+    for item in items:
+        prod_no = item.get("product_no")
+        if not prod_no:
+            continue
+            
+        target_url = item.get("short_url") or item.get("coupang_url") or "#"
+        if target_url == "#":
+            continue
+            
+        prod_p_dir = os.path.join(p_dir, str(prod_no))
+        os.makedirs(prod_p_dir, exist_ok=True)
+        
+        redirect_html = redirect_template.format(target_url=target_url)
+        redirect_path = os.path.join(prod_p_dir, "index.html")
+        with open(redirect_path, "w", encoding="utf-8") as f:
+            f.write(redirect_html)
+            
+        logger.info(f"Created redirect page for product {prod_no} -> {target_url}")
+
+    # 4. 정식 메타 검수용 개인정보 처리방침 (/privacy) 및 서비스 약관 (/terms) 생성
+    _build_legal_pages(dist_dir)
+        
     logger.info(f"Static catalog page rebuild completed. Registered products: {len(products_data)}")
     return True
+
+def _build_legal_pages(dist_dir):
+    # 1. privacy 페이지 생성
+    privacy_dir = os.path.join(dist_dir, "privacy")
+    os.makedirs(privacy_dir, exist_ok=True)
+    privacy_html = """<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>개인정보 처리방침 - 엄마아빠 패션다이어리</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; background: #f9f9f9; }
+        .card { background: #fff; border-radius: 12px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { color: #111; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 24px; }
+        h2 { color: #444; font-size: 18px; margin-top: 25px; }
+        p, li { font-size: 15px; color: #555; }
+        .footer { margin-top: 30px; font-size: 13px; color: #888; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>개인정보 처리방침</h1>
+        <p>엄마아빠 패션다이어리(이하 '회사')는 이용자의 개인정보를 중요시하며, 「개인정보 보호법」 등 관련 법령을 준수하고 있습니다.</p>
+        
+        <h2>1. 수집하는 개인정보 항목 및 목적</h2>
+        <p>회사는 SNS 댓글 및 메시지 자동 응대 서비스를 제공하기 위해 최소한의 개인정보를 수집합니다.</p>
+        <ul>
+            <li><strong>수집 항목:</strong> 인스타그램/소셜 계정 아이디(Scoped ID), 프로필명, 댓글 텍스트 내용</li>
+            <li><strong>이용 목적:</strong> 요청하신 상품 구매 링크(쿠팡 파트너스/카탈로그) 안내 및 1:1 메시지(DM) 발송</li>
+        </ul>
+
+        <h2>2. 개인정보의 보유 및 이용 기간</h2>
+        <p>이용자의 개인정보는 서비스 제공 목적이 달성된 후 파기하거나, 관련 법령에 따라 일정 기간 안전하게 보관 후 파기됩니다.</p>
+
+        <h2>3. 개인정보의 제3자 제공 및 위탁</h2>
+        <p>회사는 이용자의 동의 없이 개인정보를 외부에 제공하지 않으며, 서비스 운영을 위해 필요한 경우에 한하여 최소한의 범위 내에서 위탁 관리합니다.</p>
+
+        <h2>4. 이용자의 권리와 행사 방법</h2>
+        <p>이용자는 언제든지 자신의 개인정보 조회, 수정, 삭제(파기)를 요청할 수 있으며, 관련 문의는 고객지원 채널을 통해 처리됩니다.</p>
+
+        <div class="footer">
+            <p>최종 수정일: 2026년 7월 29일 | 엄마아빠 패션다이어리</p>
+        </div>
+    </div>
+</body>
+</html>"""
+    with open(os.path.join(privacy_dir, "index.html"), "w", encoding="utf-8") as f:
+        f.write(privacy_html)
+
+    # 2. terms 페이지 생성
+    terms_dir = os.path.join(dist_dir, "terms")
+    os.makedirs(terms_dir, exist_ok=True)
+    terms_html = """<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서비스 이용약관 - 엄마아빠 패션다이어리</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; background: #f9f9f9; }
+        .card { background: #fff; border-radius: 12px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { color: #111; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 24px; }
+        h2 { color: #444; font-size: 18px; margin-top: 25px; }
+        p, li { font-size: 15px; color: #555; }
+        .footer { margin-top: 30px; font-size: 13px; color: #888; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>서비스 이용약관</h1>
+        <p>본 약관은 엄마아빠 패션다이어리(이하 '서비스')가 제공하는 SNS 쇼핑 카탈로그 및 자동 안내 서비스의 이용조건 및 절차를 규정합니다.</p>
+        
+        <h2>1. 서비스의 목적 및 내용</h2>
+        <p>본 서비스는 5060 중년층 패션 카탈로그 정보 및 쿠팡 파트너스 제휴 상품 단축 링크 안내를 목적으로 합니다.</p>
+
+        <h2>2. 서비스의 제공 및 변경</h2>
+        <p>서비스는 24시간 제공을 원칙으로 하며, 시스템 점검이나 기타 불가피한 사유가 있는 경우 일시 중단될 수 있습니다.</p>
+
+        <h2>3. 제휴 마케팅 안내</h2>
+        <p>본 서비스에서 제공되는 일부 링크는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받을 수 있습니다.</p>
+
+        <div class="footer">
+            <p>최종 수정일: 2026년 7월 29일 | 엄마아빠 패션다이어리</p>
+        </div>
+    </div>
+</body>
+</html>"""
+    with open(os.path.join(terms_dir, "index.html"), "w", encoding="utf-8") as f:
+        f.write(terms_html)
+    logger.info("Successfully created privacy and terms pages in dist/")

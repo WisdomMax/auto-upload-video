@@ -24,6 +24,76 @@ load_dotenv()
 
 app = FastAPI(title="SNS Automation & Video Auto-Publisher")
 
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_policy():
+    return """<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>개인정보 처리방침 - 엄마아빠 패션다이어리</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; background: #f9f9f9; }
+        .card { background: #fff; border-radius: 12px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { color: #111; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 24px; }
+        h2 { color: #444; font-size: 18px; margin-top: 25px; }
+        p, li { font-size: 15px; color: #555; }
+        .footer { margin-top: 30px; font-size: 13px; color: #888; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>개인정보 처리방침</h1>
+        <p>엄마아빠 패션다이어리(이하 '회사')는 이용자의 개인정보를 중요시하며, 「개인정보 보호법」 등 관련 법령을 준수하고 있습니다.</p>
+        <h2>1. 수집하는 개인정보 항목 및 목적</h2>
+        <p>회사는 SNS 댓글 및 메시지 자동 응대 서비스를 제공하기 위해 최소한의 개인정보를 수집합니다.</p>
+        <ul>
+            <li><strong>수집 항목:</strong> 인스타그램/소셜 계정 아이디(Scoped ID), 프로필명, 댓글 텍스트 내용</li>
+            <li><strong>이용 목적:</strong> 요청하신 상품 구매 링크(쿠팡 파트너스/카탈로그) 안내 및 1:1 메시지(DM) 발송</li>
+        </ul>
+        <h2>2. 개인정보의 보유 및 이용 기간</h2>
+        <p>이용자의 개인정보는 서비스 제공 목적이 달성된 후 파기하거나, 관련 법령에 따라 일정 기간 안전하게 보관 후 파기됩니다.</p>
+        <h2>3. 이용자의 권리와 행사 방법</h2>
+        <p>이용자는 언제든지 자신의 개인정보 조회, 수정, 삭제(파기)를 요청할 수 있습니다.</p>
+        <div class="footer">
+            <p>최종 수정일: 2026년 7월 29일 | 엄마아빠 패션다이어리</p>
+        </div>
+    </div>
+</body>
+</html>"""
+
+@app.get("/terms", response_class=HTMLResponse)
+async def terms_of_service():
+    return """<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서비스 이용약관 - 엄마아빠 패션다이어리</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; background: #f9f9f9; }
+        .card { background: #fff; border-radius: 12px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { color: #111; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 24px; }
+        h2 { color: #444; font-size: 18px; margin-top: 25px; }
+        p, li { font-size: 15px; color: #555; }
+        .footer { margin-top: 30px; font-size: 13px; color: #888; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>서비스 이용약관</h1>
+        <p>본 약관은 엄마아빠 패션다이어리가 제공하는 SNS 쇼핑 카탈로그 및 자동 안내 서비스의 이용조건을 규정합니다.</p>
+        <h2>1. 서비스의 목적 및 내용</h2>
+        <p>본 서비스는 5060 중년층 패션 카탈로그 정보 및 쿠팡 파트너스 제휴 상품 단축 링크 안내를 목적으로 합니다.</p>
+        <h2>2. 제휴 마케팅 안내</h2>
+        <p>본 서비스에서 제공되는 일부 링크는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받을 수 있습니다.</p>
+        <div class="footer">
+            <p>최종 수정일: 2026년 7월 29일 | 엄마아빠 패션다이어리</p>
+        </div>
+    </div>
+</body>
+</html>"""
+
 @app.on_event("startup")
 async def startup_event():
     try:
@@ -334,6 +404,19 @@ def distribute_video_task(item_id: int, platforms: List[str]):
             failed_count += 1
             continue
 
+        # 이미 성공적으로 업로드된 채널인지 중복 게시 검증
+        current_results_str = item.get('publish_results')
+        if current_results_str:
+            try:
+                curr_res = json.loads(current_results_str)
+                if isinstance(curr_res, dict) and curr_res.get(platform, {}).get('status') == 'success':
+                    logger.info(f"Skipping {platform} for item {item_id} as it is already successfully published.")
+                    results[platform] = curr_res[platform]
+                    success_count += 1
+                    continue
+            except Exception:
+                pass
+
         # 플랫폼별 텍스트 및 제목 가공
         text = item['sns_caption']
         title = item['title']
@@ -355,7 +438,7 @@ def distribute_video_task(item_id: int, platforms: List[str]):
                 title=title
             )
             results[platform] = res_val
-            if res_val["status"] == "success":
+            if res_val.get("status") == "success":
                 success_count += 1
             else:
                 failed_count += 1
@@ -693,13 +776,14 @@ async def get_settings():
     return {
         "PUBLISH_YOUTUBE": settings.get("PUBLISH_YOUTUBE", "true"),
         "PUBLISH_TIKTOK": settings.get("PUBLISH_TIKTOK", "true"),
-        "PUBLISH_INSTAGRAM": settings.get("PUBLISH_INSTAGRAM", "true")
+        "PUBLISH_INSTAGRAM": settings.get("PUBLISH_INSTAGRAM", "true"),
+        "OPENAI_API_KEY": settings.get("OPENAI_API_KEY", "")
     }
 
 @app.post("/api/settings")
 async def update_settings(payload: dict):
     for k, v in payload.items():
-        if k in ["PUBLISH_YOUTUBE", "PUBLISH_TIKTOK", "PUBLISH_INSTAGRAM"]:
+        if k in ["PUBLISH_YOUTUBE", "PUBLISH_TIKTOK", "PUBLISH_INSTAGRAM", "OPENAI_API_KEY"]:
             database.set_setting(k, v)
     return {"status": "success"}
 
@@ -1164,6 +1248,200 @@ async def process_manychat_event(subscriber_id: int, post_id: str, comment_text:
             task_type="manychat_webhook",
             status="error",
             message=f"❌ [Manychat 자동화 실패] 사용자 {subscriber_id}의 구매 링크 발송 Flow({flow_id}) 실행 API 호출이 실패했습니다."
+        )
+
+
+@app.get("/webhook/instagram")
+async def instagram_webhook_verify(request: Request):
+    """
+    Meta Webhook 등록 시 검증용 챌린지 엔드포인트 (Hub Verification)
+    """
+    params = request.query_params
+    mode = params.get("hub.mode")
+    challenge = params.get("hub.challenge")
+    verify_token = params.get("hub.verify_token")
+    
+    expected_token = os.getenv("INSTAGRAM_VERIFY_TOKEN") or database.get_setting("INSTAGRAM_VERIFY_TOKEN") or "my_verify_token"
+    
+    if mode == "subscribe" and verify_token == expected_token:
+        logger.info("Instagram Webhook verified successfully.")
+        from fastapi.responses import Response
+        return Response(content=challenge, media_type="text/plain")
+    else:
+        logger.warning("Instagram Webhook verification failed. Token mismatch.")
+        raise HTTPException(status_code=403, detail="Verification token mismatch")
+
+
+@app.post("/webhook/instagram")
+async def instagram_webhook_event(request: Request, background_tasks: BackgroundTasks):
+    """
+    인스타그램 실시간 댓글 등록 이벤트를 수신하는 엔드포인트
+    """
+    try:
+        body_bytes = await request.body()
+        body_str = body_bytes.decode("utf-8")
+        logger.info(f"Received Instagram Webhook: {body_str}")
+        
+        payload = json.loads(body_str)
+        
+        if payload.get("object") == "instagram":
+            for entry in payload.get("entry", []):
+                for change in entry.get("changes", []):
+                    if change.get("field") == "comments":
+                        value = change.get("value", {})
+                        comment_id = value.get("id")
+                        comment_text = value.get("text", "")
+                        from_user = value.get("from", {})
+                        user_scoped_id = from_user.get("id")
+                        media = value.get("media", {})
+                        media_id = media.get("id")
+                        
+                        # 봇 본인이 작성한 댓글은 처리하지 않음 (무한루프 방지)
+                        instagram_business_id = os.getenv("INSTAGRAM_BUSINESS_ACCOUNT_ID") or database.get_setting("INSTAGRAM_BUSINESS_ACCOUNT_ID")
+                        if user_scoped_id == instagram_business_id:
+                            logger.info("Ignoring comment written by the bot itself.")
+                            continue
+                            
+                        if comment_id and user_scoped_id and media_id:
+                            background_tasks.add_task(
+                                process_instagram_comment_event,
+                                media_id,
+                                comment_id,
+                                user_scoped_id,
+                                comment_text
+                            )
+                            
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Error handling Instagram Webhook event: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+async def process_instagram_comment_event(media_id: str, comment_id: str, user_scoped_id: str, comment_text: str):
+    """
+    인스타그램 댓글 이벤트 비동기 처리 및 GPT 기반 작문/전송 프로세스
+    """
+    import instagram_api
+    import gpt_agent
+    import re
+    
+    logger.info(f"Start processing Instagram comment: ID={comment_id}, text='{comment_text}', media_id={media_id}")
+    
+    # 0. 특정 키워드 '엄마' 및 오타(엄 마, 엄머, 어마) 필터링 추가
+    # 정규식 설명: '엄마', '엄 마', '엄머', '어마' 중 하나라도 포함되면 매칭
+    if not re.search(r'엄\s*마|엄\s*머|어\s*마', comment_text):
+        logger.info(f"Ignoring comment '{comment_text}' because it does not contain the target keywords.")
+        return
+        
+    # 1. 미디어 캡션 조회 및 상품 번호 파싱
+    caption = await instagram_api.get_media_caption(media_id)
+    product_no = None
+    
+    if caption:
+        # 본문에서 T00002, T2, No.28, No 28 등의 패턴 추출 (T 기호 또는 No. 기호 + 숫자)
+        match = re.search(r'(?:[tT]|No\.?)\s*(\d+)', caption, re.IGNORECASE)
+        if match:
+            product_no = match.group(1)
+            logger.info(f"Parsed product number {product_no} from caption: '{caption}'")
+            
+    # 2. DB 상품 조회
+    matched_item = None
+    if product_no:
+        matched_item = database.get_item_by_product_no(product_no)
+        
+    if not matched_item:
+        logger.warning(f"Failed to find product for number {product_no}. Falling back to latest published product...")
+        conn = database.get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, product_no, title, description, short_url, coupang_url, product_code FROM items WHERE publish_status IN ('success', 'scheduled') ORDER BY product_no DESC LIMIT 1")
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            matched_item = {
+                "id": row[0],
+                "product_no": row[1],
+                "title": row[2],
+                "description": row[3],
+                "short_url": row[4],
+                "coupang_url": row[5],
+                "product_code": row[6]
+            }
+            logger.info(f"Fallback matched latest product {matched_item['product_code']}")
+            
+    if not matched_item:
+        logger.error("No product matched and fallback failed. Aborting comment auto-response.")
+        database.create_agent_log(
+            task_type="instagram_webhook",
+            status="error",
+            message="❌ [Instagram 자동화 실패] 댓글 대상 미디어에 매핑되는 상품이 없으며 폴백 대상도 찾지 못했습니다."
+        )
+        return
+        
+    # 3. 상품 정보 및 두 링크 구성
+    title = matched_item.get("title", "인기 추천 상품")
+    description = matched_item.get("description", "예쁜 코디 상품입니다.")
+    
+    # 1) 쿠팡 직접 구매 링크 (단축 우선, 없으면 원본)
+    coupang_link = matched_item.get("short_url") or matched_item.get("coupang_url") or "https://www.coupang.com"
+    # 2) 6070 전체 카탈로그 몰 메인 링크
+    catalog_link = "https://6070.piella.shop"
+    
+    # 4. 하이브리드 비용 절감 발송 분기 (DB 템플릿 우선 사용)
+    db_reply = matched_item.get("comment_reply")
+    db_dm = matched_item.get("dm_template")
+    
+    # DB에 이미 작성된 템플릿 문구가 있다면 GPT 호출을 건너뛰어 API 비용을 0원으로 만듭니다.
+    if db_reply and db_dm and db_reply.strip() != "" and db_dm.strip() != "":
+        logger.info("Using pre-generated DB templates to save GPT API cost.")
+        # 템플릿 내부의 플레이스홀더 치환
+        reply_msg = db_reply.replace("{short_url}", coupang_link).replace("{catalog_url}", catalog_link)
+        dm_msg = db_dm.replace("{short_url}", coupang_link).replace("{catalog_url}", catalog_link)
+        # 인스타그램 스팸 방지를 위해 가변 조사/어투 처리 (기본 치환)
+        if "{buyer_name}" in dm_msg:
+            dm_msg = dm_msg.replace("{buyer_name}", "어머님")
+    else:
+        logger.info("DB template missing. Falling back to OpenAI GPT-4o-mini generation.")
+        # 템플릿이 없는 경우에만 유료 GPT-4o-mini를 백업 가동합니다.
+        gpt_result = await gpt_agent.generate_reply_and_dm_content(
+            user_comment=comment_text,
+            product_title=title,
+            product_description=description,
+            coupang_link=coupang_link,
+            catalog_link=catalog_link
+        )
+        reply_msg = gpt_result.get("reply")
+        dm_msg = gpt_result.get("dm")
+    
+    # 5. 인스타그램 답글 및 DM 순차 발송
+    success_reply = await instagram_api.send_comment_reply(comment_id, reply_msg)
+    success_dm = await instagram_api.send_instagram_dm(user_scoped_id, dm_msg)
+    
+    if success_reply and success_dm:
+        logger.info("Successfully replied and sent DM to user.")
+        database.create_agent_log(
+            task_type="instagram_webhook",
+            status="success",
+            message=f"💬 [Instagram 자동화 성공] 상품 {matched_item.get('product_code')} 관련 대댓글 및 DM 발송 완료.",
+            details=json.dumps({
+                "comment_id": comment_id,
+                "user_scoped_id": user_scoped_id,
+                "product_code": matched_item.get("product_code"),
+                "reply": reply_msg,
+                "dm": dm_msg
+            }, ensure_ascii=False)
+        )
+    else:
+        logger.error(f"Automation partial failure. Reply success: {success_reply}, DM success: {success_dm}")
+        database.create_agent_log(
+            task_type="instagram_webhook",
+            status="error",
+            message=f"⚠️ [Instagram 자동화 부분 실패] 대댓글 성공: {success_reply}, DM 성공: {success_dm}",
+            details=json.dumps({
+                "comment_id": comment_id,
+                "user_scoped_id": user_scoped_id,
+                "reply": reply_msg,
+                "dm": dm_msg
+            }, ensure_ascii=False)
         )
 
 
