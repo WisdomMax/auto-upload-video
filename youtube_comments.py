@@ -186,22 +186,13 @@ def check_and_reply_to_comments():
                 logger.warning(f"Product code {product_code} found in video {video_id} but not in database.")
                 continue
                 
-            # 대댓글 내용 빌드 (단축 링크 우선, 원본 차선)
-            link = item.get("short_url") or item.get("coupang_url")
-            if not link or link == "#":
-                # 징검다리 사이트 주소
-                link = f"http://localhost:18888/p/{item['product_no']}"
-                
-            reply_text = item.get("comment_reply")
-            if not reply_text:
-                # 기본 템플릿
-                reply_text = f"안녕하세요! 문의하신 상품({product_code})의 구매 링크입니다: {link} 🔍 편하게 쇼핑하세요!"
-            else:
-                # 만약 {link} 플레이스홀더가 존재한다면 치환
-                if "{link}" in reply_text:
-                    reply_text = reply_text.replace("{link}", link)
-                else:
-                    reply_text = f"{reply_text}\n상품 링크: {link}"
+            # 유튜브 대댓글 템플릿: 6070.piella.shop 홍보 및 채널 프로필 홈 링크 안내
+            reply_text = (
+                f"어머님 안녕하세요! 💕 문의하신 상품 정보와 다양한 예쁜 옷들은 아래 쇼핑몰에서 바로 확인하실 수 있답니다!\n\n"
+                f"👉 Shopping Mall: 6070.piella.shop\n\n"
+                f"(유튜브 정책상 댓글 링크 클릭이 안 될 경우, 저희 채널 프로필 메인 홈으로 들어오시면 연결된 쇼핑몰 링크를 바로 클릭하실 수 있어요! ✨)"
+            )
+
             
             # 대댓글 작성 API 호출
             youtube.comments().insert(
