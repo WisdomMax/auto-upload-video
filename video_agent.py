@@ -145,14 +145,14 @@ def overlay_code_subtitles(input_path, output_path, product_code):
         filter_complex = (
             f"[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,"
             f"pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,"
-            f"drawtext=fontfile='{font_path}':text='{text}':x=60:y=60:fontsize=60:fontcolor=white[v0];"
+            f"drawtext=fontfile='{font_path}':text='{text}':x=60:y=180:fontsize=80:fontcolor=white[v0];"
             f"[v0][1:v]overlay=0:0:enable='gte(t,{start_time:.2f})'"
         )
     else:
         filter_complex = (
             f"[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,"
             f"pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,"
-            f"drawtext=text='{text}':x=60:y=60:fontsize=60:fontcolor=white[v0];"
+            f"drawtext=text='{text}':x=60:y=180:fontsize=80:fontcolor=white[v0];"
             f"[v0][1:v]overlay=0:0:enable='gte(t,{start_time:.2f})'"
         )
         

@@ -103,6 +103,43 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to start AI Agent Engine: {e}")
 
+    try:
+        from scratch.ig_auto_responder_daemon import daemon_loop
+        asyncio.create_task(daemon_loop())
+        logger.info("Instagram Auto-Responder Daemon started automatically with npm run dev.")
+    except Exception as e:
+        logger.error(f"Failed to start IG Auto-Responder Daemon: {e}")
+
+from fastapi import Response
+
+@app.get("/webhook/instagram")
+@app.get("/webhook")
+async def verify_webhook(request: Request):
+    params = request.query_params
+    mode = params.get("hub.mode")
+    token = params.get("hub.verify_token")
+    challenge = params.get("hub.challenge")
+    verify_token = os.getenv("INSTAGRAM_VERIFY_TOKEN", "my_verify_token")
+    
+    if mode == "subscribe" and token == verify_token:
+        logger.info(f"✅ Meta Webhook verification success! Returning challenge: {challenge}")
+        return Response(content=str(challenge), media_type="text/plain")
+    logger.warning(f"❌ Webhook verify token mismatch! Received: {token}, Expected: {verify_token}")
+    return Response(content="Verification failed", status_code=403)
+
+@app.post("/webhook/instagram")
+@app.post("/webhook")
+async def receive_webhook(request: Request):
+    try:
+        body = await request.json()
+        logger.info(f"📩 Webhook Event Received: {json.dumps(body)}")
+        return JSONResponse(content={"status": "ok"})
+    except Exception as e:
+        logger.error(f"Webhook process error: {e}")
+        return JSONResponse(content={"status": "error"}, status_code=400)
+
+
+
 # 디렉토리 생성
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")

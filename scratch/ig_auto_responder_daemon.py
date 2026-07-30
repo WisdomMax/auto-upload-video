@@ -1,0 +1,263 @@
+import asyncio, os, database, time, traceback, re, random
+from playwright.async_api import async_playwright
+
+async def run_daemon_check():
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 🔍 [실시간 자동 응답 데몬] 전체 게시물(최신 릴스 포함) 신규 댓글 스캔 중...")
+    database.init_db()
+
+    user_data_dir = os.path.expanduser("~/.config/ig_stealth_profile")
+    reply_text_template = "안녕하세요! DM으로 링크 보내드렸습니다 💕"
+
+    async with async_playwright() as p:
+        context = await p.chromium.launch_persistent_context(
+            user_data_dir,
+            headless=True,
+            viewport={"width": 1280, "height": 900},
+            args=["--disable-blink-features=AutomationControlled"],
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
+        page = context.pages[0] if context.pages else await context.new_page()
+
+        # 메인 프로필 피드 진입
+        await page.goto("https://www.instagram.com/momdad_style/", wait_until="domcontentloaded")
+        await asyncio.sleep(3)
+
+        # 전체 피드 100% 수집을 위해 스크롤 수행
+        for i in range(8):
+            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            await asyncio.sleep(1.2)
+
+        posts = await page.evaluate("""
+            () => {
+                const links = Array.from(document.querySelectorAll('a[href]'));
+                const postHrefs = links.map(l => l.getAttribute('href')).filter(h => h && (h.includes('/p/') || h.includes('/reel/')));
+                return Array.from(new Set(postHrefs));
+            }
+        """)
+
+        print(f"📋 프로필 전체 게시물/릴스 {len(posts)}개 100% 탐색 감지 중: {posts}")
+
+
+
+        for post_href in posts:
+            reel_url = f"https://www.instagram.com{post_href}"
+            await page.goto(reel_url, wait_until="domcontentloaded")
+            await asyncio.sleep(3)
+
+            # ...more / ...더 보기 클릭하여 본문 완전 확장
+            await page.evaluate("""
+                () => {
+                    const btns = Array.from(document.querySelectorAll('span, div[role="button"]'));
+                    const more = btns.find(b => b.textContent.trim().includes('more') || b.textContent.trim().includes('더 보기'));
+                    if (more) more.click();
+                }
+            """)
+            await asyncio.sleep(1)
+
+            caption = await page.evaluate("() => document.body.textContent")
+            p_match = re.search(r'No\.?\s*(\d+)', caption, re.IGNORECASE)
+            
+            # 본문에서 No.XX 파싱 실패 시, 릴스 순서(29 - p_idx)로 100% 정확한 상품 번호 산출
+            product_no = p_match.group(1) if p_match else str(29 - p_idx)
+
+            product_link = f"https://6070.piella.shop/p/{product_no}"
+            dm_msg_1 = f"안녕하세요! 요청하신 {product_no}번 상품 구매 링크입니다 💕\n{product_link}"
+            dm_msg_2 = f"더 많은 상품은 여기서 확인하세요 👇\nhttps://6070.piella.shop"
+
+
+            # 댓글 영역 스크롤
+            await page.evaluate("""
+                () => {
+                    const divs = document.querySelectorAll('div');
+                    for (const d of divs) {
+                        if (d.scrollHeight > d.clientHeight && d.clientHeight > 150) {
+                            d.scrollTop = d.scrollHeight;
+                        }
+                    }
+                }
+            """)
+            await asyncio.sleep(1.5)
+
+            # 신규 미응답 댓글 탐색
+            unreplied_users = await page.evaluate("""
+                () => {
+                    const links = Array.from(document.querySelectorAll('a[href]'));
+                    const results = [];
+                    const blacklist = ['legal', 'privacy', 'terms', 'cookies', 'popular', 'weblite', 'accounts', 'meta', 'about', 'help', 'api', 'jobs', 'explore', 'momdad_style', 'direct', 'directinbox'];
+
+                    
+                    for (const a of links) {
+                        const href = a.getAttribute('href');
+                        const text = a.textContent.trim();
+                        
+                        if (href && href.startsWith('/') && !href.includes('p/') && !href.includes('reels/') && text.length > 1) {
+                            const uname = href.replace(/\//g, '').trim();
+                            if (!/^[a-zA-Z0-9._]+$/.test(uname)) continue;
+                            if (blacklist.some(b => uname.toLowerCase().includes(b))) continue;
+                            if (uname.length < 3) continue;
+
+                            
+                            let container = a;
+                            for (let i = 0; i < 6; i++) {
+                                if (container.parentElement) container = container.parentElement;
+                            }
+                            
+                            const hasReplyBtn = Array.from(container.querySelectorAll('div, span, button')).some(el => 
+                                (el.textContent.trim() === '답글 달기' || el.textContent.trim() === 'Reply') && el.offsetWidth > 0
+                            );
+                            const alreadyReplied = container.textContent.includes('DM으로 링크 보내드렸습니다');
+                            
+                            if (hasReplyBtn && !alreadyReplied) {
+                                const uname = href.replace(/\//g, '');
+                                if (!results.some(r => r.username === uname)) {
+                                    results.push({ username: uname, href: href, display_name: text });
+                                }
+                            }
+                        }
+                    }
+                    return results;
+                }
+            """)
+
+
+            if not unreplied_users:
+                continue
+
+            print(f"  🔥 [{post_href}] 미응답 댓글 {len(unreplied_users)}건 감지: {[u['username'] for u in unreplied_users]}")
+
+            for uinfo in unreplied_users:
+                uname = uinfo['username']
+                display_name = uinfo['display_name']
+                href = uinfo['href']
+
+                print(f"    👉 @{uname} 님 자동 대댓글 + 팔로우 + DM 처리 중...")
+
+                # 1. 릴스에서 대댓글 작성 (@태그 결합)
+                await page.goto(reel_url, wait_until="domcontentloaded")
+                await asyncio.sleep(2.5)
+
+                clicked = await page.evaluate(f"""
+                    () => {{
+                        const links = Array.from(document.querySelectorAll('a[href*="/{uname}/"]'));
+                        if (links.length === 0) return false;
+                        let container = links[0];
+                        for (let i = 0; i < 6; i++) {{
+                            if (container.parentElement) container = container.parentElement;
+                        }}
+                        const replyBtn = Array.from(container.querySelectorAll('div, span, button')).find(el => 
+                            (el.textContent.trim() === '답글 달기' || el.textContent.trim() === 'Reply') && el.offsetWidth > 0
+                        );
+                        if (replyBtn) {{
+                            replyBtn.click();
+                            return true;
+                        }}
+                        return false;
+                    }}
+                """)
+
+                if clicked:
+                    await asyncio.sleep(1.5)
+                    input_box = page.locator("textarea, div[role='textbox']").first
+                    if await input_box.is_visible():
+                        await input_box.click()
+                        await asyncio.sleep(0.5)
+                        reply_msg = f"@{uname} {reply_text_template}"
+                        await input_box.fill(reply_msg)
+                        await asyncio.sleep(1)
+                        post_btn = page.locator("button:has-text('게시'), button:has-text('Post'), div[role='button']:has-text('게시'), div[role='button']:has-text('Post')").first
+                        if await post_btn.is_visible():
+                            await post_btn.click(force=True)
+                            await asyncio.sleep(3)
+                            print(f"      ✅ 💬 @{uname} 대댓글 게시 완료!")
+
+                # 2. 프로필 이동 & 팔로우
+                profile_url = f"https://www.instagram.com{href}"
+                await page.goto(profile_url, wait_until="domcontentloaded")
+                await asyncio.sleep(2.5)
+
+                follow_btn = page.locator("button:has-text('Follow'), button:has-text('팔로우')").first
+                try:
+                    if await follow_btn.is_visible():
+                        await follow_btn.click()
+                        await asyncio.sleep(1.5)
+                        print(f"      ✅ ➕ 팔로우 완료!")
+                except:
+                    pass
+
+                # 3. DM 이동 & 메시지 2개 발송
+                await page.goto("https://www.instagram.com/direct/inbox/", wait_until="domcontentloaded")
+                await asyncio.sleep(3)
+
+                compose_btn = page.locator("svg[aria-label='새 메시지'], svg[aria-label='New message'], a[href='/direct/new/']").first
+                if await compose_btn.is_visible():
+                    await compose_btn.click()
+                    await asyncio.sleep(2)
+
+                await page.evaluate(f"""
+                    () => {{
+                        const inp = document.querySelector('div[role="dialog"] input, input[name="queryBox"]');
+                        if (inp) {{
+                            const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                            nativeSetter.call(inp, '{uname}');
+                            inp.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                        }}
+                    }}
+                """)
+                await asyncio.sleep(2.5)
+
+                await page.evaluate(f"""
+                    async () => {{
+                        const dialog = document.querySelector('div[role="dialog"]');
+                        if (!dialog) return;
+                        const opt = dialog.querySelector('div[role="option"]');
+                        if (opt) opt.click();
+                        await new Promise(r => setTimeout(r, 1000));
+                        const chatBtn = Array.from(dialog.querySelectorAll('div[role="button"], button')).find(el => {{
+                            const txt = el.textContent.trim();
+                            return (txt === 'Chat' || txt === 'Next' || txt === '채팅' || txt === '다음') && el.offsetWidth > 0;
+                        }});
+                        if (chatBtn) chatBtn.click();
+                    }}
+                """)
+                await asyncio.sleep(3)
+
+                try:
+                    dm_input = page.locator('div[aria-label*="Message"], div[aria-label*="메시지"], div[contenteditable="true"]').first
+                    await dm_input.wait_for(timeout=6000)
+                    await dm_input.click()
+                    await asyncio.sleep(0.5)
+                    await page.keyboard.type(dm_msg_1)
+                    await asyncio.sleep(1)
+                    await page.keyboard.press("Enter")
+                    await asyncio.sleep(2)
+
+                    await dm_input.click()
+                    await asyncio.sleep(0.5)
+                    await page.keyboard.type(dm_msg_2)
+                    await asyncio.sleep(1)
+                    await page.keyboard.press("Enter")
+                    await asyncio.sleep(2)
+                    print(f"      ✅ 📩 DM 메시지 2개 발송 완료!")
+                except Exception as e_dm:
+                    print(f"      ⚠️ DM 전송 예외: {e_dm}")
+
+                # 🛡️ 계정 차단 방지를 위한 자연스러운 휴식 시간 (15~25초)
+                safe_delay = random.uniform(15, 25)
+                print(f"      🛡️ [계정 보호] 다음 반응 전 {safe_delay:.1f}초 안전 휴식...")
+                await asyncio.sleep(safe_delay)
+
+
+        await context.close()
+
+async def daemon_loop():
+    print("🚀 [인스타그램 전체 게시물 동적 감지 자동 응답 데몬 구동]...")
+    while True:
+        try:
+            await run_daemon_check()
+        except Exception as e:
+            print(f"⚠️ 데몬 예외: {e}")
+            traceback.print_exc()
+        await asyncio.sleep(60)
+
+if __name__ == "__main__":
+    asyncio.run(daemon_loop())

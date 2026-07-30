@@ -70,7 +70,8 @@ def get_credentials():
             with open(token_path, "w") as token:
                 token.write(creds.to_json())
         except Exception as e:
-            logger.error(f"Error refreshing credentials: {e}")
+            # 인스타그램 집중 가동을 위해 만료된 유튜브 토큰 에러 도배를 완전히 차단합니다.
+            logger.debug(f"Error refreshing credentials: {e}")
             creds = None
             
     return creds

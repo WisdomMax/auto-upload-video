@@ -179,7 +179,14 @@ class AIAgentEngine:
             import video_agent
             import catalog_builder
 
-            for file_name in new_files:
+            # 파일명에 포함된 숫자를 파싱하여 가장 낮은 숫자부터 오름차순(1 -> 2 -> ... -> 29)으로 정렬
+            def get_file_number(fname):
+                m = re.search(r'\d+', fname)
+                return int(m.group()) if m else 999999
+
+            new_files_sorted = sorted(new_files, key=get_file_number)
+
+            for file_name in new_files_sorted:
                 video_path = os.path.join(input_dir, file_name)
                 logger.info(f"New video detected in input: {video_path}")
                 
@@ -808,11 +815,8 @@ class AIAgentEngine:
                 await self._schedule_item_on_buffer(item["id"], next_sch)
 
     async def _monitor_youtube_comments(self):
-        try:
-            logger.info("Running OAuth2 YouTube comment check...")
-            await asyncio.to_thread(youtube_comments.check_and_reply_to_comments)
-        except Exception as e:
-            logger.error(f"Failed to run OAuth2 comment check: {e}")
+        # 인스타그램 전용 집중 모드를 위해 불필요한 유튜브 댓글 폴링 및 에러 도배를 차단합니다.
+        pass
 
         # Fallback API Key 모니터링 로그 기록
         from dotenv import dotenv_values

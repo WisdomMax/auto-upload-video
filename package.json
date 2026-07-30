@@ -1,0 +1,13 @@
+{
+  "name": "sns-automation-backend",
+  "version": "1.0.0",
+  "description": "Instagram & TikTok Automation and GPT Auto-Reply Server",
+  "main": "main.py",
+  "scripts": {
+    "dev": "python3 main.py",
+    "tunnel": "npx localtunnel --port 18888"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

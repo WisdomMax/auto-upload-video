@@ -8,6 +8,15 @@ __pycache__/
 *.pyd
 
 # Local database
+db.sqlite
+*.db
+*.sqlite
+*.sqlite.bak
+*.broken
+*.temp
+db_backups/
+server.log
+
 
 # Media uploads (user data)
 uploads/

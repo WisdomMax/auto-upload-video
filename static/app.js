@@ -775,10 +775,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const chkYt = document.getElementById('setting-publish-youtube');
             const chkTt = document.getElementById('setting-publish-tiktok');
             const chkIg = document.getElementById('setting-publish-instagram');
+            const settingOpenai = document.getElementById('setting-openai-api-key');
             
             if (chkYt) chkYt.checked = settings.PUBLISH_YOUTUBE === 'true';
             if (chkTt) chkTt.checked = settings.PUBLISH_TIKTOK === 'true';
             if (chkIg) chkIg.checked = settings.PUBLISH_INSTAGRAM === 'true';
+            if (settingOpenai && settings.OPENAI_API_KEY) {
+                settingOpenai.value = settings.OPENAI_API_KEY;
+            }
 
             // AI 추천 키워드 로드
             const kwRes = await fetch('/api/coupang/recommend-keywords');
@@ -799,11 +803,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const chkYt = document.getElementById('setting-publish-youtube');
             const chkTt = document.getElementById('setting-publish-tiktok');
             const chkIg = document.getElementById('setting-publish-instagram');
+            const settingOpenai = document.getElementById('setting-openai-api-key');
             
             const payload = {
                 PUBLISH_YOUTUBE: chkYt ? String(chkYt.checked) : 'false',
                 PUBLISH_TIKTOK: chkTt ? String(chkTt.checked) : 'false',
-                PUBLISH_INSTAGRAM: chkIg ? String(chkIg.checked) : 'false'
+                PUBLISH_INSTAGRAM: chkIg ? String(chkIg.checked) : 'false',
+                OPENAI_API_KEY: settingOpenai ? settingOpenai.value.trim() : ''
             };
 
             try {

@@ -105,7 +105,15 @@ def create_item(product_no, title, description, coupang_url, original_video_path
 def get_items():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM items ORDER BY created_at DESC")
+    cursor.execute("SELECT * FROM items ORDER BY product_no ASC, id ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def get_items_ordered_by_product_no_asc():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM items ORDER BY product_no ASC, id ASC")
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
