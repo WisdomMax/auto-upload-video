@@ -191,19 +191,24 @@ async def run_daemon_check():
                 except:
                     pass
 
-                # 3. DM 이동 & 메시지 2개 발송 (100% 완결 검증 플로우)
-                await page.goto("https://www.instagram.com/direct/new/", wait_until="domcontentloaded")
-                await asyncio.sleep(3)
+                # 3. DM 이동 & 4단계 독립 메시지 발송 (하루 80건 안전 쿼터 준수)
+                global daily_dm_count
+                if daily_dm_count >= MAX_DAILY_DM:
+                    print(f"      🛡️ [하루 안전 한도 달성] 오늘 DM {daily_dm_count}건 발송 완료. DM은 내일 재개되며 대댓글만 안전하게 발송됩니다.")
+                else:
+                    await page.goto("https://www.instagram.com/direct/new/", wait_until="domcontentloaded")
+                    await asyncio.sleep(3)
 
-                inp = page.locator('input[name="queryBox"], input[name="searchInput"], input[placeholder*="Search"], input[placeholder*="검색"]').first
-                # 시스템 푸터 링크 및 본인 계정 제외
-                SYSTEM_BLACKLIST = {
-                    'reels', 'directinbox', 'explore', 'accountsedit', 'legalprivacy', 'legalterms',
-                    'explorelocations', 'popular', 'weblite', 'accountsmeta_verified', 'about',
-                    'help', 'press', 'api', 'jobs', 'privacy', 'terms', 'momdad_style'
-                }
-                if uname in SYSTEM_BLACKLIST or uname.startswith('accounts'):
-                    continue
+                    inp = page.locator('input[name="queryBox"], input[name="searchInput"], input[placeholder*="Search"], input[placeholder*="검색"]').first
+                    # 시스템 푸터 링크 및 본인 계정 제외
+                    SYSTEM_BLACKLIST = {
+                        'reels', 'directinbox', 'explore', 'accountsedit', 'legalprivacy', 'legalterms',
+                        'explorelocations', 'popular', 'weblite', 'accountsmeta_verified', 'about',
+                        'help', 'press', 'api', 'jobs', 'privacy', 'terms', 'momdad_style'
+                    }
+                    if uname in SYSTEM_BLACKLIST or uname.startswith('accounts'):
+                        continue
+
 
                 if await inp.is_visible():
                     await inp.fill(uname)
@@ -279,7 +284,9 @@ async def run_daemon_check():
                         await page.keyboard.press("Enter")
                         await asyncio.sleep(2)
 
-                        print(f"      ✅ 📩 4단계 순수 링크 독립 분리 DM 발송 완료!")
+                        daily_dm_count += 1
+                        print(f"      ✅ 📩 4단계 순수 링크 독립 분리 DM 발송 완료! (오늘 총 {daily_dm_count}/{MAX_DAILY_DM}건 발송)")
+
 
                     except Exception as e_dm:
                         print(f"      ⚠️ DM 전송 예외: {e_dm}")
@@ -294,10 +301,23 @@ async def run_daemon_check():
 
         await context.close()
 
+# 🛡️ 계정 안전을 위한 하루 최대 DM 발송 쿼터 (Max Daily DM Limit)
+MAX_DAILY_DM = 80
+daily_dm_count = 0
+last_reset_date = datetime.now().strftime("%Y-%m-%d")
+
 async def daemon_loop():
+    global daily_dm_count, last_reset_date
     print("🚀 [인스타그램 전체 게시물 동적 감지 자동 응답 데몬 구동]...")
     while True:
         try:
+            # 매일 자정 카운터 초기화
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            if current_date != last_reset_date:
+                daily_dm_count = 0
+                last_reset_date = current_date
+                print(f"🔄 [날짜 변경] DM 카운터 초기화: {current_date}")
+            
             await run_daemon_check()
         except Exception as e:
             print(f"⚠️ 데몬 예외: {e}")
