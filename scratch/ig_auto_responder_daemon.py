@@ -254,7 +254,16 @@ async def run_daemon_check():
                         await page.keyboard.press("Enter")
                         await asyncio.sleep(1.5)
 
-                        # 3. PURE 메인 카탈로그 URL 단독 발송
+                        # 3. 카탈로그 안내 텍스트 단독 발송
+                        dm_txt_guide2 = "더 많은 예쁜 옷들은 여기서 구경하세요 👇"
+                        await dm_input.click()
+                        await asyncio.sleep(0.5)
+                        await page.keyboard.type(dm_txt_guide2)
+                        await asyncio.sleep(0.5)
+                        await page.keyboard.press("Enter")
+                        await asyncio.sleep(1.5)
+
+                        # 4. PURE 메인 카탈로그 URL 단독 발송
                         dm_url_catalog = "https://6070.piella.shop"
                         await dm_input.click()
                         await asyncio.sleep(0.5)
@@ -263,7 +272,8 @@ async def run_daemon_check():
                         await page.keyboard.press("Enter")
                         await asyncio.sleep(2)
 
-                        print(f"      ✅ 📩 순수 링크 독립 분리 DM 발송 완료!")
+                        print(f"      ✅ 📩 4단계 순수 링크 독립 분리 DM 발송 완료!")
+
                     except Exception as e_dm:
                         print(f"      ⚠️ DM 전송 예외: {e_dm}")
 
