@@ -1449,9 +1449,11 @@ async def process_instagram_comment_event(media_id: str, comment_id: str, user_s
         reply_msg = gpt_result.get("reply")
         dm_msg = gpt_result.get("dm")
     
-    # 5. 인스타그램 답글 및 DM 순차 발송
+    # 5. 인스타그램 답글 및 오피셜 Private DM 100% 즉시 발송
     success_reply = await instagram_api.send_comment_reply(comment_id, reply_msg)
-    success_dm = await instagram_api.send_instagram_dm(user_scoped_id, dm_msg)
+    product_code = matched_item.get('product_code', '29')
+    success_dm = await instagram_api.send_instagram_dm_by_comment(comment_id, str(product_code))
+
     
     if success_reply and success_dm:
         logger.info("Successfully replied and sent DM to user.")
