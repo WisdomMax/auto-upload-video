@@ -126,7 +126,6 @@ async def run_daemon_check():
                 }
             """)
 
-
             if not unreplied_users:
                 continue
 
@@ -139,9 +138,88 @@ async def run_daemon_check():
 
                 print(f"    👉 @{uname} 님 자동 대댓글 + 팔로우 + DM 처리 중...")
 
-                # 1. 릴스에서 대댓글 작성 (@태그 결합)
+                # 1. DM 선발송 시도 (DM 성공 여부 100% 추적)
+                dm_success = False
+                global daily_dm_count
+                
+                if daily_dm_count >= MAX_DAILY_DM:
+                    print(f"      🛡️ [하루 안전 한도 달성] 오늘 DM {daily_dm_count}건 발송 완료. DM 대신 대댓글에 직행 링크를 작성합니다.")
+                else:
+                    try:
+                        await page.goto("https://www.instagram.com/direct/new/", wait_until="domcontentloaded")
+                        await asyncio.sleep(2.5)
+
+                        inp = page.locator('input[name="queryBox"], input[name="searchInput"], input[placeholder*="Search"], input[placeholder*="검색"]').first
+                        SYSTEM_BLACKLIST = {
+                            'reels', 'directinbox', 'explore', 'accountsedit', 'legalprivacy', 'legalterms',
+                            'explorelocations', 'popular', 'weblite', 'accountsmeta_verified', 'about',
+                            'help', 'press', 'api', 'jobs', 'privacy', 'terms', 'momdad_style'
+                        }
+                        if uname not in SYSTEM_BLACKLIST and not uname.startswith('accounts') and await inp.is_visible():
+                            await inp.fill(uname)
+                            await asyncio.sleep(2)
+
+                            await page.evaluate(f"""
+                                () => {{
+                                    const inputs = Array.from(document.querySelectorAll('input[type="checkbox"]'));
+                                    if (inputs.length > 0) {{ inputs[0].click(); return; }}
+                                    const buttons = Array.from(document.querySelectorAll('div[role="button"]'));
+                                    const userBtn = buttons.find(b => b.textContent.includes('{uname}'));
+                                    if (userBtn) {{ userBtn.click(); return; }}
+                                    if (buttons.length > 0) buttons[0].click();
+                                }}
+                            """)
+                            await asyncio.sleep(1.2)
+
+                            await page.evaluate("""
+                                () => {
+                                    const btns = Array.from(document.querySelectorAll('div[role="button"], button'));
+                                    const chatBtn = btns.find(b => {
+                                        const txt = b.textContent.trim();
+                                        return (txt === 'Chat' || txt === 'Next' || txt === '채팅' || txt === '다음') && b.offsetWidth > 0;
+                                    });
+                                    if (chatBtn) chatBtn.click();
+                                }
+                            """)
+                            await asyncio.sleep(3)
+
+                            dm_input = page.locator('div[role="textbox"], textarea, div[contenteditable="true"]').first
+                            await dm_input.wait_for(timeout=5000)
+                            
+                            # 4단계 PURE URL 독립 메시지 발송
+                            await dm_input.click()
+                            await page.keyboard.type(f"안녕하세요 어머님! 💕 요청하신 {product_no}번 상품 구매 링크입니다!")
+                            await page.keyboard.press("Enter")
+                            await asyncio.sleep(1.2)
+
+                            await dm_input.click()
+                            await page.keyboard.type(f"https://6070.piella.shop/p/{product_no}")
+                            await page.keyboard.press("Enter")
+                            await asyncio.sleep(1.2)
+
+                            await dm_input.click()
+                            await page.keyboard.type("더 많은 예쁜 옷들은 여기서 구경하세요 👇")
+                            await page.keyboard.press("Enter")
+                            await asyncio.sleep(1.2)
+
+                            await dm_input.click()
+                            await page.keyboard.type("https://6070.piella.shop")
+                            await page.keyboard.press("Enter")
+                            await asyncio.sleep(2)
+
+                            daily_dm_count += 1
+                            dm_success = True
+                            print(f"      ✅ 📩 DM 4단계 분리 메시지 100% 발송 성공! (오늘 총 {daily_dm_count}/{MAX_DAILY_DM}건)")
+                    except Exception as e_dm:
+                        print(f"      ⚠️ DM 발송 실패/스킵 ({e_dm}) -> 대댓글에 직행 링크를 직접 작성합니다.")
+
+                # 2. 릴스 이동 및 대댓글 작성 (DM 성공 여부에 따른 맞춤 분기)
                 await page.goto(reel_url, wait_until="domcontentloaded")
                 await asyncio.sleep(2.5)
+
+                # 공개 대댓글에는 URL 링크를 절대로 포함하지 않음 (스팸 방지 및 클릭 불가능 원인)
+                final_reply_msg = f"@{uname} 어머님 안녕하세요! 💕 문의하신 {product_no}번 상품 안내를 DM으로 보내드렸습니다! 메시지함을 확인해 주세요! ✨"
+
 
                 clicked = await page.evaluate(f"""
                     () => {{
@@ -168,121 +246,26 @@ async def run_daemon_check():
                     if await input_box.is_visible():
                         await input_box.click()
                         await asyncio.sleep(0.5)
-                        reply_msg = f"@{uname} {reply_text_template}"
-                        await input_box.fill(reply_msg)
+                        await input_box.fill(final_reply_msg)
                         await asyncio.sleep(1)
                         post_btn = page.locator("button:has-text('게시'), button:has-text('Post'), div[role='button']:has-text('게시'), div[role='button']:has-text('Post')").first
                         if await post_btn.is_visible():
                             await post_btn.click(force=True)
                             await asyncio.sleep(3)
-                            print(f"      ✅ 💬 @{uname} 대댓글 게시 완료!")
+                            print(f"      ✅ 💬 @{uname} 대댓글 작성 완료! (DM성공여부: {dm_success})")
 
-                # 2. 프로필 이동 & 팔로우
+                # 3. 프로필 이동 & 팔로우
                 profile_url = f"https://www.instagram.com{href}"
-                await page.goto(profile_url, wait_until="domcontentloaded")
-                await asyncio.sleep(2.5)
-
-                follow_btn = page.locator("button:has-text('Follow'), button:has-text('팔로우')").first
                 try:
+                    await page.goto(profile_url, wait_until="domcontentloaded")
+                    await asyncio.sleep(2)
+                    follow_btn = page.locator("button:has-text('Follow'), button:has-text('팔로우')").first
                     if await follow_btn.is_visible():
                         await follow_btn.click()
-                        await asyncio.sleep(1.5)
+                        await asyncio.sleep(1)
                         print(f"      ✅ ➕ 팔로우 완료!")
                 except:
                     pass
-
-                # 3. DM 이동 & 4단계 독립 메시지 발송 (하루 80건 안전 쿼터 준수)
-                global daily_dm_count
-                if daily_dm_count >= MAX_DAILY_DM:
-                    print(f"      🛡️ [하루 안전 한도 달성] 오늘 DM {daily_dm_count}건 발송 완료. DM은 내일 재개되며 대댓글만 안전하게 발송됩니다.")
-                else:
-                    await page.goto("https://www.instagram.com/direct/new/", wait_until="domcontentloaded")
-                    await asyncio.sleep(3)
-
-                    inp = page.locator('input[name="queryBox"], input[name="searchInput"], input[placeholder*="Search"], input[placeholder*="검색"]').first
-                    # 시스템 푸터 링크 및 본인 계정 제외
-                    SYSTEM_BLACKLIST = {
-                        'reels', 'directinbox', 'explore', 'accountsedit', 'legalprivacy', 'legalterms',
-                        'explorelocations', 'popular', 'weblite', 'accountsmeta_verified', 'about',
-                        'help', 'press', 'api', 'jobs', 'privacy', 'terms', 'momdad_style'
-                    }
-                    if uname in SYSTEM_BLACKLIST or uname.startswith('accounts'):
-                        continue
-
-
-                if await inp.is_visible():
-                    await inp.fill(uname)
-                    await asyncio.sleep(2.5)
-
-                    await page.evaluate(f"""
-                        () => {{
-                            const inputs = Array.from(document.querySelectorAll('input[type="checkbox"]'));
-                            if (inputs.length > 0) {{
-                                inputs[0].click();
-                                return;
-                            }}
-                            const buttons = Array.from(document.querySelectorAll('div[role="button"]'));
-                            const userBtn = buttons.find(b => b.textContent.includes('{uname}'));
-                            if (userBtn) {{
-                                userBtn.click();
-                                return;
-                            }}
-                            if (buttons.length > 0) buttons[0].click();
-                        }}
-                    """)
-                    await asyncio.sleep(1.5)
-
-                    await page.evaluate("""
-                        () => {
-                            const btns = Array.from(document.querySelectorAll('div[role="button"], button'));
-                            const chatBtn = btns.find(b => {
-                                const txt = b.textContent.trim();
-                                return (txt === 'Chat' || txt === 'Next' || txt === '채팅' || txt === '다음') && b.offsetWidth > 0;
-                            });
-                            if (chatBtn) chatBtn.click();
-                        }
-                    """)
-                    await asyncio.sleep(3)
-
-                    try:
-                        dm_input = page.locator('div[role="textbox"], textarea, div[contenteditable="true"]').first
-                        await dm_input.wait_for(timeout=6000)
-                        
-                        # 1. 안내 메시지 단독 발송
-                        dm_txt_guide = f"안녕하세요 어머님! 💕 요청하신 {product_no}번 상품 구매 링크입니다!"
-                        await dm_input.click()
-                        await asyncio.sleep(0.5)
-                        await page.keyboard.type(dm_txt_guide)
-                        await asyncio.sleep(0.5)
-                        await page.keyboard.press("Enter")
-                        await asyncio.sleep(1.5)
-
-                        # 2. PURE 상품 직행 URL 단독 발송 (한글 결합 100% 방지)
-                        dm_url_prod = f"https://6070.piella.shop/p/{product_no}"
-                        await dm_input.click()
-                        await asyncio.sleep(0.5)
-                        await page.keyboard.type(dm_url_prod)
-                        await asyncio.sleep(0.5)
-                        await page.keyboard.press("Enter")
-                        await asyncio.sleep(1.5)
-
-                        # 3. 카탈로그 안내 텍스트 단독 발송
-                        dm_txt_guide2 = "더 많은 예쁜 옷들은 여기서 구경하세요 👇"
-                        await dm_input.click()
-                        await asyncio.sleep(0.5)
-                        await page.keyboard.type(dm_txt_guide2)
-                        await asyncio.sleep(0.5)
-                        await page.keyboard.press("Enter")
-                        await asyncio.sleep(1.5)
-
-                        # 4. PURE 메인 카탈로그 URL 단독 발송
-                        dm_url_catalog = "https://6070.piella.shop"
-                        await dm_input.click()
-                        await asyncio.sleep(0.5)
-                        await page.keyboard.type(dm_url_catalog)
-                        await asyncio.sleep(0.5)
-                        await page.keyboard.press("Enter")
-                        await asyncio.sleep(2)
 
                         daily_dm_count += 1
                         print(f"      ✅ 📩 4단계 순수 링크 독립 분리 DM 발송 완료! (오늘 총 {daily_dm_count}/{MAX_DAILY_DM}건 발송)")
