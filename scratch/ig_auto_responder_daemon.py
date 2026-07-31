@@ -235,22 +235,38 @@ async def run_daemon_check():
                     try:
                         dm_input = page.locator('div[role="textbox"], textarea, div[contenteditable="true"]').first
                         await dm_input.wait_for(timeout=6000)
+                        
+                        # 1. 안내 메시지 단독 발송
+                        dm_txt_guide = f"안녕하세요 어머님! 💕 요청하신 {product_no}번 상품 구매 링크입니다!"
                         await dm_input.click()
                         await asyncio.sleep(0.5)
-                        await page.keyboard.type(dm_msg_1)
-                        await asyncio.sleep(1)
+                        await page.keyboard.type(dm_txt_guide)
+                        await asyncio.sleep(0.5)
+                        await page.keyboard.press("Enter")
+                        await asyncio.sleep(1.5)
+
+                        # 2. PURE 상품 직행 URL 단독 발송 (한글 결합 100% 방지)
+                        dm_url_prod = f"https://6070.piella.shop/p/{product_no}"
+                        await dm_input.click()
+                        await asyncio.sleep(0.5)
+                        await page.keyboard.type(dm_url_prod)
+                        await asyncio.sleep(0.5)
+                        await page.keyboard.press("Enter")
+                        await asyncio.sleep(1.5)
+
+                        # 3. PURE 메인 카탈로그 URL 단독 발송
+                        dm_url_catalog = "https://6070.piella.shop"
+                        await dm_input.click()
+                        await asyncio.sleep(0.5)
+                        await page.keyboard.type(dm_url_catalog)
+                        await asyncio.sleep(0.5)
                         await page.keyboard.press("Enter")
                         await asyncio.sleep(2)
 
-                        await dm_input.click()
-                        await asyncio.sleep(0.5)
-                        await page.keyboard.type(dm_msg_2)
-                        await asyncio.sleep(1)
-                        await page.keyboard.press("Enter")
-                        await asyncio.sleep(2)
-                        print(f"      ✅ 📩 DM 메시지 2개 발송 완료!")
+                        print(f"      ✅ 📩 순수 링크 독립 분리 DM 발송 완료!")
                     except Exception as e_dm:
                         print(f"      ⚠️ DM 전송 예외: {e_dm}")
+
 
 
                 # 🛡️ 계정 차단 방지를 위한 자연스러운 휴식 시간 (15~25초)
