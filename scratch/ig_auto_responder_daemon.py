@@ -189,6 +189,15 @@ async def run_daemon_check():
                 await asyncio.sleep(3)
 
                 inp = page.locator('input[name="queryBox"], input[name="searchInput"], input[placeholder*="Search"], input[placeholder*="검색"]').first
+                # 시스템 푸터 링크 및 본인 계정 제외
+                SYSTEM_BLACKLIST = {
+                    'reels', 'directinbox', 'explore', 'accountsedit', 'legalprivacy', 'legalterms',
+                    'explorelocations', 'popular', 'weblite', 'accountsmeta_verified', 'about',
+                    'help', 'press', 'api', 'jobs', 'privacy', 'terms', 'momdad_style'
+                }
+                if uname in SYSTEM_BLACKLIST or uname.startswith('accounts'):
+                    continue
+
                 if await inp.is_visible():
                     await inp.fill(uname)
                     await asyncio.sleep(2.5)
