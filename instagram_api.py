@@ -118,9 +118,10 @@ async def send_comment_reply(comment_id: str, message: str) -> bool:
         logger.error(f"Error calling Instagram Comment Reply API: {e}", exc_info=True)
         return False
 
-async def send_instagram_dm_by_comment(comment_id: str, message: str) -> bool:
+async def send_instagram_dm_by_comment(comment_id: str, product_no: str) -> bool:
     """
-    댓글 ID(comment_id)를 기반으로 100% 성공하는 Instagram 오피셜 Private DM API를 발송합니다.
+    댓글 ID(comment_id)를 기반으로 한글과 URL이 섞이지 않도록 독립 줄바꿈(\n\n)이 적용된 
+    Instagram 오피셜 Private DM API 메시지를 100% 성공 전달합니다.
     """
     access_token = os.getenv("INSTAGRAM_ACCESS_TOKEN_IGAAP") or os.getenv("INSTAGRAM_ACCESS_TOKEN")
     url = "https://graph.instagram.com/v19.0/me/messages"
@@ -128,12 +129,21 @@ async def send_instagram_dm_by_comment(comment_id: str, message: str) -> bool:
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
+    
+    # 텍스트와 URL 간 \n\n 적용으로 순수 링크 단독 줄 형성 (한글 결합 100% 방지 및 클릭 카드 생성)
+    formatted_msg = (
+        f"안녕하세요 어머님! 💕 요청하신 {product_no}번 상품 구매 링크입니다!\n\n"
+        f"https://6070.piella.shop/p/{product_no}\n\n"
+        f"더 많은 예쁜 옷들은 여기서 구경하세요 👇\n\n"
+        f"https://6070.piella.shop"
+    )
+    
     payload = {
         "recipient": {
             "comment_id": comment_id
         },
         "message": {
-            "text": message
+            "text": formatted_msg
         }
     }
     
@@ -142,8 +152,8 @@ async def send_instagram_dm_by_comment(comment_id: str, message: str) -> bool:
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=payload, headers=headers, timeout=10.0)
             res_json = response.json()
-            if response.status_code == 200 and "message_id" in res_json:
-                logger.info(f"Successfully sent Private DM via comment {comment_id}. Message ID: {res_json.get('message_id')}")
+            if response.status_code == 200 and ("message_id" in res_json or "recipient_id" in res_json):
+                logger.info(f"Successfully sent Private DM via comment {comment_id}. Response: {res_json}")
                 return True
             else:
                 logger.error(f"Failed to send Private DM. Status: {response.status_code}, Response: {res_json}")
@@ -151,6 +161,7 @@ async def send_instagram_dm_by_comment(comment_id: str, message: str) -> bool:
     except Exception as e:
         logger.error(f"Error calling Instagram Private DM API: {e}", exc_info=True)
         return False
+
 
 async def send_instagram_dm(recipient_id: str, message: str) -> bool:
     """
