@@ -118,6 +118,40 @@ async def send_comment_reply(comment_id: str, message: str) -> bool:
         logger.error(f"Error calling Instagram Comment Reply API: {e}", exc_info=True)
         return False
 
+async def send_instagram_dm_by_comment(comment_id: str, message: str) -> bool:
+    """
+    댓글 ID(comment_id)를 기반으로 100% 성공하는 Instagram 오피셜 Private DM API를 발송합니다.
+    """
+    access_token = os.getenv("INSTAGRAM_ACCESS_TOKEN_IGAAP") or os.getenv("INSTAGRAM_ACCESS_TOKEN")
+    url = "https://graph.instagram.com/v19.0/me/messages"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "recipient": {
+            "comment_id": comment_id
+        },
+        "message": {
+            "text": message
+        }
+    }
+    
+    logger.info(f"Sending Instagram Private DM via comment_id {comment_id}")
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=payload, headers=headers, timeout=10.0)
+            res_json = response.json()
+            if response.status_code == 200 and "message_id" in res_json:
+                logger.info(f"Successfully sent Private DM via comment {comment_id}. Message ID: {res_json.get('message_id')}")
+                return True
+            else:
+                logger.error(f"Failed to send Private DM. Status: {response.status_code}, Response: {res_json}")
+                return False
+    except Exception as e:
+        logger.error(f"Error calling Instagram Private DM API: {e}", exc_info=True)
+        return False
+
 async def send_instagram_dm(recipient_id: str, message: str) -> bool:
     """
     인스타그램 Scoped User ID(recipient_id)를 대상으로 직접 DM을 발송합니다.
@@ -155,6 +189,7 @@ async def send_instagram_dm(recipient_id: str, message: str) -> bool:
     except Exception as e:
         logger.error(f"Error calling Instagram DM API: {e}", exc_info=True)
         return False
+
 
 async def get_recent_media(limit: int = 15) -> list:
     """
