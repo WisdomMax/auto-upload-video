@@ -78,14 +78,22 @@ async def run_daemon_check():
             """)
             await asyncio.sleep(1.5)
 
-            # 신규 미응답 댓글 탐색
+            # 댓글 영역 내부에서만 신규 미응답 댓글 탐색 (페이지 푸터/사이드바 제외)
             unreplied_users = await page.evaluate("""
                 () => {
-                    const links = Array.from(document.querySelectorAll('a[href]'));
-                    const results = [];
-                    const blacklist = ['legal', 'privacy', 'terms', 'cookies', 'popular', 'weblite', 'accounts', 'meta', 'about', 'help', 'api', 'jobs', 'explore', 'momdad_style', 'direct', 'directinbox'];
-
+                    const commentContainers = Array.from(document.querySelectorAll('#comments, ul, div[role="dialog"] ul'));
+                    const links = [];
+                    for (const container of commentContainers) {
+                        links.push(...Array.from(container.querySelectorAll('a[href]')));
+                    }
                     
+                    const results = [];
+                    const blacklist = [
+                        'legal', 'privacy', 'terms', 'cookies', 'popular', 'weblite', 'accounts',
+                        'meta', 'about', 'help', 'api', 'jobs', 'explore', 'momdad_style', 'direct',
+                        'directinbox', 'explorelocations', 'weblite.neo', 'accountsmeta_verified'
+                    ];
+
                     for (const a of links) {
                         const href = a.getAttribute('href');
                         const text = a.textContent.trim();
@@ -94,10 +102,9 @@ async def run_daemon_check():
                             const uname = href.replace(/\//g, '').trim();
                             if (!/^[a-zA-Z0-9._]+$/.test(uname)) continue;
                             if (blacklist.some(b => uname.toLowerCase().includes(b))) continue;
-                            if (uname.length < 3) continue;
-
                             
-                            let container = a;
+                            // 부모 요소에서 답글 달기 버튼 및 이미 응답 여부 확인
+                            let container = a.parentElement;
                             for (let i = 0; i < 6; i++) {
                                 if (container.parentElement) container = container.parentElement;
                             }
