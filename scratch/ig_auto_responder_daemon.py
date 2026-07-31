@@ -284,10 +284,19 @@ async def run_daemon_check():
 
         await context.close()
 
-# 🛡️ 계정 안전을 위한 하루 최대 DM 발송 쿼터 (Max Daily DM Limit)
+# 🛡️ 계정 안전 및 심야 고객 배려 설정
 MAX_DAILY_DM = 80
 daily_dm_count = 0
 last_reset_date = datetime.now().strftime("%Y-%m-%d")
+
+# 🌙 심야 안심 시간대 (밤 11시 ~ 아침 8시에는 DM 발송 일시 중지 및 대기)
+QUIET_START_HOUR = 23
+QUIET_END_HOUR = 8
+
+def is_quiet_hours() -> bool:
+    now_hour = datetime.now().hour
+    return now_hour >= QUIET_START_HOUR or now_hour < QUIET_END_HOUR
+
 
 async def daemon_loop():
     global daily_dm_count, last_reset_date
