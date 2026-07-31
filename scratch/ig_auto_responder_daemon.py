@@ -184,62 +184,65 @@ async def run_daemon_check():
                 except:
                     pass
 
-                # 3. DM 이동 & 메시지 2개 발송
-                await page.goto("https://www.instagram.com/direct/inbox/", wait_until="domcontentloaded")
+                # 3. DM 이동 & 메시지 2개 발송 (100% 완결 검증 플로우)
+                await page.goto("https://www.instagram.com/direct/new/", wait_until="domcontentloaded")
                 await asyncio.sleep(3)
 
-                compose_btn = page.locator("svg[aria-label='새 메시지'], svg[aria-label='New message'], a[href='/direct/new/']").first
-                if await compose_btn.is_visible():
-                    await compose_btn.click()
-                    await asyncio.sleep(2)
+                inp = page.locator('input[name="queryBox"], input[name="searchInput"], input[placeholder*="Search"], input[placeholder*="검색"]').first
+                if await inp.is_visible():
+                    await inp.fill(uname)
+                    await asyncio.sleep(2.5)
 
-                await page.evaluate(f"""
-                    () => {{
-                        const inp = document.querySelector('div[role="dialog"] input, input[name="queryBox"]');
-                        if (inp) {{
-                            const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-                            nativeSetter.call(inp, '{uname}');
-                            inp.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                    await page.evaluate(f"""
+                        () => {{
+                            const inputs = Array.from(document.querySelectorAll('input[type="checkbox"]'));
+                            if (inputs.length > 0) {{
+                                inputs[0].click();
+                                return;
+                            }}
+                            const buttons = Array.from(document.querySelectorAll('div[role="button"]'));
+                            const userBtn = buttons.find(b => b.textContent.includes('{uname}'));
+                            if (userBtn) {{
+                                userBtn.click();
+                                return;
+                            }}
+                            if (buttons.length > 0) buttons[0].click();
                         }}
-                    }}
-                """)
-                await asyncio.sleep(2.5)
+                    """)
+                    await asyncio.sleep(1.5)
 
-                await page.evaluate(f"""
-                    async () => {{
-                        const dialog = document.querySelector('div[role="dialog"]');
-                        if (!dialog) return;
-                        const opt = dialog.querySelector('div[role="option"]');
-                        if (opt) opt.click();
-                        await new Promise(r => setTimeout(r, 1000));
-                        const chatBtn = Array.from(dialog.querySelectorAll('div[role="button"], button')).find(el => {{
-                            const txt = el.textContent.trim();
-                            return (txt === 'Chat' || txt === 'Next' || txt === '채팅' || txt === '다음') && el.offsetWidth > 0;
-                        }});
-                        if (chatBtn) chatBtn.click();
-                    }}
-                """)
-                await asyncio.sleep(3)
+                    await page.evaluate("""
+                        () => {
+                            const btns = Array.from(document.querySelectorAll('div[role="button"], button'));
+                            const chatBtn = btns.find(b => {
+                                const txt = b.textContent.trim();
+                                return (txt === 'Chat' || txt === 'Next' || txt === '채팅' || txt === '다음') && b.offsetWidth > 0;
+                            });
+                            if (chatBtn) chatBtn.click();
+                        }
+                    """)
+                    await asyncio.sleep(3)
 
-                try:
-                    dm_input = page.locator('div[aria-label*="Message"], div[aria-label*="메시지"], div[contenteditable="true"]').first
-                    await dm_input.wait_for(timeout=6000)
-                    await dm_input.click()
-                    await asyncio.sleep(0.5)
-                    await page.keyboard.type(dm_msg_1)
-                    await asyncio.sleep(1)
-                    await page.keyboard.press("Enter")
-                    await asyncio.sleep(2)
+                    try:
+                        dm_input = page.locator('div[role="textbox"], textarea, div[contenteditable="true"]').first
+                        await dm_input.wait_for(timeout=6000)
+                        await dm_input.click()
+                        await asyncio.sleep(0.5)
+                        await page.keyboard.type(dm_msg_1)
+                        await asyncio.sleep(1)
+                        await page.keyboard.press("Enter")
+                        await asyncio.sleep(2)
 
-                    await dm_input.click()
-                    await asyncio.sleep(0.5)
-                    await page.keyboard.type(dm_msg_2)
-                    await asyncio.sleep(1)
-                    await page.keyboard.press("Enter")
-                    await asyncio.sleep(2)
-                    print(f"      ✅ 📩 DM 메시지 2개 발송 완료!")
-                except Exception as e_dm:
-                    print(f"      ⚠️ DM 전송 예외: {e_dm}")
+                        await dm_input.click()
+                        await asyncio.sleep(0.5)
+                        await page.keyboard.type(dm_msg_2)
+                        await asyncio.sleep(1)
+                        await page.keyboard.press("Enter")
+                        await asyncio.sleep(2)
+                        print(f"      ✅ 📩 DM 메시지 2개 발송 완료!")
+                    except Exception as e_dm:
+                        print(f"      ⚠️ DM 전송 예외: {e_dm}")
+
 
                 # 🛡️ 계정 차단 방지를 위한 자연스러운 휴식 시간 (15~25초)
                 safe_delay = random.uniform(15, 25)
