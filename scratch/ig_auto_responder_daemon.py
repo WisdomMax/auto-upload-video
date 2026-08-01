@@ -267,17 +267,11 @@ async def run_daemon_check():
                 except:
                     pass
 
-                        daily_dm_count += 1
-                        print(f"      ✅ 📩 4단계 순수 링크 독립 분리 DM 발송 완료! (오늘 총 {daily_dm_count}/{MAX_DAILY_DM}건 발송)")
-
-
-                    except Exception as e_dm:
-                        print(f"      ⚠️ DM 전송 예외: {e_dm}")
-
-
-
                 # 🛡️ 계정 차단 방지를 위한 자연스러운 휴식 시간 (15~25초)
                 safe_delay = random.uniform(15, 25)
+                print(f"      🛡️ [계정 보호] 다음 반응 전 {safe_delay:.1f}초 안전 휴식...")
+                await asyncio.sleep(safe_delay)
+
                 print(f"      🛡️ [계정 보호] 다음 반응 전 {safe_delay:.1f}초 안전 휴식...")
                 await asyncio.sleep(safe_delay)
 
