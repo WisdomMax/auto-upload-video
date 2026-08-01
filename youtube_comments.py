@@ -157,16 +157,14 @@ def check_and_reply_to_comments():
             if author_channel_id == channel_id:
                 continue
                 
-            # 비디오 매핑에 없는 영상의 댓글은 패스
-            if not video_id or video_id not in video_code_map:
-                continue
-                
-            product_code = video_code_map[video_id]
+            # 비디오 매핑에 없으면 기본 상품코드 '29' 부여
+            product_code = video_code_map.get(video_id, "29")
             
             # 문의 의도 감지
             has_intent = any(keyword in text for keyword in keywords)
             if not has_intent:
                 continue
+
                 
             # 이미 내가 대댓글을 달았는지 중복 검사
             already_replied = False
@@ -180,11 +178,11 @@ def check_and_reply_to_comments():
             if already_replied:
                 continue
                 
-            # DB에서 상품 코드로 정보 조회
-            item = database.get_item_by_code(product_code)
+            # DB에서 상품 코드로 정보 조회 (없을 경우 폴백)
+            item = database.get_item_by_code(product_code) or database.get_item_by_product_no(product_code)
             if not item:
-                logger.warning(f"Product code {product_code} found in video {video_id} but not in database.")
-                continue
+                item = {"product_code": product_code}
+
                 
             # 유튜브 대댓글 템플릿: 한눈에 보이는 3줄 초간단 포맷 (더보기 접힘 방지)
             reply_text = (
