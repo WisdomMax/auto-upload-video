@@ -1,5 +1,7 @@
 import asyncio, os, database, time, traceback, re, random
+from datetime import datetime
 from playwright.async_api import async_playwright
+
 
 async def run_daemon_check():
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 🔍 [실시간 자동 응답 데몬] 전체 게시물(최신 릴스 포함) 신규 댓글 스캔 중...")
