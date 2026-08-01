@@ -4,8 +4,8 @@
   "description": "Instagram & TikTok Automation and GPT Auto-Reply Server",
   "main": "main.py",
   "scripts": {
-    "dev": "python3 main.py",
-    "tunnel": "npx localtunnel --port 18888"
+    "dev": "python3 start_server.py",
+    "tunnel": "npx localtunnel --port 18888 --subdomain momdad-fashion-diary"
   },
   "keywords": [],
   "author": "",
