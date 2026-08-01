@@ -186,12 +186,13 @@ def check_and_reply_to_comments():
                 logger.warning(f"Product code {product_code} found in video {video_id} but not in database.")
                 continue
                 
-            # 유튜브 대댓글 템플릿: 6070.piella.shop 홍보 및 채널 프로필 홈 링크 안내
+            # 유튜브 대댓글 템플릿: 6080.piella.shop 홍보 및 채널 프로필 홈 링크 안내
             reply_text = (
                 f"어머님 안녕하세요! 💕 문의하신 상품 정보와 다양한 예쁜 옷들은 아래 쇼핑몰에서 바로 확인하실 수 있답니다!\n\n"
-                f"👉 Shopping Mall: 6070.piella.shop\n\n"
+                f"👉 쇼핑몰 직행: 6080.piella.shop\n\n"
                 f"(유튜브 정책상 댓글 링크 클릭이 안 될 경우, 저희 채널 프로필 메인 홈으로 들어오시면 연결된 쇼핑몰 링크를 바로 클릭하실 수 있어요! ✨)"
             )
+
 
             
             # 대댓글 작성 API 호출
