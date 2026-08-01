@@ -1486,8 +1486,10 @@ async def process_instagram_comment_event(media_id: str, comment_id: str, user_s
         )
 
 
+@app.get("/api/youtube/login")
 @app.get("/api/youtube/auth")
 async def youtube_auth():
+
     flow = youtube_comments.get_oauth_flow()
     if not flow:
         raise HTTPException(status_code=400, detail="YouTube OAuth설정이 누락되었습니다. 클라이언트 ID와 Secret 또는 client_secrets.json을 준비해 주세요.")
