@@ -112,6 +112,14 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to start IG Auto-Responder Daemon: {e}")
 
+    try:
+        from scratch.yt_auto_heart_daemon import run_yt_heart_and_like
+        asyncio.create_task(run_yt_heart_and_like())
+        logger.info("YouTube Auto Heart & Like Daemon started automatically with npm run dev.")
+    except Exception as e:
+        logger.error(f"Failed to start YouTube Auto Heart & Like Daemon: {e}")
+
+
 from fastapi import Response
 
 @app.get("/webhook/instagram")
