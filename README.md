@@ -11,6 +11,14 @@
 
 ---
 
+## 🌐 Global Languages (다국어 안내)
+- 🇰🇷 [한국어 (Korean)](#-왜-이-시스템을-소유해야-하는가-why-self-host)
+- 🇺🇸 [English Overview](#-english-overview)
+- 🇨🇳 [中文 概述](#-中文-概述)
+- 🇪🇸 [Español Resumen](#-español-resumen)
+
+---
+
 ## 💡 왜 이 시스템을 소유해야 하는가? (Why Self-Host?)
 
 매달 나가는 수백만 원의 비싼 해외 SaaS 구독료(ManyChat 등) 없이, **본 오픈소스 소스코드를 활용하여 자사 서버/맥미니에 100% 영구 무료 무인 마케팅 인프라를 직접 구축**하세요.
@@ -90,6 +98,56 @@ flowchart TD
 > 신규 댓글이 달릴 때마다 채널주인 빨간 하트와 좋아요를 100% 자동 클릭하여 어머님 휴대폰으로 감동 푸시 알림을 발송합니다.
 
 ![YouTube Heart Proof](docs/images/youtube_heart_proof.png)
+
+---
+
+## 🌍 Global Translations (펼쳐보기 / Expand)
+
+<details>
+<summary><b>🇺🇸 English Overview (Click to expand)</b></summary>
+
+<br/>
+
+### 📌 Project Concept & Business Goals
+**MomDad Fashion Diary** is an autonomous multi-platform SNS engagement & e-commerce marketing orchestration system designed for Instagram Reels and YouTube Shorts. Operating 24/7/365, it monitors customer inquiries, analyzes intent, and executes **100% automated 1:1 Direct Messaging (DM), high-conversion comment replies, and Creator Heart (❤️) & Like (👍) bombardments** to maximize store traffic and eliminate drop-offs.
+
+### 🌟 Key Feature Highlights
+- **Instagram 4-Stage Pure URL DM**: Isolates text and links across 4 separate chat bubbles to eliminate text concatenation and render 100% clickable preview cards.
+- **Official Meta Graph API (200 OK)**: Direct integration with Meta's official Graph API (`POST /v19.0/me/messages`) ensuring guaranteed delivery to recipient inboxes.
+- **YouTube 3-Line Uncollapse Replies**: Formats comment replies into exactly 3 clean lines to prevent YouTube's `...Read More` collapse while pointing users to `6080.piella.shop`.
+- **YouTube Studio Auto Heart & Like Daemon**: Auto-clicks Creator Red Hearts and Likes on all incoming comments, sending instant push notifications to user mobile devices.
+- **Quiet Hours & Quota Guard**: Automatically pauses DMs overnight (23:00~08:00) to prevent night spam reports, capping daily volume at 80 DMs/day.
+- **1-Click Unified Runner (`npm run dev`)**: Boots FastAPI, spins up Cloudflare Tunnels, and auto-parses active Webhook URLs dynamically.
+
+</details>
+
+<details>
+<summary><b>🇨🇳 中文 概述 (点击展开)</b></summary>
+
+<br/>
+
+### 📌 项目概述与商业目标
+**爸爸妈妈时尚日记 (MomDad Fashion Diary)** 是一款专为 Instagram Reels 和 YouTube Shorts 打造的全自动社交媒体营销与客服自动化系统。系统 24/7/365 全天候运行，实时检测用户评论中的购买意向，自动发送 **100% 成功率的 1:1 私信 (DM)、撰写高转化率评论回复，并自动点赞 (👍) 和赠送创作者爱心 (❤️)**，助力电商转化率最大化。
+
+### 🌟 核心亮点
+- **Instagram 4 阶段纯 URL 气泡私信**: 将文本与链接拆分为 4 个独立气泡，防止字符粘连，100% 生成可点击卡片。
+- **Meta 官方 API 直连**: 通过 Meta 官方 API 直投收件箱，彻底告别浏览器模拟发件的漏发率。
+- **YouTube 3 行极简评论回复 (`6080.piella.shop`)**: 精准控制在 3 行以内，避免被 YouTube 折叠（`...展开全文`）。
+- **YouTube Studio 自动红心与点赞**: 自动为评论点赞并赠送创作者红心，触发手机端实时推送通知。
+- **夜间免打扰 (Quiet Hours: 23:00~08:00) 与配额保护**: 深夜自动暂停发送，设置每日 80 条安全上限。
+- **一键整合启动 (`npm run dev`)**: 单条命令启动后端、Cloudflare 隧道并自动解析 Webhook 网址。
+
+</details>
+
+<details>
+<summary><b>🇪🇸 Español Resumen (Haz clic para desplegar)</b></summary>
+
+<br/>
+
+### 📌 Visión General del Proyecto
+**MomDad Fashion Diary** es un sistema autónomo de orquestación de marketing y automatización multi-plataforma diseñado para Instagram Reels y YouTube Shorts. Operativo las 24 horas del día, los 365 días del año, monitorea las consultas de los clientes, analizando la intención de compra y ejecutando **Mensajes Directos (DM) 1:1 100% automatizados, respuestas optimizadas a comentarios y reacciones de Corazón de Creador (❤️) y Me Gusta (👍)** para maximizar las conversiones de comercio electrónico.
+
+</details>
 
 ---
 
