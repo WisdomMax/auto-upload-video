@@ -1,116 +1,142 @@
-# 🚀 MomDad Fashion Diary - AI SNS Automation & Auto-Publisher
-> **Autonomous Multi-Platform (Instagram & YouTube) SNS Engagement & Auto-Responder System**
+# 🚀 엄마아빠 패션다이어리 (MomDad Fashion Diary)
+> **AI 기반 multi-Platform (Instagram & YouTube) 무인 자동 응답 및 이커머스 마케팅 오케스트레이션 시스템**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python Version](https://img.shields.io/badge/python-3.9%2B-brightgreen.svg)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://www.python.org/)
 [![Meta Graph API](https://img.shields.io/badge/Meta%20Graph%20API-v19.0-blue.svg)](https://developers.facebook.com/)
 [![YouTube Data API](https://img.shields.io/badge/YouTube%20Data%20API-v3-red.svg)](https://developers.google.com/youtube/v3)
+[![Framework](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg)](https://fastapi.tiangolo.com/)
 
 ---
 
-## 🌐 Languages / 언어선택 / 语言选择 / Idioma
-
-- 🇰🇷 [한국어 (Korean)](#-한국어-korean)
-- 🇺🇸 [English](#-english)
-- 🇨🇳 [中文 (Chinese)](#-中文-chinese)
-- 🇪🇸 [Español (Spanish)](#-español-spanish)
+## 🌐 Languages / 언어선택
+- 🇰🇷 [한국어 (Korean)](#-한국어-요약)
+- 🇺🇸 [English](#-english-overview)
+- 🇨🇳 [中文 (Chinese)](#-中文-概述)
+- 🇪🇸 [Español (Spanish)](#-español-resumen)
 
 ---
 
-## 🇰🇷 한국어 (Korean)
+## 🇰🇷 한국어 요약
 
-### 📌 프로젝트 소개
-**엄마아빠 패션다이어리 (MomDad Fashion Diary)**는 인스타그램(Reels)과 유튜브(Shorts)에 달리는 어머님 고객들의 댓글 문의를 24시간 실시간 감지하여, **100% 자동 1:1 DM 발송 및 대댓글 작성, 좋아요(👍) + 하트(❤️) 세례**를 선사하는 무인 SNS 자동화 솔루션입니다.
+### 📌 프로젝트 개요 및 핵심 목표
+**엄마아빠 패션다이어리**는 인스타그램(Reels)과 유튜브(Shorts) 쇼핑 콘텐츠에 달리는 고객 문의를 **24시간 365일 실시간으로 탐색·분석하여 구매 링크 전달부터 채널 팬덤 관리까지 100% 무인 자동 처리**하는 차세대 SNS 자동화 마케팅 솔루션입니다.
 
-### ✨ 핵심 기능
-1. **인스타그램 4단계 독립 PURE URL DM 전송**:
-   - 한글 텍스트와 URL이 섞이지 않도록 4개의 독립 말풍선으로 분리 전송하여 100% 클릭 가능한 카드를 생성합니다.
-2. **Meta 오피셜 Graph API (200 OK) 1:1 메시지 전송**:
-   - 브라우저 타자 방식의 누락을 완벽히 해결하고 Meta 정식 API로 수신함에 100% 즉시 꽂아 넣습니다.
-3. **유튜브 3줄 한눈에 보이는 대댓글 자동화 (`6080.piella.shop`)**:
-   - `...자세히 보기` 접힘을 100% 방지하는 3줄 초간단 포맷팅으로 쇼핑몰 직행 링크를 노출합니다.
-4. **유튜브 스튜디오 자동 하트(❤️) + 좋아요(👍) 데몬**:
-   - 댓글 작성 고객에게 채널주인 빨간 하트(❤️) 및 좋아요(👍) 알림을 자동 전송하여 구매 전환율을 극대화합니다.
-5. **야간 안심 시간대 (Quiet Hours: 23:00 ~ 08:00)**:
-   - 심야 시간대 스팸 신고 방지 및 1일 80건 안전 쿼터 보장 장치가 탑재되어 있습니다.
-6. **1클릭 통합 구동기 (`npm run dev`)**:
-   - 명령 1개로 백엔드 서버 + Cloudflare 초고속 터널 가동 및 실시간 웹훅 URL을 자동 파싱합니다.
+댓글 내 상품 문의 의도("엄마", "구매", "링크", "정보" 등)를 정밀 감지하고, 인스타그램 1:1 오피셜 DM 및 유튜브 3줄 대댓글, 그리고 스튜디오 자동 하트(❤️) 세례를 통해 **고객 이탈률 0% 및 자사몰 구매 전환율 극대화**를 달성합니다.
 
-### 🖼️ 실행 증명 스크린샷 (Proof Screenshots)
+---
 
-| 인스타그램 4단계 PURE URL DM 발송 증명 | 유튜브 스튜디오 빨간 하트(❤️) + 좋아요(👍) 증명 |
+### 🏗️ 시스템 아키텍처 (System Architecture)
+
+```mermaid
+flowchart TD
+    subgraph Platforms["📱 SNS 멀티 플랫폼"]
+        IG[Instagram Reels]
+        YT[YouTube Shorts]
+    end
+
+    subgraph CoreEngine["⚡ 백엔드 자동화 엔진 (FastAPI + Python)"]
+        WH[Webhook & Live Stream Scanner]
+        NLP[구매 의도 & 상품 코드 자동 파서]
+        API_IG[Meta Graph API v19.0 Client]
+        API_YT[YouTube Data API v3 & Studio Daemon]
+    end
+
+    subgraph Protection["🛡️ 안전 & 가디언 레이어"]
+        QH[Quiet Hours: 23시~08시 야간 중지]
+        LMT[1일 최대 80건 DM 안전 쿼터]
+    end
+
+    subgraph CustomerTouch["🛍️ 고객 접점 & 쇼핑몰"]
+        DM[Instagram 4단계 PURE URL 카드 DM]
+        REPLY[YouTube 3줄 접힘방지 대댓글]
+        HEART[YouTube Studio 자동 하트❤️/좋아요👍]
+        MALL[6070 / 6080 piella.shop]
+    end
+
+    IG -->|실시간 댓글 감지| WH
+    YT -->|5분 주기 스캔| WH
+    WH --> NLP
+    NLP --> Protection
+    Protection --> API_IG
+    Protection --> API_YT
+
+    API_IG --> DM
+    API_YT --> REPLY
+    API_YT --> HEART
+
+    DM --> MALL
+    REPLY --> MALL
+```
+
+---
+
+### ⭐ 주요 기능 상세 (Core Capabilities)
+
+| 카테고리 | 핵심 기능 | 상세 동작 설명 |
+| :--- | :--- | :--- |
+| **Instagram** | **4단계 PURE URL 카드 DM** | 한글과 URL이 섞여 링크가 깨지는 현상을 100% 차단하기 위해 4개의 독립 말풍선으로 분리 전송, 예쁜 미디어가 포함된 **클릭 가능한 쇼핑 카드를 자동 생성**합니다. |
+| **Instagram** | **Meta 오피셜 API 1:1 직연동** | 웹 브라우저 타자 방식의 수신 누락을 완벽히 교정하고, Meta 공식 Graph API(`POST /v19.0/me/messages`)로 **200 OK 수신함 직행 전송**을 보장합니다. |
+| **YouTube** | **3줄 한눈에 보이는 대댓글** | 유튜브 특유의 `...자세히 보기` 접힘을 100% 방지하도록 **정확히 3줄 이하로 포맷팅**하여 자사몰 주소(`6080.piella.shop`) 및 프로필 메인 홈 가이드를 단번에 전달합니다. |
+| **YouTube** | **스튜디오 자동 하트(❤️)/좋아요(👍)** | 신규 댓글이 달릴 때마다 채널주인 빨간 하트(❤️)와 좋아요(👍)를 100% 자동 클릭하여 어머님들 폰으로 **감동 푸시 알림**을 쏘아 보냅니다. |
+| **안전보호** | **야간 안심 타임 (Quiet Hours)** | 심야 시간대(23:00 ~ 08:00) 스팸 신고 방지를 위해 DM 발송을 자동 일시 대기시키며, 아침 8시 정각에 깨어나 순차 발송합니다. |
+| **운영편의** | **1클릭 통합 구동기 (`npm run dev`)** | 단 1번의 명령어로 백엔드 서버 + Cloudflare 초고속 터널 가동 및 실시간 웹훅 URL을 자동 감지해 터미널 배너로 띄워줍니다. |
+
+---
+
+### 🖼️ 실측 가동 증명 스크린샷 (Live Verification Gallery)
+
+<div align="center">
+
+| 📩 인스타그램 4단계 PURE URL DM 실시간 전달 증명 | ❤️ 유튜브 스튜디오 채널주인 빨간 하트(❤️) + 좋아요(👍) 자동 클릭 증명 |
 | :---: | :---: |
-| ![Instagram DM Proof](docs/images/instagram_dm_proof.png) | ![YouTube Heart Proof](docs/images/youtube_heart_proof.png) |
+| <img src="docs/images/instagram_dm_proof.png" width="400"/> | <img src="docs/images/youtube_heart_proof.png" width="400"/> |
+
+</div>
 
 ---
 
-## 🇺🇸 English
+## 🇺🇸 English Overview
 
-### 📌 Project Overview
-**MomDad Fashion Diary** is an autonomous multi-platform SNS automation system designed for Instagram Reels and YouTube Shorts. It detects customer comment inquiries 24/7, dispatches **100% automated 1:1 Direct Messages (DM), writes high-converting comment replies, and auto-clicks Creator Hearts (❤️) & Likes (👍)** to maximize e-commerce conversion rates.
+### 📌 Project Concept & Business Goals
+**MomDad Fashion Diary** is an autonomous multi-platform SNS engagement & e-commerce marketing orchestration system designed for Instagram Reels and YouTube Shorts. Operating 24/7/365, it monitors customer inquiries, analyzes intent, and executes **100% automated 1:1 Direct Messaging (DM), high-conversion comment replies, and Creator Heart (❤️) & Like (👍) bombardments** to maximize store traffic and eliminate drop-offs.
 
-### ✨ Key Features
-1. **Instagram 4-Stage Pure URL Direct Messaging**:
-   - Isolates text and links into 4 independent chat bubbles to prevent Korean text concatenation and ensure 100% clickable preview cards.
-2. **Meta Official Graph API (200 OK) Integration**:
-   - Replaces browser-typing automation with official Meta Graph API (`POST /v19.0/me/messages`), guaranteeing 100% delivery directly to recipient inboxes.
-3. **YouTube 3-Line High-Conversion Comment Replies (`6080.piella.shop`)**:
-   - Formats replies into exactly 3 clean lines to prevent YouTube's `...Read More` collapse while guiding users to the profile bio link.
-4. **YouTube Studio Auto Heart (❤️) & Like (👍) Daemon**:
-   - Automatically clicks Creator Hearts and Likes on all incoming comments, triggering instant mobile push notifications to users.
-5. **Quiet Hours (23:00 ~ 08:00) & Daily Quota Guard**:
-   - Automatically pauses late-night DMs to protect account health, enforcing a safety limit of 80 DMs/day.
-6. **1-Click Unified Runner (`npm run dev`)**:
-   - Boots FastAPI backend, launches Cloudflare Tunnel, and auto-detects/parses live Webhook URLs dynamically.
+### 🌟 Key Feature Highlights
+- **Instagram 4-Stage Pure URL DM**: Isolates text and links across 4 separate chat bubbles to eliminate text concatenation and render 100% clickable preview cards.
+- **Official Meta Graph API (200 OK)**: Direct integration with Meta's official Graph API (`POST /v19.0/me/messages`) ensuring guaranteed delivery to recipient inboxes.
+- **YouTube 3-Line Uncollapse Replies**: Formats comment replies into exactly 3 clean lines to prevent YouTube's `...Read More` collapse while pointing users to `6080.piella.shop`.
+- **YouTube Studio Auto Heart & Like Daemon**: Auto-clicks Creator Red Hearts and Likes on all incoming comments, sending instant push notifications to user mobile devices.
+- **Quiet Hours & Quota Guard**: Automatically pauses DMs between 23:00 and 08:00 to prevent night spam reports, capping daily volume at 80 DMs/day.
+- **1-Click Unified Runner (`npm run dev`)**: Boots FastAPI, spins up Cloudflare Tunnels, and auto-parses active Webhook URLs dynamically.
 
 ---
 
-## 🇨🇳 中文 (Chinese)
+## 🇨🇳 中文 概述
 
-### 📌 项目简介
-**爸爸妈妈时尚日记 (MomDad Fashion Diary)** 是一款专为 Instagram Reels 和 YouTube Shorts 打造的全自动社交媒体运营与营销自动化系统。系统 24 小时实时监控用户评论，自动发送 **100% 成功率的 1:1 私信 (DM)、自动撰写高转化率评论回复，并自动点赞 (👍) 和赠送创作者爱心 (❤️)**，大幅提升电商转化率。
+### 📌 项目概述与商业目标
+**爸爸妈妈时尚日记 (MomDad Fashion Diary)** 是一款专为 Instagram Reels 和 YouTube Shorts 打造的全自动社交媒体营销与客服自动化系统。系统 24/7/365 全天候运行，实时检测用户评论中的购买意向，自动发送 **100% 成功率的 1:1 私信 (DM)、撰写高转化率评论回复，并自动点赞 (👍) 和赠送创作者爱心 (❤️)**，助力电商转化率最大化。
 
-### ✨ 核心功能
-1. **Instagram 4 阶段纯 URL 独立私信发送**:
-   - 将文本与网址拆分为 4 个独立气泡，防止韩文与 URL 粘连，100% 生成可点击的精美预览卡片。
-2. **Meta 官方 Graph API (200 OK) 直连**:
-   - 彻底解决浏览器模拟输入的漏发问题，通过 Meta 官方 API 直接投递至用户收件箱。
-3. **YouTube 3 行极简评论自动回复 (`6080.piella.shop`)**:
-   - 严格控制在 3 行以内，100% 避免被 YouTube 折叠（`...展开全文`），直观引导至商城。
-4. **YouTube Studio 自动爱心 (❤️) 与点赞 (👍) 守护进程**:
-   - 自动为所有评论点赞并赠送创作者红心，触发手机端实时推送通知，增强粉丝互动。
-5. **夜间免打扰模式 (Quiet Hours: 23:00 ~ 08:00) 与每日配额保护**:
-   - 深夜自动暂停私信发送，限制每日最多 80 条，保障账号安全。
-6. **一键式整合启动 (`npm run dev`)**:
-   - 单条命令自动启动后端服务、Cloudflare 超高速隧道，并实时解析 Webhook 网址。
+### 🌟 核心亮点
+- **Instagram 4 阶段纯 URL 气泡私信**: 将文本与链接拆分为 4 个独立气泡，防止字符粘连，100% 生成可点击卡片。
+- **Meta 官方 Graph API 直连**: 通过 Meta 官方 API 直投收件箱，彻底告别浏览器模拟发件的漏发率。
+- **YouTube 3 行极简评论回复 (`6080.piella.shop`)**: 精准控制在 3 行以内，避免被 YouTube 折叠（`...展开全文`）。
+- **YouTube Studio 自动红心与点赞**: 自动为评论点赞并赠送创作者红心，触发手机端实时推送通知。
+- **夜间免打扰 (Quiet Hours: 23:00~08:00) 与配额保护**: 深夜自动暂停发送，设置每日 80 条安全上限。
+- **一键整合启动 (`npm run dev`)**: 单条命令启动后端、Cloudflare 隧道并自动解析 Webhook 网址。
 
 ---
 
-## 🇪🇸 Español (Spanish)
+## 🇪🇸 Español Resumen
 
-### 📌 Descripción del Proyecto
-**MomDad Fashion Diary** es una solución avanzada de automatización omnicanal diseñada para Instagram Reels y YouTube Shorts. Detecta consultas de clientes las 24 horas del día, los 7 días de la semana, enviando **Mensajes Directos (DM) 1:1 100% automatizados, publicando respuestas optimizadas y dando Me Gusta (👍) y Corazones de Creador (❤️)** automáticamente.
-
-### ✨ Características Principales
-1. **Mensajería Directa en 4 Etapas con URL Pura en Instagram**:
-   - Separa el texto y las URL en 4 burbujas independientes para evitar la superposición de caracteres y garantizar tarjetas de vista previa 100% interactiva.
-2. **Integración Oficial Meta Graph API (200 OK)**:
-   - Sustituye la automatización basada en navegador por la API oficial de Meta Graph API (`POST /v19.0/me/messages`), garantizando la entrega directa al buzón del usuario.
-3. **Respuestas de 3 Líneas en YouTube (`6080.piella.shop`)**:
-   - Formateo ultralimpio en exactamente 3 líneas para evitar el botón `...Ver más`, maximizando la tasa de clics hacia la tienda.
-4. **Daemon de Corazón (❤️) y Me Gusta (👍) en YouTube Studio**:
-   - Otorga automáticamente corazones de creador y me gusta a cada comentario, notificando al usuario en tiempo real en su dispositivo móvil.
-5. **Horario de Silencio (23:00 ~ 08:00) y Límite Diario de Seguridad**:
-   - Pausa automáticamente los envíos nocturnos y restringe el volumen a un máximo de 80 DMs diarios para proteger la cuenta.
-6. **Ejecutor Unificado en 1 Clic (`npm run dev`)**:
-   - Inicia el servidor backend, activa Cloudflare Tunnel y detecta automáticamente las URL de Webhook en tiempo real.
+### 📌 Visión General del Proyecto
+**MomDad Fashion Diary** es un sistema autónomo de orquestación de marketing y automatización multi-plataforma diseñado para Instagram Reels y YouTube Shorts. Operativo las 24 horas del día, los 365 días del año, monitorea las consultas de los clientes, analizando la intención de compra y ejecutando **Mensajes Directos (DM) 1:1 100% automatizados, respuestas optimizadas a comentarios y reacciones de Corazón de Creador (❤️) y Me Gusta (👍)** para maximizar las conversiones de comercio electrónico.
 
 ---
 
-## 🛠️ Quick Start / 빠른 시작
+## 🛠️ Quick Start Guide
 
 ```bash
-# 1. Clone repository
+# 1. Clone the repository
 git clone https://github.com/WisdomMax/auto-upload-video.git
 cd "20260605 momdad fashion diary"
 
@@ -125,4 +151,4 @@ npm run dev
 ---
 
 ## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Distributed under the MIT License. See `LICENSE` for more information.
