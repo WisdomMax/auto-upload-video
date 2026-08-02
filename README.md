@@ -4,9 +4,23 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://www.python.org/)
+[![Self Hosted](https://img.shields.io/badge/100%25-Self--Hosted-orange.svg)]()
 [![Meta Graph API](https://img.shields.io/badge/Meta%20Graph%20API-v19.0-blue.svg)](https://developers.facebook.com/)
 [![YouTube Data API](https://img.shields.io/badge/YouTube%20Data%20API-v3-red.svg)](https://developers.google.com/youtube/v3)
 [![Status](https://img.shields.io/badge/Production-100%25%20Verified-success.svg)]()
+
+---
+
+## 💻 100% 소스코드 오픈 & 자체 구축 (Self-Hosted Architecture)
+
+> **"매달 나가는 비싼 해외 툴 구독료(월 수백만 원) 없이, 오픈된 소스코드로 100% 나만의 무인 SNS 마케팅 시스템을 구축하세요!"**
+
+본 프로젝트는 **100% 소스코드가 공개된 오픈소스 파이프라인**입니다.  
+개발자 및 이커머스 대표님께서는 제공되는 코드베이스를 기반으로 **자사의 맥미니, 로컬 PC, 또는 클라우드 서버(AWS/Render/VPS)에 즉시 구축**하여 365일 무인 마케팅 인프라를 소유하실 수 있습니다.
+
+- 💰 **월 구독료 0원 (Zero Monthly Fees)**: 외부 SaaS 툴 구독 없이 100% 영구 무료 자체 운용
+- 🔒 **데이터 100% 자체 소유 (Full Data Privacy)**: 외부 플랫폼에 고객 데이터 유출 없는 안전한 자체 DB 보유
+- 🛠️ **자유로운 커스텀 확장**: 내 쇼핑몰 규격(`6070`/`6080.piella.shop`) 및 브랜드 포맷에 맞춘 100% 맞춤 개조 가능
 
 ---
 
@@ -34,8 +48,9 @@
 
 ### ✨ 엄마아빠 패션다이어리가 선사하는 압도적 해결책 (Solutions)
 
-| 비교 항목 | ❌ 수동 운용 & 일반 툴 | 🟢 엄마아빠 패션다이어리 (MomDad Fashion Diary) |
+| 비교 항목 | ❌ 수동 운용 & 일반 툴 | 🟢 엄마아빠 패션다이어리 (Self-Hosted Engine) |
 | :--- | :--- | :--- |
+| **소유권 & 비용** | 매달 결제되는 비싼 월 구독료 (ManyChat 등) | 💻 **본 소스코드로 자사 서버에 100% 영구 무료 자체 구축** |
 | **반응 속도** | 평균 3시간~12시간 (고객 이미 이탈) | ⚡ **단 3초 만에 24시간 실시간 1:1 직행 발송** |
 | **인스타그램 DM** | 한글과 URL이 섞여 클릭 불가능한 깨진 링크 | 💌 **4단계 독립 PURE URL 카드 (100% 예쁜 클릭 미리보기)** |
 | **인스타그램 전송률** | 웹 브라우저 타자 입력 방식으로 수신 누락 다수 | 📩 **Meta 오피셜 Graph API (200 OK) 수신함 100% 직행** |
@@ -66,74 +81,27 @@
 
 ---
 
-## 🇺🇸 Why You Need MomDad Fashion Diary
-
-### 💥 The Problem
-When your Instagram Reels or YouTube Shorts go viral, hundreds of potential buyers leave comments asking: *"Where can I buy this?"*. However, **90% of these high-intent leads are lost** due to:
-1. **Slow Response Times**: Manual DMs sent 3-5 hours later lose customer interest.
-2. **Broken Link Previews**: Mixing text with URLs corrupts link parameters, making them unclickable.
-3. **Collapsed YouTube Replies**: Long 5-line comments get collapsed under `...Read More`, hiding your shop link.
-4. **Risk of Spam Bans**: Sending DMs at 3 AM triggers user reports and account suspensions.
-
-### ✨ The Solution
-- ⚡ **< 3-Second Instant Intent Match**: Responds automatically while the buyer is still active on their phone.
-- 💌 **4-Bubble Pure URL Cards**: Delivers 100% clickable preview cards with zero URL corruption.
-- 📩 **Meta Official Graph API (200 OK)**: Direct inbox delivery via official Meta Graph API (`POST /v19.0/me/messages`).
-- 📱 **3-Line Zero-Collapse YouTube Replies**: Clean 3-line format pointing directly to `6080.piella.shop`.
-- ❤️ **Automated Creator Red Hearts (❤️) & Likes (👍)**: Triggers instant mobile push notifications to delight fans.
-- 🛡️ **Quiet Hours & Quota Guard**: Pauses DMs overnight (23:00~08:00) with an 80 DM/day safety cap.
-
----
-
-## 🇨🇳 为什么选择 MomDad Fashion Diary？
-
-### 💥 核心痛点
-当您的短视频爆火时，成百上千的买家在评论区询问：*“哪里可以买到同款？”*。然而，**90% 的意向客户在传统运营中流失了**：
-1. **回复太慢**: 手动回复需要数小时，客户早已离开。
-2. **链接失效**: 韩文/外文与网址混在一起发送导致链接无法点击。
-3. **评论被折叠**: YouTube 长评论被折叠在 `...展开全文` 中，没人会去点击。
-4. **封号风险**: 深夜群发私信极易引发用户举报并导致封号。
-
-### ✨ 解决方案
-- ⚡ **3 秒极速响应**: 在买家兴趣最高时瞬间送达购买链接。
-- 💌 **4 气泡纯 URL 预览卡片**: 保证 100% 可点击的高颜值预览卡片。
-- 📩 **Meta 官方 API 直连**: 200 OK 保证 100% 投递至私信收件箱。
-- 📱 **3 行极简 YouTube 回复**: 精准控制在 3 行内，100% 避免折叠。
-- ❤️ **创作者红心 (❤️) 与点赞 (👍) 自动轰炸**: 触发手机端实时推送，打造粉丝忠诚度。
-- 🛡️ **夜间免打扰与每日上限**: 23:00~08:00 自动休眠，每日限量 80 条保护账号安全。
-
----
-
-## 🇪🇸 Por qué necesitas MomDad Fashion Diary
-
-### 💥 El Problema
-Cuando un Reel o Short se vuelve viral, cientos de clientes preguntan en los comentarios: *¿Dónde puedo comprar esto?*. Sin embargo, **el 90% de los clientes potenciales se pierden**:
-1. **Respuestas Lentas**: Enviar DMs manualmente horas después hace que el cliente pierda el interés.
-2. **Enlaces Rotos**: Combinar texto con URL corrompe el enlace, haciéndolo no interactivo.
-3. **Comentarios Colapsados**: Las respuestas largas en YouTube se ocultan bajo `...Ver más`.
-
-### ✨ La Solución
-- ⚡ **Respuesta Instantánea en < 3s**: Envía la tienda mientras el cliente está activo.
-- 💌 **Tarjetas DM de URL Pura en 4 Pasos**: Garantiza enlaces 100% interactivos y visuales.
-- 📱 **Respuestas en 3 Líneas sin Colapso**: Formateo limpio hacia `6080.piella.shop`.
-- ❤️ **Corazones de Creador (❤️) y Me Gusta (👍) Automáticos**: Notificaciones push directas al móvil del usuario.
-
----
-
-## 🛠️ Quick Start / 시작하기
+## 💻 Self-Hosting & Direct Deployment Guide
 
 ```bash
-# 1. Clone repository
+# 1. 저장소 클론 (Clone Repository)
 git clone https://github.com/WisdomMax/auto-upload-video.git
 cd "20260605 momdad fashion diary"
 
-# 2. Install dependencies
+# 2. 의존성 패키지 설치 (Install Dependencies)
 npm install
 pip3 install -r requirements.txt
 
-# 3. Launch Unified Server & Cloudflare Tunnel
+# 3. 환경변수 (.env) 설정 후 1클릭 가동 (Launch Server)
 npm run dev
 ```
+
+---
+
+## 🇺🇸 Why You Need MomDad Fashion Diary
+
+### 💥 Build & Own Your Automation
+Instead of paying thousands of dollars for third-party SaaS tools, **use our codebase to build your own 100% self-hosted SNS automation engine**. You own your data, your infrastructure, and your customer relationships.
 
 ---
 
