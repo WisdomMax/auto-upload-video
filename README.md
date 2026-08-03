@@ -8,6 +8,7 @@
 [![Meta Graph API](https://img.shields.io/badge/Meta%20Graph%20API-v19.0-blue.svg)](https://developers.facebook.com/)
 [![YouTube Data API](https://img.shields.io/badge/YouTube%20Data%20API-v3-red.svg)](https://developers.google.com/youtube/v3)
 [![Self Hosted](https://img.shields.io/badge/100%25-Self--Hosted-orange.svg)]()
+[![Changelog](https://img.shields.io/badge/Bugfix%20Log-CHANGELOG.md-purple.svg)](./CHANGELOG.md)
 
 ---
 
