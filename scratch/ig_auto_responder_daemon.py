@@ -95,50 +95,50 @@ async def run_daemon_check():
                 """)
                 await asyncio.sleep(1.5)
 
-                # 댓글 영역 내부에서만 신규 미응답 댓글 탐색
+                # 댓글 영역 내부에서만 신규 미응답 댓글 탐색 (유니버설 DOM 매칭)
                 unreplied_users = await page.evaluate("""
                     () => {
-                        const commentContainers = Array.from(document.querySelectorAll('#comments, ul, div[role="dialog"] ul'));
-                        const links = [];
-                        for (const container of commentContainers) {
-                            links.push(...Array.from(container.querySelectorAll('a[href]')));
-                        }
-                        
-                        const results = [];
+                        const links = Array.from(document.querySelectorAll('a[href]'));
                         const blacklist = [
                             'legal', 'privacy', 'terms', 'cookies', 'popular', 'weblite', 'accounts',
                             'meta', 'about', 'help', 'api', 'jobs', 'explore', 'momdad_style', 'direct',
                             'directinbox', 'explorelocations', 'weblite.neo', 'accountsmeta_verified'
                         ];
-
+                        
+                        const candidates = [];
                         for (const a of links) {
                             const href = a.getAttribute('href');
                             const text = a.textContent.trim();
-                            
-                            if (href && href.startsWith('/') && !href.includes('p/') && !href.includes('reels/') && text.length > 1) {
-                                const uname = href.replace(/\//g, '').trim();
+                            if (href && href.startsWith('/') && !href.includes('/p/') && !href.includes('/reel/') && !href.includes('/explore/') && !href.includes('/legal/')) {
+                                const uname = href.replace(/\\//g, '').trim();
                                 if (!/^[a-zA-Z0-9._]+$/.test(uname)) continue;
-                                if (blacklist.some(b => uname.toLowerCase().includes(b))) continue;
+                                if (blacklist.some(b => uname.toLowerCase() === b.toLowerCase())) continue;
                                 
                                 let container = a.parentElement;
-                                for (let i = 0; i < 6; i++) {
-                                    if (container.parentElement) container = container.parentElement;
+                                let foundReply = false;
+                                let alreadyReplied = false;
+                                
+                                for (let i = 0; i < 8; i++) {
+                                    if (!container) break;
+                                    const containerText = container.textContent;
+                                    if (containerText.includes('DM으로 링크 보내드렸습니다')) {
+                                        alreadyReplied = true;
+                                    }
+                                    const btns = Array.from(container.querySelectorAll('div, span, button, a'));
+                                    if (btns.some(b => (b.textContent.trim() === 'Reply' || b.textContent.trim() === '답글 달기') && b.offsetWidth > 0)) {
+                                        foundReply = true;
+                                    }
+                                    container = container.parentElement;
                                 }
                                 
-                                const hasReplyBtn = Array.from(container.querySelectorAll('div, span, button')).some(el => 
-                                    (el.textContent.trim() === '답글 달기' || el.textContent.trim() === 'Reply') && el.offsetWidth > 0
-                                );
-                                const alreadyReplied = container.textContent.includes('DM으로 링크 보내드렸습니다');
-                                
-                                if (hasReplyBtn && !alreadyReplied) {
-                                    const uname = href.replace(/\//g, '');
-                                    if (!results.some(r => r.username === uname)) {
-                                        results.push({ username: uname, href: href, display_name: text });
+                                if (foundReply && !alreadyReplied) {
+                                    if (!candidates.some(c => c.username === uname)) {
+                                        candidates.push({ username: uname, href: href, display_name: text || uname });
                                     }
                                 }
                             }
                         }
-                        return results;
+                        return candidates;
                     }
                 """)
 
