@@ -122,6 +122,7 @@ async def startup_event():
 
 from fastapi import Response
 
+@app.get("/api/webhook/instagram")
 @app.get("/webhook/instagram")
 @app.get("/webhook")
 async def verify_webhook(request: Request):
@@ -137,6 +138,7 @@ async def verify_webhook(request: Request):
     logger.warning(f"❌ Webhook verify token mismatch! Received: {token}, Expected: {verify_token}")
     return Response(content="Verification failed", status_code=403)
 
+@app.post("/api/webhook/instagram")
 @app.post("/webhook/instagram")
 @app.post("/webhook")
 async def receive_webhook(request: Request):
