@@ -21,24 +21,44 @@ async def run_daemon_check():
         )
         page = context.pages[0] if context.pages else await context.new_page()
 
-        # 메인 프로필 피드 진입
-        await page.goto("https://www.instagram.com/momdad_style/", wait_until="domcontentloaded")
-        await asyncio.sleep(3)
+        collected_posts = []
 
-        # 전체 피드 100% 수집을 위해 스크롤 수행
-        for i in range(8):
-            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            await asyncio.sleep(1.2)
+        # 1. 메인 피드 & 2. 릴스 전용 탭 순차 진입 수집 (최신 업로드 최우선 순위 유지)
+        target_urls = [
+            "https://www.instagram.com/momdad_style/reels/",  # 최신 릴스 탭 (최우선)
+            "https://www.instagram.com/momdad_style/"        # 메인 피드 탭
+        ]
 
-        posts = await page.evaluate("""
-            () => {
-                const links = Array.from(document.querySelectorAll('a[href]'));
-                const postHrefs = links.map(l => l.getAttribute('href')).filter(h => h && (h.includes('/p/') || h.includes('/reel/')));
-                return Array.from(new Set(postHrefs));
-            }
-        """)
+        for target_url in target_urls:
+            try:
+                await page.goto(target_url, wait_until="domcontentloaded")
+                await asyncio.sleep(2.5)
 
-        print(f"📋 프로필 전체 게시물/릴스 {len(posts)}개 100% 탐색 감지 중: {posts}", flush=True)
+                # 깊은 스크롤 수행 (최신부터 과거 게시물까지 100% 수집)
+                last_height = 0
+                for scroll_step in range(15):
+                    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    await asyncio.sleep(1.2)
+                    new_height = await page.evaluate("document.body.scrollHeight")
+                    if new_height == last_height:
+                        break
+                    last_height = new_height
+
+                tab_posts = await page.evaluate("""
+                    () => {
+                        const links = Array.from(document.querySelectorAll('a[href]'));
+                        const postHrefs = links.map(l => l.getAttribute('href')).filter(h => h && (h.includes('/p/') || h.includes('/reel/')));
+                        return Array.from(new Set(postHrefs));
+                    }
+                """)
+                for p in tab_posts:
+                    if p not in collected_posts:
+                        collected_posts.append(p)
+            except Exception as e_tab:
+                print(f"⚠️ [탭 수집 예외] {target_url}: {e_tab}", flush=True)
+
+        posts = collected_posts
+        print(f"📋 프로필 전체 게시물/릴스 {len(posts)}개 100% 탐색 감지 중 (최신순): {posts}", flush=True)
 
         for p_idx, post_href in enumerate(posts):
             try:
