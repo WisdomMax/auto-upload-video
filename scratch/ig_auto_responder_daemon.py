@@ -152,6 +152,11 @@ async def run_daemon_check():
                     display_name = uinfo['display_name']
                     href = uinfo['href']
 
+                    global processed_users_today
+                    if uname in processed_users_today:
+                        print(f"    ⏭️ [@{uname}] 님은 오늘 이미 DM/대댓글 처리가 완료된 고객입니다. 중복 발송 방지 스킵!", flush=True)
+                        continue
+
                     print(f"    👉 @{uname} 님 자동 대댓글 + 팔로우 + DM 처리 중...", flush=True)
 
                     dm_success = False
@@ -278,6 +283,8 @@ async def run_daemon_check():
                             print(f"      ✅ ➕ 팔로우 완료!", flush=True)
                     except:
                         pass
+                    
+                    processed_users_today.add(uname)
 
                     safe_delay = random.uniform(15, 25)
                     print(f"      🛡️ [계정 보호] 다음 반응 전 {safe_delay:.1f}초 안전 휴식...", flush=True)
@@ -289,6 +296,7 @@ async def run_daemon_check():
 
 MAX_DAILY_DM = 80
 daily_dm_count = 0
+processed_users_today = set()
 last_reset_date = datetime.now().strftime("%Y-%m-%d")
 
 QUIET_START_HOUR = 23
@@ -299,15 +307,16 @@ def is_quiet_hours() -> bool:
     return now_hour >= QUIET_START_HOUR or now_hour < QUIET_END_HOUR
 
 async def daemon_loop():
-    global daily_dm_count, last_reset_date
+    global daily_dm_count, last_reset_date, processed_users_today
     print("🚀 [인스타그램 전체 게시물 동적 감지 자동 응답 데몬 구동]...", flush=True)
     while True:
         try:
             current_date = datetime.now().strftime("%Y-%m-%d")
             if current_date != last_reset_date:
                 daily_dm_count = 0
+                processed_users_today.clear()
                 last_reset_date = current_date
-                print(f"🔄 [날짜 변경] DM 카운터 초기화: {current_date}", flush=True)
+                print(f"🔄 [날짜 변경] DM 카운터 및 사용자 중복 리스트 초기화: {current_date}", flush=True)
             
             await run_daemon_check()
         except Exception as e:
