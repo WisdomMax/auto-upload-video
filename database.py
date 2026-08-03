@@ -84,6 +84,39 @@ def init_db():
     )
     """)
     
+    # 6. ig_processed_users 테이블 생성 (영구 DB 유저 중복 차단 락)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ig_processed_users (
+        username TEXT PRIMARY KEY,
+        reel_id TEXT,
+        dm_sent INTEGER DEFAULT 0,
+        reply_posted INTEGER DEFAULT 0,
+        processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    
+    conn.commit()
+    conn.close()
+
+def is_ig_user_processed(username: str) -> bool:
+    if not username:
+        return False
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM ig_processed_users WHERE LOWER(username) = LOWER(?)", (username.strip(),))
+    row = cursor.fetchone()
+    conn.close()
+    return row is not None
+
+def mark_ig_user_processed(username: str, reel_id: str = "", dm_sent: bool = True, reply_posted: bool = True):
+    if not username:
+        return
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT OR REPLACE INTO ig_processed_users (username, reel_id, dm_sent, reply_posted, processed_at)
+    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    """, (username.strip().lower(), reel_id, 1 if dm_sent else 0, 1 if reply_posted else 0))
     conn.commit()
     conn.close()
 
