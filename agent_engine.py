@@ -511,7 +511,7 @@ class AIAgentEngine:
             elif platform == 'tiktok':
                 text = item.get('sns_caption', '') + "\n\n(채널 프로필 홈에 연결된 링크를 클릭하시면 모든 제품의 구매 링크를 편리하게 확인하실 수 있습니다)"
             elif platform == 'instagram':
-                text = item.get('sns_caption', '') + "\n\n(전체 제품 링크는 홈페이지: auto-upload-video.pages.dev 에서 확인하실 수 있습니다)"
+                text = item.get('sns_caption', '') + "\n\n(전체 제품 링크는 프로필 링크: 6070.piella.shop 에서 확인하실 수 있습니다)"
 
             try:
                 from main import publish_post_via_buffer
