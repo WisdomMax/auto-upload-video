@@ -165,8 +165,13 @@ async def run_daemon_check():
                         print(f"      🛡️ [하루 안전 한도 달성] 오늘 DM {daily_dm_count}건 발송 완료. DM 대신 대댓글에 직행 링크를 작성합니다.", flush=True)
                     else:
                         try:
-                            await page.goto("https://www.instagram.com/direct/new/", wait_until="domcontentloaded")
+                            await page.goto("https://www.instagram.com/direct/inbox/", wait_until="domcontentloaded")
                             await asyncio.sleep(2.5)
+
+                            new_msg_btn = page.locator("svg[aria-label='New message'], svg[aria-label='새 메시지'], div[role='button']:has-text('New message'), button:has-text('New message')").first
+                            if await new_msg_btn.is_visible():
+                                await new_msg_btn.click()
+                                await asyncio.sleep(2)
 
                             inp = page.locator('input[name="queryBox"], input[name="searchInput"], input[placeholder*="Search"], input[placeholder*="검색"]').first
                             SYSTEM_BLACKLIST = {
@@ -178,18 +183,26 @@ async def run_daemon_check():
                                 await inp.fill(uname)
                                 await asyncio.sleep(2)
 
-                                await page.evaluate(f"""
+                                # 라디오/체크박스 인풋 직접 클릭 (100% 유저 선택 보장)
+                                user_click = await page.evaluate(f"""
                                     () => {{
-                                        const inputs = Array.from(document.querySelectorAll('input[type="checkbox"]'));
-                                        if (inputs.length > 0) {{ inputs[0].click(); return; }}
+                                        const inputs = Array.from(document.querySelectorAll('input[type="radio"], input[type="checkbox"]'));
+                                        if (inputs.length > 0) {{
+                                            inputs[0].click();
+                                            return 'clicked_input';
+                                        }}
                                         const buttons = Array.from(document.querySelectorAll('div[role="button"]'));
                                         const userBtn = buttons.find(b => b.textContent.includes('{uname}'));
-                                        if (userBtn) {{ userBtn.click(); return; }}
-                                        if (buttons.length > 0) buttons[0].click();
+                                        if (userBtn) {{
+                                            userBtn.click();
+                                            return 'clicked_btn';
+                                        }}
+                                        return 'none';
                                     }}
                                 """)
                                 await asyncio.sleep(1.2)
 
+                                # Chat / Next / 채팅 / 다음 버튼 클릭
                                 await page.evaluate("""
                                     () => {
                                         const btns = Array.from(document.querySelectorAll('div[role="button"], button'));
@@ -200,10 +213,10 @@ async def run_daemon_check():
                                         if (chatBtn) chatBtn.click();
                                     }
                                 """)
-                                await asyncio.sleep(3)
+                                await asyncio.sleep(3.5)
 
-                                dm_input = page.locator('div[role="textbox"], textarea, div[contenteditable="true"]').first
-                                await dm_input.wait_for(timeout=5000)
+                                dm_input = page.locator('div[role="textbox"], textarea, div[contenteditable="true"], p[aria-label*="Message"], p[aria-label*="메시지"]').first
+                                await dm_input.wait_for(timeout=7000)
                                 
                                 await dm_input.click()
                                 await page.keyboard.type(f"안녕하세요 어머님! 💕 요청하신 {product_no}번 상품 구매 링크입니다!")
