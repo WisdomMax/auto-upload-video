@@ -152,12 +152,11 @@ async def run_daemon_check():
                     display_name = uinfo['display_name']
                     href = uinfo['href']
 
-                    global processed_users_today
-                    if uname in processed_users_today or database.is_ig_user_processed(uname):
-                        print(f"    ⏭️ [@{uname}] 님은 이미 DB/메모리에 기록된 기존 응답 고객입니다. 중복 메시지/댓글 100% 절대 방지 스킵!", flush=True)
+                    if database.is_ig_user_processed_for_reel(uname, post_href):
+                        print(f"    ⏭️ [@{uname}] 님은 해당 릴스({post_href})에 이미 응답이 완결된 고객입니다. 중복 발송 차단 스킵!", flush=True)
                         continue
 
-                    print(f"    👉 @{uname} 님 신규 응답 (자동 대댓글 + 팔로우 + DM) 진행 중...", flush=True)
+                    print(f"    👉 @{uname} 님 [{post_href}] 릴스 신규 응답 (DM + 대댓글 + 팔로우) 진행 중...", flush=True)
 
                     dm_success = False
                     global daily_dm_count
@@ -284,8 +283,7 @@ async def run_daemon_check():
                     except:
                         pass
                     
-                    processed_users_today.add(uname)
-                    database.mark_ig_user_processed(uname, post_href, dm_success, True)
+                    database.mark_ig_user_processed_for_reel(uname, post_href, dm_success, True)
 
                     safe_delay = random.uniform(15, 25)
                     print(f"      🛡️ [계정 보호] 다음 반응 전 {safe_delay:.1f}초 안전 휴식...", flush=True)

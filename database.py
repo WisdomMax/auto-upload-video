@@ -84,40 +84,48 @@ def init_db():
     )
     """)
     
-    # 6. ig_processed_users 테이블 생성 (영구 DB 유저 중복 차단 락)
+    # 6. ig_processed_users 테이블 생성 (게시물/릴스별 유저 중복 응답 방지 DB 락)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS ig_processed_users (
-        username TEXT PRIMARY KEY,
-        reel_id TEXT,
+        username TEXT NOT NULL,
+        reel_id TEXT NOT NULL,
         dm_sent INTEGER DEFAULT 0,
         reply_posted INTEGER DEFAULT 0,
-        processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (username, reel_id)
     )
     """)
     
     conn.commit()
     conn.close()
 
-def is_ig_user_processed(username: str) -> bool:
-    if not username:
+def is_ig_user_processed_for_reel(username: str, reel_id: str) -> bool:
+    if not username or not reel_id:
         return False
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM ig_processed_users WHERE LOWER(username) = LOWER(?)", (username.strip(),))
-    row = cursor.fetchone()
-    conn.close()
-    return row is not None
+    try:
+        cursor.execute("SELECT 1 FROM ig_processed_users WHERE LOWER(username) = LOWER(?) AND reel_id = ?", (username.strip(), reel_id.strip()))
+        row = cursor.fetchone()
+        conn.close()
+        return row is not None
+    except Exception:
+        conn.close()
+        return False
 
-def mark_ig_user_processed(username: str, reel_id: str = "", dm_sent: bool = True, reply_posted: bool = True):
-    if not username:
+def mark_ig_user_processed_for_reel(username: str, reel_id: str, dm_sent: bool = True, reply_posted: bool = True):
+    if not username or not reel_id:
         return
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-    INSERT OR REPLACE INTO ig_processed_users (username, reel_id, dm_sent, reply_posted, processed_at)
-    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-    """, (username.strip().lower(), reel_id, 1 if dm_sent else 0, 1 if reply_posted else 0))
-    conn.commit()
+    try:
+        cursor.execute("""
+        INSERT OR REPLACE INTO ig_processed_users (username, reel_id, dm_sent, reply_posted, processed_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """, (username.strip().lower(), reel_id.strip(), 1 if dm_sent else 0, 1 if reply_posted else 0))
+        conn.commit()
+    except Exception:
+        pass
     conn.close()
 
 # --- CRUD for Items ---
