@@ -142,19 +142,18 @@ async def run_daemon_check():
                     }
                 """)
 
-                if not unreplied_users:
+                # DB에 미응답된 진짜 신규 고객만 필터링
+                new_unreplied_users = [u for u in unreplied_users if not database.is_ig_user_processed_for_reel(u['username'], post_href)]
+
+                if not new_unreplied_users:
                     continue
 
-                print(f"  🔥 [{post_href}] 미응답 댓글 {len(unreplied_users)}건 감지: {[u['username'] for u in unreplied_users]}", flush=True)
+                print(f"  🔥 [{post_href}] 🎯 신규 미응답 댓글 {len(new_unreplied_users)}건 감지! 처리 시작: {[u['username'] for u in new_unreplied_users]}", flush=True)
 
-                for uinfo in unreplied_users:
+                for uinfo in new_unreplied_users:
                     uname = uinfo['username']
                     display_name = uinfo['display_name']
                     href = uinfo['href']
-
-                    if database.is_ig_user_processed_for_reel(uname, post_href):
-                        print(f"    ⏭️ [@{uname}] 님은 해당 릴스({post_href})에 이미 응답이 완결된 고객입니다. 중복 발송 차단 스킵!", flush=True)
-                        continue
 
                     print(f"    👉 @{uname} 님 [{post_href}] 릴스 신규 응답 (DM + 대댓글 + 팔로우) 진행 중...", flush=True)
 
