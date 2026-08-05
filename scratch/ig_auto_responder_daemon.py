@@ -6,6 +6,11 @@ from playwright.async_api import async_playwright
 
 
 async def run_daemon_check():
+    if is_quiet_hours():
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"🌙 [야간 휴식 모드 (21:00 ~ 07:00)] 현재 시각 {now_str}. 야간 시간에는 댓글/DM 발송을 100% 중단하고 휴식합니다.", flush=True)
+        return
+
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 🔍 [실시간 자동 응답 데몬] 전체 게시물(최신 릴스 포함) 신규 댓글 스캔 중...", flush=True)
     database.init_db()
 
@@ -311,8 +316,8 @@ daily_dm_count = 0
 processed_users_today = set()
 last_reset_date = datetime.now().strftime("%Y-%m-%d")
 
-QUIET_START_HOUR = 23
-QUIET_END_HOUR = 8
+QUIET_START_HOUR = 21  # 밤 9시 (21:00)
+QUIET_END_HOUR = 7    # 오전 7시 (07:00)
 
 def is_quiet_hours() -> bool:
     now_hour = datetime.now().hour
@@ -323,6 +328,12 @@ async def daemon_loop():
     print("🚀 [인스타그램 전체 게시물 동적 감지 자동 응답 데몬 구동]...", flush=True)
     while True:
         try:
+            if is_quiet_hours():
+                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                print(f"🌙 [야간 휴식 모드 (21:00 ~ 07:00)] 현재 시각 {now_str}. 야간 시간에는 댓글/DM 발송을 100% 중단하고 휴식합니다.", flush=True)
+                await asyncio.sleep(300)  # 5분 휴식 후 재확인
+                continue
+
             current_date = datetime.now().strftime("%Y-%m-%d")
             if current_date != last_reset_date:
                 daily_dm_count = 0
