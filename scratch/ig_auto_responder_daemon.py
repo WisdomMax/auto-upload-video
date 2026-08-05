@@ -282,6 +282,9 @@ async def run_daemon_check():
                                 await asyncio.sleep(3)
                                 print(f"      ✅ 💬 @{uname} 대댓글 작성 완료! (DM성공여부: {dm_success})", flush=True)
 
+                    # DB 락 기록 (팔로우 등 실패 여부 상관없이 무한 반복 완전 방지)
+                    database.mark_ig_user_processed_for_reel(uname, post_href, dm_success, True)
+
                     # 3. 프로필 이동 & 팔로우
                     profile_url = f"https://www.instagram.com{href}"
                     try:
@@ -295,8 +298,6 @@ async def run_daemon_check():
                     except:
                         pass
                     
-                    database.mark_ig_user_processed_for_reel(uname, post_href, dm_success, True)
-
                     safe_delay = random.uniform(15, 25)
                     print(f"      🛡️ [계정 보호] 다음 반응 전 {safe_delay:.1f}초 안전 휴식...", flush=True)
                     await asyncio.sleep(safe_delay)

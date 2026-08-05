@@ -99,13 +99,23 @@ def init_db():
     conn.commit()
     conn.close()
 
+def extract_reel_shortcode(reel_id: str) -> str:
+    if not reel_id:
+        return ""
+    import re
+    m = re.search(r'/reel(?:s)?/([^/?#]+)', str(reel_id))
+    if m:
+        return m.group(1).strip()
+    return str(reel_id).strip().strip('/')
+
 def is_ig_user_processed_for_reel(username: str, reel_id: str) -> bool:
     if not username or not reel_id:
         return False
+    shortcode = extract_reel_shortcode(reel_id)
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT 1 FROM ig_processed_users WHERE LOWER(username) = LOWER(?) AND reel_id = ?", (username.strip(), reel_id.strip()))
+        cursor.execute("SELECT 1 FROM ig_processed_users WHERE LOWER(username) = LOWER(?) AND reel_id = ?", (username.strip(), shortcode))
         row = cursor.fetchone()
         conn.close()
         return row is not None
@@ -116,13 +126,14 @@ def is_ig_user_processed_for_reel(username: str, reel_id: str) -> bool:
 def mark_ig_user_processed_for_reel(username: str, reel_id: str, dm_sent: bool = True, reply_posted: bool = True):
     if not username or not reel_id:
         return
+    shortcode = extract_reel_shortcode(reel_id)
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
         INSERT OR REPLACE INTO ig_processed_users (username, reel_id, dm_sent, reply_posted, processed_at)
         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-        """, (username.strip().lower(), reel_id.strip(), 1 if dm_sent else 0, 1 if reply_posted else 0))
+        """, (username.strip().lower(), shortcode, 1 if dm_sent else 0, 1 if reply_posted else 0))
         conn.commit()
     except Exception:
         pass
