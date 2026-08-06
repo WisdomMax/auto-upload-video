@@ -171,6 +171,8 @@ async def run_daemon_check():
 
                     # 1. DM이 아직 발송 안 된 유저인 경우 -> DM 4단계 분리 발송
                     if not status['dm_sent']:
+                        # ★ DM 발송 시작 직전 DB에 dm_sent=True 락을 먼저 설정하여 DM 중복 도배 100% 원천 차단!
+                        database.update_ig_user_dm_status(uname, post_href, True)
                         if daily_dm_count >= MAX_DAILY_DM:
                             print(f"      🛡️ [하루 안전 한도 달성] 오늘 DM {daily_dm_count}건 발송 완료.", flush=True)
                         else:
@@ -242,8 +244,6 @@ async def run_daemon_check():
 
                                     daily_dm_count += 1
                                     dm_success = True
-                                    # DM 성공 즉시 DB dm_sent 독립 갱신!
-                                    database.update_ig_user_dm_status(uname, post_href, True)
                                     print(f"      ✅ 📩 @{uname} DM 4단계 발송 성공! DB 갱신 (오늘 DM {daily_dm_count}/{MAX_DAILY_DM}건)", flush=True)
                             except Exception as e_dm:
                                 print(f"      ⚠️ DM 발송 예외: ({e_dm})", flush=True)
