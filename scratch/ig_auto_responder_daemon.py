@@ -150,6 +150,7 @@ async def run_daemon_check():
                 new_unreplied_users = []
                 for u in unreplied_users:
                     status = database.get_ig_user_status_for_reel(u['username'], post_href)
+                    # 대댓글도 안 달렸거나, DM도 안 간 경우에만 처리 대상
                     if not status['reply_posted'] or not status['dm_sent']:
                         new_unreplied_users.append((u, status))
 
@@ -244,7 +245,7 @@ async def run_daemon_check():
                             except Exception as e_dm:
                                 print(f"      ⚠️ DM 발송 예외: ({e_dm})", flush=True)
 
-                    # 2. 대댓글이 아직 작성 안 된 유저인 경우 -> 릴스로 이동하여 딱 1회만 대댓글 작성
+                    # 2. 대댓글이 아직 작성 안 된 유저인 경우에만 릴스로 이동하여 딱 1회 대댓글 작성
                     if not status['reply_posted']:
                         # 대댓글 작성 시작 전 즉시 DB 락 먼저 기록하여 중복 대댓글 100% 원천 차단!
                         database.update_ig_user_reply_status(uname, post_href, True)
@@ -288,6 +289,8 @@ async def run_daemon_check():
                                         print(f"      ✅ 💬 @{uname} 대댓글 1회 작성 완료! DB 갱신 (reply_posted=True)", flush=True)
                         except Exception as e_reply:
                             print(f"      ⚠️ 대댓글 작성 예외: {e_reply}", flush=True)
+                    else:
+                        print(f"      ℹ️ @{uname} 님은 이미 대댓글 작성이 완료되어 대댓글 작성을 완전히 스킵합니다.", flush=True)
 
                     # 3. 프로필 이동 & 팔로우
                     profile_url = f"https://www.instagram.com{href}"
