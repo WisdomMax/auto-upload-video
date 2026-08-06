@@ -135,12 +135,13 @@ def update_ig_user_dm_status(username: str, reel_id: str, dm_sent: bool):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT reply_posted FROM ig_processed_users WHERE username = ? AND reel_id = ?", (uname_clean, shortcode))
-        row = cursor.fetchone()
-        if row:
-            cursor.execute("UPDATE ig_processed_users SET dm_sent = ?, processed_at = CURRENT_TIMESTAMP WHERE username = ? AND reel_id = ?", (1 if dm_sent else 0, uname_clean, shortcode))
-        else:
-            cursor.execute("INSERT INTO ig_processed_users (username, reel_id, dm_sent, reply_posted) VALUES (?, ?, ?, 0)", (uname_clean, shortcode, 1 if dm_sent else 0))
+        cursor.execute("""
+        INSERT INTO ig_processed_users (username, reel_id, dm_sent, reply_posted, processed_at)
+        VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP)
+        ON CONFLICT(username, reel_id) DO UPDATE SET
+            dm_sent = excluded.dm_sent,
+            processed_at = CURRENT_TIMESTAMP
+        """, (uname_clean, shortcode, 1 if dm_sent else 0))
         conn.commit()
     except Exception as e:
         print(f"[DB Error update_ig_user_dm_status] {e}")
@@ -155,12 +156,13 @@ def update_ig_user_reply_status(username: str, reel_id: str, reply_posted: bool)
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT dm_sent FROM ig_processed_users WHERE username = ? AND reel_id = ?", (uname_clean, shortcode))
-        row = cursor.fetchone()
-        if row:
-            cursor.execute("UPDATE ig_processed_users SET reply_posted = ?, processed_at = CURRENT_TIMESTAMP WHERE username = ? AND reel_id = ?", (1 if reply_posted else 0, uname_clean, shortcode))
-        else:
-            cursor.execute("INSERT INTO ig_processed_users (username, reel_id, dm_sent, reply_posted) VALUES (?, ?, 0, ?)", (uname_clean, shortcode, 1 if reply_posted else 0))
+        cursor.execute("""
+        INSERT INTO ig_processed_users (username, reel_id, dm_sent, reply_posted, processed_at)
+        VALUES (?, ?, 0, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(username, reel_id) DO UPDATE SET
+            reply_posted = excluded.reply_posted,
+            processed_at = CURRENT_TIMESTAMP
+        """, (uname_clean, shortcode, 1 if reply_posted else 0))
         conn.commit()
     except Exception as e:
         print(f"[DB Error update_ig_user_reply_status] {e}")
