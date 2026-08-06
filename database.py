@@ -108,20 +108,68 @@ def extract_reel_shortcode(reel_id: str) -> str:
         return m.group(1).strip()
     return str(reel_id).strip().strip('/')
 
-def is_ig_user_processed_for_reel(username: str, reel_id: str) -> bool:
+def get_ig_user_status_for_reel(username: str, reel_id: str) -> dict:
+    """유저 및 릴스별 DM 발송 여부(dm_sent)와 대댓글 작성 여부(reply_posted)를 독립 조회"""
     if not username or not reel_id:
-        return False
+        return {"dm_sent": False, "reply_posted": False, "exists": False}
     shortcode = extract_reel_shortcode(reel_id)
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT 1 FROM ig_processed_users WHERE LOWER(username) = LOWER(?) AND reel_id = ?", (username.strip(), shortcode))
+        cursor.execute("SELECT dm_sent, reply_posted FROM ig_processed_users WHERE LOWER(username) = LOWER(?) AND reel_id = ?", (username.strip(), shortcode))
         row = cursor.fetchone()
         conn.close()
-        return row is not None
+        if row:
+            return {"dm_sent": bool(row['dm_sent']), "reply_posted": bool(row['reply_posted']), "exists": True}
+        return {"dm_sent": False, "reply_posted": False, "exists": False}
     except Exception:
         conn.close()
-        return False
+        return {"dm_sent": False, "reply_posted": False, "exists": False}
+
+def update_ig_user_dm_status(username: str, reel_id: str, dm_sent: bool):
+    """DM 발송 상태 독립적으로 DB에 기록/갱신"""
+    if not username or not reel_id:
+        return
+    shortcode = extract_reel_shortcode(reel_id)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+        INSERT INTO ig_processed_users (username, reel_id, dm_sent, reply_posted, processed_at)
+        VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP)
+        ON CONFLICT(username, reel_id) DO UPDATE SET
+            dm_sent = excluded.dm_sent,
+            processed_at = CURRENT_TIMESTAMP
+        """, (username.strip().lower(), shortcode, 1 if dm_sent else 0))
+        conn.commit()
+    except Exception as e:
+        print(f"[DB Error update_ig_user_dm_status] {e}")
+    conn.close()
+
+def update_ig_user_reply_status(username: str, reel_id: str, reply_posted: bool):
+    """대댓글 작성 상태 독립적으로 DB에 기록/갱신"""
+    if not username or not reel_id:
+        return
+    shortcode = extract_reel_shortcode(reel_id)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+        INSERT INTO ig_processed_users (username, reel_id, dm_sent, reply_posted, processed_at)
+        VALUES (?, ?, 0, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(username, reel_id) DO UPDATE SET
+            reply_posted = excluded.reply_posted,
+            processed_at = CURRENT_TIMESTAMP
+        """, (username.strip().lower(), shortcode, 1 if reply_posted else 0))
+        conn.commit()
+    except Exception as e:
+        print(f"[DB Error update_ig_user_reply_status] {e}")
+    conn.close()
+
+def is_ig_user_processed_for_reel(username: str, reel_id: str) -> bool:
+    status = get_ig_user_status_for_reel(username, reel_id)
+    # DM과 대댓글이 모두 완결된 경우 true
+    return status['dm_sent'] and status['reply_posted']
 
 def mark_ig_user_processed_for_reel(username: str, reel_id: str, dm_sent: bool = True, reply_posted: bool = True):
     if not username or not reel_id:
@@ -131,8 +179,12 @@ def mark_ig_user_processed_for_reel(username: str, reel_id: str, dm_sent: bool =
     cursor = conn.cursor()
     try:
         cursor.execute("""
-        INSERT OR REPLACE INTO ig_processed_users (username, reel_id, dm_sent, reply_posted, processed_at)
+        INSERT INTO ig_processed_users (username, reel_id, dm_sent, reply_posted, processed_at)
         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(username, reel_id) DO UPDATE SET
+            dm_sent = excluded.dm_sent,
+            reply_posted = excluded.reply_posted,
+            processed_at = CURRENT_TIMESTAMP
         """, (username.strip().lower(), shortcode, 1 if dm_sent else 0, 1 if reply_posted else 0))
         conn.commit()
     except Exception:

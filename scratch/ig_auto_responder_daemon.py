@@ -147,155 +147,151 @@ async def run_daemon_check():
                     }
                 """)
 
-                # DB에 미응답된 진짜 신규 고객만 필터링
-                new_unreplied_users = [u for u in unreplied_users if not database.is_ig_user_processed_for_reel(u['username'], post_href)]
+                # DB에 아직 처리 안 된 상태(DM 미전송 OR 대댓글 미작성)인 유저만 필터링
+                new_unreplied_users = []
+                for u in unreplied_users:
+                    status = database.get_ig_user_status_for_reel(u['username'], post_href)
+                    if not status['reply_posted'] or not status['dm_sent']:
+                        new_unreplied_users.append((u, status))
 
                 if not new_unreplied_users:
                     continue
 
-                print(f"  🔥 [{post_href}] 🎯 신규 미응답 댓글 {len(new_unreplied_users)}건 감지! 처리 시작: {[u['username'] for u in new_unreplied_users]}", flush=True)
+                print(f"  🔥 [{post_href}] 🎯 신규 미응답 댓글 {len(new_unreplied_users)}건 감지! 처리 시작: {[u[0]['username'] for u in new_unreplied_users]}", flush=True)
 
-                for uinfo in new_unreplied_users:
+                for uinfo, status in new_unreplied_users:
                     uname = uinfo['username']
                     display_name = uinfo['display_name']
                     href = uinfo['href']
 
-                    print(f"    👉 @{uname} 님 [{post_href}] 릴스 신규 응답 (DM + 대댓글 + 팔로우) 진행 중...", flush=True)
+                    print(f"    👉 @{uname} 님 [{post_href}] 릴스 개별 상태 기반 응답 진행 중 (DM완료:{status['dm_sent']}, 대댓글완료:{status['reply_posted']})...", flush=True)
 
-                    # ★ 핵심: 중복 대댓글 100% 방지를 위해 진입 즉시 DB 락 먼저 설정!
-                    database.mark_ig_user_processed_for_reel(uname, post_href, dm_sent=False, reply_posted=True)
-
-                    dm_success = False
+                    dm_success = status['dm_sent']
                     global daily_dm_count
-                    
-                    # 1. 1:1 비밀 DM 4단계 메시지 발송
-                    if daily_dm_count >= MAX_DAILY_DM:
-                        print(f"      🛡️ [하루 안전 한도 달성] 오늘 DM {daily_dm_count}건 발송 완료.", flush=True)
-                    else:
+
+                    # 1. DM이 아직 발송 안 된 유저인 경우 -> DM 4단계 분리 발송
+                    if not status['dm_sent']:
+                        if daily_dm_count >= MAX_DAILY_DM:
+                            print(f"      🛡️ [하루 안전 한도 달성] 오늘 DM {daily_dm_count}건 발송 완료.", flush=True)
+                        else:
+                            try:
+                                await page.goto("https://www.instagram.com/direct/inbox/", wait_until="domcontentloaded")
+                                await asyncio.sleep(2.5)
+
+                                new_msg_btn = page.locator("svg[aria-label='New message'], svg[aria-label='새 메시지'], div[role='button']:has-text('New message'), button:has-text('New message')").first
+                                if await new_msg_btn.is_visible():
+                                    await new_msg_btn.click()
+                                    await asyncio.sleep(2)
+
+                                inp = page.locator('input[name="queryBox"], input[name="searchInput"], input[placeholder*="Search"], input[placeholder*="검색"]').first
+                                SYSTEM_BLACKLIST = {
+                                    'reels', 'directinbox', 'explore', 'accountsedit', 'legalprivacy', 'legalterms',
+                                    'explorelocations', 'popular', 'weblite', 'accountsmeta_verified', 'about',
+                                    'help', 'press', 'api', 'jobs', 'privacy', 'terms', 'momdad_style'
+                                }
+                                if uname not in SYSTEM_BLACKLIST and not uname.startswith('accounts') and await inp.is_visible():
+                                    await inp.fill(uname)
+                                    await asyncio.sleep(2)
+
+                                    # 라디오/체크박스 인풋 직접 클릭
+                                    await page.evaluate(f"""
+                                        () => {{
+                                            const inputs = Array.from(document.querySelectorAll('input[type="radio"], input[type="checkbox"]'));
+                                            if (inputs.length > 0) {{ inputs[0].click(); return; }}
+                                            const buttons = Array.from(document.querySelectorAll('div[role="button"]'));
+                                            const userBtn = buttons.find(b => b.textContent.includes('{uname}'));
+                                            if (userBtn) userBtn.click();
+                                        }}
+                                    """)
+                                    await asyncio.sleep(1.2)
+
+                                    await page.evaluate("""
+                                        () => {
+                                            const btns = Array.from(document.querySelectorAll('div[role="button"], button'));
+                                            const chatBtn = btns.find(b => {
+                                                const txt = b.textContent.trim();
+                                                return (txt === 'Chat' || txt === 'Next' || txt === '채팅' || txt === '다음') && b.offsetWidth > 0;
+                                            });
+                                            if (chatBtn) chatBtn.click();
+                                        }
+                                    """)
+                                    await asyncio.sleep(3.5)
+
+                                    dm_input = page.locator('div[role="textbox"], textarea, div[contenteditable="true"], p[aria-label*="Message"], p[aria-label*="메시지"]').first
+                                    await dm_input.wait_for(timeout=7000)
+                                    
+                                    await dm_input.click()
+                                    await page.keyboard.type(f"안녕하세요 어머님! 💕 요청하신 {product_no}번 상품 구매 링크입니다!")
+                                    await page.keyboard.press("Enter")
+                                    await asyncio.sleep(1.2)
+
+                                    await dm_input.click()
+                                    await page.keyboard.type(f"https://6070.piella.shop/p/{product_no}")
+                                    await page.keyboard.press("Enter")
+                                    await asyncio.sleep(1.2)
+
+                                    await dm_input.click()
+                                    await page.keyboard.type("더 많은 예쁜 옷들은 여기서 구경하세요 👇")
+                                    await page.keyboard.press("Enter")
+                                    await asyncio.sleep(1.2)
+
+                                    await dm_input.click()
+                                    await page.keyboard.type("https://6070.piella.shop")
+                                    await page.keyboard.press("Enter")
+                                    await asyncio.sleep(2)
+
+                                    daily_dm_count += 1
+                                    dm_success = True
+                                    # DM 성공 즉시 DB dm_sent 독립 갱신!
+                                    database.update_ig_user_dm_status(uname, post_href, True)
+                                    print(f"      ✅ 📩 @{uname} DM 4단계 발송 성공! DB 갱신 (오늘 DM {daily_dm_count}/{MAX_DAILY_DM}건)", flush=True)
+                            except Exception as e_dm:
+                                print(f"      ⚠️ DM 발송 예외: ({e_dm})", flush=True)
+
+                    # 2. 대댓글이 아직 작성 안 된 유저인 경우 -> 릴스로 이동하여 딱 1회만 대댓글 작성
+                    if not status['reply_posted']:
+                        # 대댓글 작성 시작 전 즉시 DB 락 먼저 기록하여 중복 대댓글 100% 원천 차단!
+                        database.update_ig_user_reply_status(uname, post_href, True)
                         try:
-                            await page.goto("https://www.instagram.com/direct/inbox/", wait_until="domcontentloaded")
+                            await page.goto(reel_url, wait_until="domcontentloaded")
                             await asyncio.sleep(2.5)
 
-                            new_msg_btn = page.locator("svg[aria-label='New message'], svg[aria-label='새 메시지'], div[role='button']:has-text('New message'), button:has-text('New message')").first
-                            if await new_msg_btn.is_visible():
-                                await new_msg_btn.click()
-                                await asyncio.sleep(2)
+                            final_reply_msg = f"@{uname} 어머님 안녕하세요! 💕 문의하신 {product_no}번 상품 안내를 DM으로 보내드렸습니다! 메시지함을 확인해 주세요! ✨"
 
-                            inp = page.locator('input[name="queryBox"], input[name="searchInput"], input[placeholder*="Search"], input[placeholder*="검색"]').first
-                            SYSTEM_BLACKLIST = {
-                                'reels', 'directinbox', 'explore', 'accountsedit', 'legalprivacy', 'legalterms',
-                                'explorelocations', 'popular', 'weblite', 'accountsmeta_verified', 'about',
-                                'help', 'press', 'api', 'jobs', 'privacy', 'terms', 'momdad_style'
-                            }
-                            if uname not in SYSTEM_BLACKLIST and not uname.startswith('accounts') and await inp.is_visible():
-                                await inp.fill(uname)
-                                await asyncio.sleep(2)
-
-                                # 라디오/체크박스 인풋 직접 클릭 (100% 유저 선택 보장)
-                                user_click = await page.evaluate(f"""
-                                    () => {{
-                                        const inputs = Array.from(document.querySelectorAll('input[type="radio"], input[type="checkbox"]'));
-                                        if (inputs.length > 0) {{
-                                            inputs[0].click();
-                                            return 'clicked_input';
-                                        }}
-                                        const buttons = Array.from(document.querySelectorAll('div[role="button"]'));
-                                        const userBtn = buttons.find(b => b.textContent.includes('{uname}'));
-                                        if (userBtn) {{
-                                            userBtn.click();
-                                            return 'clicked_btn';
-                                        }}
-                                        return 'none';
+                            clicked = await page.evaluate(f"""
+                                () => {{
+                                    const links = Array.from(document.querySelectorAll('a[href*="/{uname}/"]'));
+                                    if (links.length === 0) return false;
+                                    let container = links[0];
+                                    for (let i = 0; i < 6; i++) {{
+                                        if (container.parentElement) container = container.parentElement;
                                     }}
-                                """)
-                                await asyncio.sleep(1.2)
-
-                                # Chat / Next / 채팅 / 다음 버튼 클릭
-                                await page.evaluate("""
-                                    () => {
-                                        const btns = Array.from(document.querySelectorAll('div[role="button"], button'));
-                                        const chatBtn = btns.find(b => {
-                                            const txt = b.textContent.trim();
-                                            return (txt === 'Chat' || txt === 'Next' || txt === '채팅' || txt === '다음') && b.offsetWidth > 0;
-                                        });
-                                        if (chatBtn) chatBtn.click();
-                                    }
-                                """)
-                                await asyncio.sleep(3.5)
-
-                                dm_input = page.locator('div[role="textbox"], textarea, div[contenteditable="true"], p[aria-label*="Message"], p[aria-label*="메시지"]').first
-                                await dm_input.wait_for(timeout=7000)
-                                
-                                await dm_input.click()
-                                await page.keyboard.type(f"안녕하세요 어머님! 💕 요청하신 {product_no}번 상품 구매 링크입니다!")
-                                await page.keyboard.press("Enter")
-                                await asyncio.sleep(1.2)
-
-                                await dm_input.click()
-                                await page.keyboard.type(f"https://6070.piella.shop/p/{product_no}")
-                                await page.keyboard.press("Enter")
-                                await asyncio.sleep(1.2)
-
-                                await dm_input.click()
-                                await page.keyboard.type("더 많은 예쁜 옷들은 여기서 구경하세요 👇")
-                                await page.keyboard.press("Enter")
-                                await asyncio.sleep(1.2)
-
-                                await dm_input.click()
-                                await page.keyboard.type("https://6070.piella.shop")
-                                await page.keyboard.press("Enter")
-                                await asyncio.sleep(2)
-
-                                daily_dm_count += 1
-                                dm_success = True
-                                print(f"      ✅ 📩 DM 4단계 분리 메시지 100% 발송 성공! (오늘 총 {daily_dm_count}/{MAX_DAILY_DM}건)", flush=True)
-                        except Exception as e_dm:
-                            print(f"      ⚠️ DM 발송 예외: ({e_dm})", flush=True)
-
-                    # 2. 릴스 이동 및 공개 대댓글 딱 1회만 작성
-                    try:
-                        await page.goto(reel_url, wait_until="domcontentloaded")
-                        await asyncio.sleep(2.5)
-
-                        final_reply_msg = f"@{uname} 어머님 안녕하세요! 💕 문의하신 {product_no}번 상품 안내를 DM으로 보내드렸습니다! 메시지함을 확인해 주세요! ✨"
-
-                        clicked = await page.evaluate(f"""
-                            () => {{
-                                const links = Array.from(document.querySelectorAll('a[href*="/{uname}/"]'));
-                                if (links.length === 0) return false;
-                                let container = links[0];
-                                for (let i = 0; i < 6; i++) {{
-                                    if (container.parentElement) container = container.parentElement;
+                                    const replyBtn = Array.from(container.querySelectorAll('div, span, button')).find(el => 
+                                        (el.textContent.trim() === '답글 달기' || el.textContent.trim() === 'Reply') && el.offsetWidth > 0
+                                    );
+                                    if (replyBtn) {{
+                                        replyBtn.click();
+                                        return true;
+                                    }}
+                                    return false;
                                 }}
-                                const replyBtn = Array.from(container.querySelectorAll('div, span, button')).find(el => 
-                                    (el.textContent.trim() === '답글 달기' || el.textContent.trim() === 'Reply') && el.offsetWidth > 0
-                                );
-                                if (replyBtn) {{
-                                    replyBtn.click();
-                                    return true;
-                                }}
-                                return false;
-                            }}
-                        """)
+                            """)
 
-                        if clicked:
-                            await asyncio.sleep(1.5)
-                            input_box = page.locator("textarea, div[role='textbox']").first
-                            if await input_box.is_visible():
-                                await input_box.click()
-                                await asyncio.sleep(0.5)
-                                await input_box.fill(final_reply_msg)
-                                await asyncio.sleep(1)
-                                post_btn = page.locator("button:has-text('게시'), button:has-text('Post'), div[role='button']:has-text('게시'), div[role='button']:has-text('Post')").first
-                                if await post_btn.is_visible():
-                                    await post_btn.click(force=True)
-                                    await asyncio.sleep(3)
-                                    print(f"      ✅ 💬 @{uname} 대댓글 1회 작성 완료! (DM성공여부: {dm_success})", flush=True)
-                    except Exception as e_reply:
-                        print(f"      ⚠️ 대댓글 작성 예외: {e_reply}", flush=True)
-
-                    # DB 상태 최종 갱신
-                    database.mark_ig_user_processed_for_reel(uname, post_href, dm_sent=dm_success, reply_posted=True)
+                            if clicked:
+                                await asyncio.sleep(1.5)
+                                input_box = page.locator("textarea, div[role='textbox']").first
+                                if await input_box.is_visible():
+                                    await input_box.click()
+                                    await asyncio.sleep(0.5)
+                                    await input_box.fill(final_reply_msg)
+                                    await asyncio.sleep(1)
+                                    post_btn = page.locator("button:has-text('게시'), button:has-text('Post'), div[role='button']:has-text('게시'), div[role='button']:has-text('Post')").first
+                                    if await post_btn.is_visible():
+                                        await post_btn.click(force=True)
+                                        await asyncio.sleep(3)
+                                        print(f"      ✅ 💬 @{uname} 대댓글 1회 작성 완료! DB 갱신 (reply_posted=True)", flush=True)
+                        except Exception as e_reply:
+                            print(f"      ⚠️ 대댓글 작성 예외: {e_reply}", flush=True)
 
                     # 3. 프로필 이동 & 팔로우
                     profile_url = f"https://www.instagram.com{href}"
