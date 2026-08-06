@@ -162,11 +162,15 @@ async def run_daemon_check():
 
                     print(f"    👉 @{uname} 님 [{post_href}] 릴스 신규 응답 (DM + 대댓글 + 팔로우) 진행 중...", flush=True)
 
+                    # ★ 핵심: 중복 대댓글 100% 방지를 위해 진입 즉시 DB 락 먼저 설정!
+                    database.mark_ig_user_processed_for_reel(uname, post_href, dm_sent=False, reply_posted=True)
+
                     dm_success = False
                     global daily_dm_count
                     
+                    # 1. 1:1 비밀 DM 4단계 메시지 발송
                     if daily_dm_count >= MAX_DAILY_DM:
-                        print(f"      🛡️ [하루 안전 한도 달성] 오늘 DM {daily_dm_count}건 발송 완료. DM 대신 대댓글에 직행 링크를 작성합니다.", flush=True)
+                        print(f"      🛡️ [하루 안전 한도 달성] 오늘 DM {daily_dm_count}건 발송 완료.", flush=True)
                     else:
                         try:
                             await page.goto("https://www.instagram.com/direct/inbox/", wait_until="domcontentloaded")
@@ -246,10 +250,52 @@ async def run_daemon_check():
                                 dm_success = True
                                 print(f"      ✅ 📩 DM 4단계 분리 메시지 100% 발송 성공! (오늘 총 {daily_dm_count}/{MAX_DAILY_DM}건)", flush=True)
                         except Exception as e_dm:
-                            print(f"      ⚠️ DM 발송 실패/스킵 ({e_dm})", flush=True)
+                            print(f"      ⚠️ DM 발송 예외: ({e_dm})", flush=True)
 
-                    # DB 락 기록 (공개 대댓글 전면 폐지 -> 1:1 비밀 DM만 1회 전송 후 100% 락)
-                    database.mark_ig_user_processed_for_reel(uname, post_href, dm_success, False)
+                    # 2. 릴스 이동 및 공개 대댓글 딱 1회만 작성
+                    try:
+                        await page.goto(reel_url, wait_until="domcontentloaded")
+                        await asyncio.sleep(2.5)
+
+                        final_reply_msg = f"@{uname} 어머님 안녕하세요! 💕 문의하신 {product_no}번 상품 안내를 DM으로 보내드렸습니다! 메시지함을 확인해 주세요! ✨"
+
+                        clicked = await page.evaluate(f"""
+                            () => {{
+                                const links = Array.from(document.querySelectorAll('a[href*="/{uname}/"]'));
+                                if (links.length === 0) return false;
+                                let container = links[0];
+                                for (let i = 0; i < 6; i++) {{
+                                    if (container.parentElement) container = container.parentElement;
+                                }}
+                                const replyBtn = Array.from(container.querySelectorAll('div, span, button')).find(el => 
+                                    (el.textContent.trim() === '답글 달기' || el.textContent.trim() === 'Reply') && el.offsetWidth > 0
+                                );
+                                if (replyBtn) {{
+                                    replyBtn.click();
+                                    return true;
+                                }}
+                                return false;
+                            }}
+                        """)
+
+                        if clicked:
+                            await asyncio.sleep(1.5)
+                            input_box = page.locator("textarea, div[role='textbox']").first
+                            if await input_box.is_visible():
+                                await input_box.click()
+                                await asyncio.sleep(0.5)
+                                await input_box.fill(final_reply_msg)
+                                await asyncio.sleep(1)
+                                post_btn = page.locator("button:has-text('게시'), button:has-text('Post'), div[role='button']:has-text('게시'), div[role='button']:has-text('Post')").first
+                                if await post_btn.is_visible():
+                                    await post_btn.click(force=True)
+                                    await asyncio.sleep(3)
+                                    print(f"      ✅ 💬 @{uname} 대댓글 1회 작성 완료! (DM성공여부: {dm_success})", flush=True)
+                    except Exception as e_reply:
+                        print(f"      ⚠️ 대댓글 작성 예외: {e_reply}", flush=True)
+
+                    # DB 상태 최종 갱신
+                    database.mark_ig_user_processed_for_reel(uname, post_href, dm_sent=dm_success, reply_posted=True)
 
                     # 3. 프로필 이동 & 팔로우
                     profile_url = f"https://www.instagram.com{href}"
