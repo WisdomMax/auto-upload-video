@@ -144,7 +144,22 @@ async def verify_webhook(request: Request):
 async def receive_webhook(request: Request):
     try:
         body = await request.json()
-        logger.info(f"📩 Webhook Event Received: {json.dumps(body)}")
+        logger.info(f"📩 Meta Webhook Event Received: {json.dumps(body)}")
+        
+        # Meta 인스타그램 댓글 이벤트 파싱 및 실시간 처리 태스크 생성
+        entries = body.get("entry", [])
+        for entry in entries:
+            changes = entry.get("changes", [])
+            for change in changes:
+                value = change.get("value", {})
+                field = change.get("field", "")
+                if field == "comments":
+                    from_user = value.get("from", {}).get("username")
+                    media_id = value.get("media", {}).get("id")
+                    logger.info(f"⚡ [Meta Webhook 감지] 유저: @{from_user}, 미디어ID: {media_id}")
+                    # 백그라운드 태스크로 즉시 자동 응답 트리거
+                    from scratch.ig_auto_responder_daemon import run_daemon_check
+                    asyncio.create_task(run_daemon_check())
         return JSONResponse(content={"status": "ok"})
     except Exception as e:
         logger.error(f"Webhook process error: {e}")
