@@ -189,7 +189,8 @@ async def run_daemon_check():
                                 SYSTEM_BLACKLIST = {
                                     'reels', 'directinbox', 'explore', 'accountsedit', 'legalprivacy', 'legalterms',
                                     'explorelocations', 'popular', 'weblite', 'accountsmeta_verified', 'about',
-                                    'help', 'press', 'api', 'jobs', 'privacy', 'terms', 'momdad_style'
+                                    'help', 'press', 'api', 'jobs', 'privacy', 'terms', 'momdad_style',
+                                    'amariah1k', 'amariah'
                                 }
                                 if uname not in SYSTEM_BLACKLIST and not uname.startswith('accounts') and await inp.is_visible():
                                     await inp.fill(uname)
