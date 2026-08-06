@@ -62,10 +62,8 @@ async def run_daemon_check():
             except Exception as e_tab:
                 print(f"⚠️ [탭 수집 예외] {target_url}: {e_tab}", flush=True)
 
-        posts = collected_posts
-        print(f"📋 프로필 전체 게시물/릴스 {len(posts)}개 100% 탐색 감지 중 (최신순): {posts}", flush=True)
-
-        for p_idx, post_href in enumerate(posts):
+        # 실시간 모니터링: 방금 올라온 최신 릴스 2개만 집중 모니터링 (과거 30개 반복 루프 중단!)
+        for p_idx, post_href in enumerate(posts[:2]):
             try:
                 reel_url = f"https://www.instagram.com{post_href}"
                 await page.goto(reel_url, wait_until="domcontentloaded")
@@ -239,10 +237,6 @@ async def run_daemon_check():
                                     await asyncio.sleep(1.2)
 
                                     await dm_input.click()
-                                    await page.keyboard.type("https://6070.piella.shop")
-                                    await page.keyboard.press("Enter")
-                                    await asyncio.sleep(2)
-
                                     daily_dm_count += 1
                                     dm_success = True
                                     print(f"      ✅ 📩 @{uname} DM 4단계 발송 성공! DB 갱신 (오늘 DM {daily_dm_count}/{MAX_DAILY_DM}건)", flush=True)
