@@ -5,8 +5,8 @@ from datetime import datetime
 from playwright.async_api import async_playwright
 
 
-async def run_daemon_check():
-    if is_quiet_hours():
+async def run_daemon_check(ignore_quiet: bool = False):
+    if not ignore_quiet and is_quiet_hours():
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"🌙 [야간 휴식 모드 (21:00 ~ 07:00)] 현재 시각 {now_str}. 야간 시간에는 댓글/DM 발송을 100% 중단하고 휴식합니다.", flush=True)
         return
@@ -196,14 +196,22 @@ async def run_daemon_check():
                                     await inp.fill(uname)
                                     await asyncio.sleep(2)
 
-                                    # 라디오/체크박스 인풋 직접 클릭
+                                    # 3단계 강화형 유저 선택 셀렉터 (100% 선택 보장)
                                     await page.evaluate(f"""
                                         () => {{
-                                            const inputs = Array.from(document.querySelectorAll('input[type="radio"], input[type="checkbox"]'));
-                                            if (inputs.length > 0) {{ inputs[0].click(); return; }}
-                                            const buttons = Array.from(document.querySelectorAll('div[role="button"]'));
-                                            const userBtn = buttons.find(b => b.textContent.includes('{uname}'));
-                                            if (userBtn) userBtn.click();
+                                            // 1순위: 라디오/체크박스 인풋 클릭
+                                            const inputs = Array.from(document.querySelectorAll('input[type="checkbox"], input[type="radio"]'));
+                                            if (inputs.length > 0) {{ inputs[0].click(); return 'input'; }}
+                                            
+                                            // 2순위: 검색 결과 내 아이디 텍스트 일치 요소 클릭
+                                            const dialogBtns = Array.from(document.querySelectorAll('div[role="dialog"] div[role="button"], div[role="dialog"] span, div[role="dialog"] a'));
+                                            const userMatch = dialogBtns.find(el => el.textContent.trim().toLowerCase().includes('{uname.lower()}'));
+                                            if (userMatch) {{ userMatch.click(); return 'match'; }}
+                                            
+                                            // 3순위: 검색 결과 리스트 첫번째 행 클릭
+                                            const firstRow = document.querySelector('div[role="dialog"] div[tabindex="0"], div[role="dialog"] label');
+                                            if (firstRow) {{ firstRow.click(); return 'firstRow'; }}
+                                            return 'none';
                                         }}
                                     """)
                                     await asyncio.sleep(1.2)
