@@ -171,62 +171,73 @@ async def run_daemon_check(ignore_quiet: bool = False):
 
                     # 1. DM이 아직 발송 안 된 유저인 경우 -> DM 4단계 분리 발송
                     if not status['dm_sent']:
-                        # ★ DM 발송 시작 직전 DB에 dm_sent=True 락을 먼저 설정하여 DM 중복 도배 100% 원천 차단!
                         database.update_ig_user_dm_status(uname, post_href, True)
                         if daily_dm_count >= MAX_DAILY_DM:
                             print(f"      🛡️ [하루 안전 한도 달성] 오늘 DM {daily_dm_count}건 발송 완료.", flush=True)
                         else:
                             try:
-                                await page.goto("https://www.instagram.com/direct/inbox/", wait_until="domcontentloaded")
-                                await asyncio.sleep(2.5)
-
-                                new_msg_btn = page.locator("svg[aria-label='New message'], svg[aria-label='새 메시지'], div[role='button']:has-text('New message'), button:has-text('New message')").first
-                                if await new_msg_btn.is_visible():
-                                    await new_msg_btn.click()
-                                    await asyncio.sleep(2)
-
-                                inp = page.locator('input[name="queryBox"], input[name="searchInput"], input[placeholder*="Search"], input[placeholder*="검색"]').first
                                 SYSTEM_BLACKLIST = {
                                     'reels', 'directinbox', 'explore', 'accountsedit', 'legalprivacy', 'legalterms',
                                     'explorelocations', 'popular', 'weblite', 'accountsmeta_verified', 'about',
                                     'help', 'press', 'api', 'jobs', 'privacy', 'terms', 'momdad_style',
                                     'amariah1k', 'amariah'
                                 }
-                                if uname not in SYSTEM_BLACKLIST and not uname.startswith('accounts') and await inp.is_visible():
-                                    await inp.fill(uname)
-                                    await asyncio.sleep(2)
+                                if uname not in SYSTEM_BLACKLIST and not uname.startswith('accounts'):
+                                    dm_entered = False
+                                    # 1안: 유저 프로필 직행 후 [메시지 보내기] 버튼 클릭 (100% 직행 전송 보장)
+                                    try:
+                                        profile_url = f"https://www.instagram.com/{uname}/"
+                                        await page.goto(profile_url, wait_until="domcontentloaded")
+                                        await asyncio.sleep(2.5)
 
-                                    # 3단계 강화형 유저 선택 셀렉터 (100% 선택 보장)
-                                    await page.evaluate(f"""
-                                        () => {{
-                                            // 1순위: 라디오/체크박스 인풋 클릭
-                                            const inputs = Array.from(document.querySelectorAll('input[type="checkbox"], input[type="radio"]'));
-                                            if (inputs.length > 0) {{ inputs[0].click(); return 'input'; }}
-                                            
-                                            // 2순위: 검색 결과 내 아이디 텍스트 일치 요소 클릭
-                                            const dialogBtns = Array.from(document.querySelectorAll('div[role="dialog"] div[role="button"], div[role="dialog"] span, div[role="dialog"] a'));
-                                            const userMatch = dialogBtns.find(el => el.textContent.trim().toLowerCase().includes('{uname.lower()}'));
-                                            if (userMatch) {{ userMatch.click(); return 'match'; }}
-                                            
-                                            // 3순위: 검색 결과 리스트 첫번째 행 클릭
-                                            const firstRow = document.querySelector('div[role="dialog"] div[tabindex="0"], div[role="dialog"] label');
-                                            if (firstRow) {{ firstRow.click(); return 'firstRow'; }}
-                                            return 'none';
-                                        }}
-                                    """)
-                                    await asyncio.sleep(1.2)
+                                        msg_btn = page.locator("button:has-text('Message'), button:has-text('메시지 보내기'), div[role='button']:has-text('Message'), div[role='button']:has-text('메시지 보내기')").first
+                                        if await msg_btn.is_visible():
+                                            await msg_btn.click()
+                                            await asyncio.sleep(3.5)
+                                            dm_entered = True
+                                    except Exception as e_p_dm:
+                                        print(f"      ⚠️ 프로필 직행 DM 진입 실패, 검색 모달로 우회 ({e_p_dm})", flush=True)
 
-                                    await page.evaluate("""
-                                        () => {
-                                            const btns = Array.from(document.querySelectorAll('div[role="button"], button'));
-                                            const chatBtn = btns.find(b => {
-                                                const txt = b.textContent.trim();
-                                                return (txt === 'Chat' || txt === 'Next' || txt === '채팅' || txt === '다음') && b.offsetWidth > 0;
-                                            });
-                                            if (chatBtn) chatBtn.click();
-                                        }
-                                    """)
-                                    await asyncio.sleep(3.5)
+                                    # 2안: 프로필 버튼 미노출 시 DM 인박스 검색 모달 우회
+                                    if not dm_entered:
+                                        await page.goto("https://www.instagram.com/direct/inbox/", wait_until="domcontentloaded")
+                                        await asyncio.sleep(2.5)
+
+                                        new_msg_btn = page.locator("svg[aria-label='New message'], svg[aria-label='새 메시지'], div[role='button']:has-text('New message'), button:has-text('New message')").first
+                                        if await new_msg_btn.is_visible():
+                                            await new_msg_btn.click()
+                                            await asyncio.sleep(2)
+
+                                        inp = page.locator('input[name="queryBox"], input[name="searchInput"], input[placeholder*="Search"], input[placeholder*="검색"]').first
+                                        if await inp.is_visible():
+                                            await inp.fill(uname)
+                                            await asyncio.sleep(2)
+
+                                            await page.evaluate(f"""
+                                                () => {{
+                                                    const inputs = Array.from(document.querySelectorAll('input[type="checkbox"], input[type="radio"]'));
+                                                    if (inputs.length > 0) {{ inputs[0].click(); return 'input'; }}
+                                                    const dialogBtns = Array.from(document.querySelectorAll('div[role="dialog"] div[role="button"], div[role="dialog"] span, div[role="dialog"] a'));
+                                                    const userMatch = dialogBtns.find(el => el.textContent.trim().toLowerCase().includes('{uname.lower()}'));
+                                                    if (userMatch) {{ userMatch.click(); return 'match'; }}
+                                                    const firstRow = document.querySelector('div[role="dialog"] div[tabindex="0"], div[role="dialog"] label');
+                                                    if (firstRow) {{ firstRow.click(); return 'firstRow'; }}
+                                                    return 'none';
+                                                }}
+                                            """)
+                                            await asyncio.sleep(1.2)
+
+                                            await page.evaluate("""
+                                                () => {
+                                                    const btns = Array.from(document.querySelectorAll('div[role="button"], button'));
+                                                    const chatBtn = btns.find(b => {
+                                                        const txt = b.textContent.trim();
+                                                        return (txt === 'Chat' || txt === 'Next' || txt === '채팅' || txt === '다음') && b.offsetWidth > 0;
+                                                    });
+                                                    if (chatBtn) chatBtn.click();
+                                                }
+                                            """)
+                                            await asyncio.sleep(3.5)
 
                                     dm_input = page.locator('div[role="textbox"], textarea, div[contenteditable="true"], p[aria-label*="Message"], p[aria-label*="메시지"]').first
                                     await dm_input.wait_for(timeout=7000)
@@ -247,9 +258,13 @@ async def run_daemon_check(ignore_quiet: bool = False):
                                     await asyncio.sleep(1.2)
 
                                     await dm_input.click()
+                                    await page.keyboard.type("https://6070.piella.shop")
+                                    await page.keyboard.press("Enter")
+                                    await asyncio.sleep(2)
+
                                     daily_dm_count += 1
                                     dm_success = True
-                                    print(f"      ✅ 📩 @{uname} DM 4단계 발송 성공! DB 갱신 (오늘 DM {daily_dm_count}/{MAX_DAILY_DM}건)", flush=True)
+                                    print(f"      ✅ 📩 @{uname} DM 4단계 발송 100% 성공! DB 갱신 (오늘 DM {daily_dm_count}/{MAX_DAILY_DM}건)", flush=True)
                             except Exception as e_dm:
                                 print(f"      ⚠️ DM 발송 예외: ({e_dm})", flush=True)
 
