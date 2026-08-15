@@ -69,7 +69,7 @@ async def run_tiktok_daemon_check(ignore_quiet: bool = False):
             """)
 
             if not video_hrefs:
-                print("  ℹ️ 틱톡 최신 영상 목록을 찾지 못했습니다. (로그인 세션 확인 필요)", flush=True)
+                print("  ℹ️ 틱톡 최신 영상 목록을 찾지 못했습니다.", flush=True)
                 await context.close()
                 return
 
@@ -85,6 +85,17 @@ async def run_tiktok_daemon_check(ignore_quiet: bool = False):
                 try:
                     await page.goto(video_url, wait_until="domcontentloaded")
                     await asyncio.sleep(3.5)
+
+                    # Comments 탭 클릭 활성화
+                    await page.evaluate("""
+                        () => {
+                            const tabs = Array.from(document.querySelectorAll('div, span, p')).filter(el => 
+                                el.textContent.trim().toLowerCase() === 'comments' || el.textContent.trim().toLowerCase() === '댓글'
+                            );
+                            if (tabs.length > 0) tabs[0].click();
+                        }
+                    """)
+                    await asyncio.sleep(2)
 
                     # 영상 설명/캡션에서 상품 번호 추출
                     caption_text = await page.evaluate("""
@@ -102,8 +113,8 @@ async def run_tiktok_daemon_check(ignore_quiet: bool = False):
                     # 댓글 목록 및 미응답 유저 탐색
                     unreplied_users = await page.evaluate("""
                         () => {
-                            const comments = Array.from(document.querySelectorAll('[data-e2e="comment-level-1"], [class*="DivCommentItemContainer"]'));
-                            const blacklist = ['momdad_style', 'tiktok', 'admin', 'user'];
+                            const comments = Array.from(document.querySelectorAll('[data-e2e="comment-level-1"], [class*="DivCommentItemContainer"], [class*="CommentItem"]'));
+                            const blacklist = ['momdad_style', 'tiktok', 'admin', 'user', '엄마아빠 패션 다이어리'];
                             const results = [];
 
                             for (const c of comments) {
@@ -157,7 +168,7 @@ async def run_tiktok_daemon_check(ignore_quiet: bool = False):
                             # 해당 유저 댓글의 답글(Reply) 버튼 클릭
                             reply_clicked = await page.evaluate(f"""
                                 () => {{
-                                    const comments = Array.from(document.querySelectorAll('[data-e2e="comment-level-1"], [class*="DivCommentItemContainer"]'));
+                                    const comments = Array.from(document.querySelectorAll('[data-e2e="comment-level-1"], [class*="DivCommentItemContainer"], [class*="CommentItem"]'));
                                     for (const c of comments) {{
                                         const userAnchor = c.querySelector('a[href*="/@{uname}"]');
                                         if (userAnchor) {{
