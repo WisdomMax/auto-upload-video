@@ -1,4 +1,4 @@
-import asyncio, os
+import asyncio, os, sys
 from playwright.async_api import async_playwright
 
 async def open_tiktok_login_window():
@@ -6,9 +6,10 @@ async def open_tiktok_login_window():
     os.makedirs(user_data_dir, exist_ok=True)
     
     print("\n" + "="*70)
-    print("=== 🚀 [TikTok '@momdad_style' 로그인용 브라우저 창 가동] ===")
+    print("=== 🚀 [TikTok '@momdad_style' 로그인 브라우저 가동] ===")
     print("💡 맥 화면에 틱톡 로그인 창이 열렸습니다.")
-    print("📱 스마트폰 틱톡 앱으로 [QR 코드 스캔] 또는 [간편 로그인]을 완료해 주세요!")
+    print("📱 스마트폰 틱톡 앱으로 [QR 코드 스캔] 또는 [아이디/비번 로그인]을 진행해 주세요.")
+    print("👉 로그인이 완료되면 이 터미널에서 [Enter(엔터)] 키를 누르시면 세션이 영구 저장됩니다!")
     print("="*70 + "\n", flush=True)
     
     async with async_playwright() as p:
@@ -23,34 +24,15 @@ async def open_tiktok_login_window():
         
         await page.goto("https://www.tiktok.com/login", wait_until="domcontentloaded")
         
-        # 최대 180초 동안 사용자 로그인 대기
-        logged_in = False
-        for i in range(90):
-            await asyncio.sleep(2)
-            url = page.url
-            # 로그인 완료 시 프로필 아이콘 또는 피드/프로필 페이지로 이동
-            is_login_page = "login" in url
-            has_profile_avatar = await page.evaluate("""
-                () => {
-                    const avatar = document.querySelector('[data-e2e="profile-icon"], img[class*="Avatar"], a[href*="/@"]');
-                    const logoutBtn = document.querySelector('button:has-text("Log out"), div:has-text("로그아웃")');
-                    return !!(avatar || logoutBtn);
-                }
-            """)
-            
-            if not is_login_page and (has_profile_avatar or "@" in url):
-                logged_in = True
-                break
-                
-        if logged_in:
-            print("\n" + "="*70)
-            print("🎉🎉 [축하합니다! TikTok '@momdad_style' 로그인 세션 저장 완결!]")
-            print("이제 이 창을 닫으셔도 로그인 세션이 영구 보존되어 24시간 틱톡 자동 응답 데몬이 작동합니다!")
-            print("="*70 + "\n", flush=True)
-            await asyncio.sleep(3)
-        else:
-            print("⚠️ 로그인 대기 시간이 초과되었습니다. 다시 시도해 주세요.", flush=True)
-            
+        # 터미널에서 사용자가 엔터를 누를 때까지 창을 끄지 않고 무제한 대기
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, input, "\n👉 브라우저에서 로그인을 완료하신 후, 여기 터미널에서 [Enter]를 눌러주세요: ")
+        
+        print("\n" + "="*70)
+        print("🎉🎉 [축하합니다! TikTok '@momdad_style' 로그인 세션 저장 완결!]")
+        print("세션이 '~/.config/tiktok_stealth_profile'에 영구 보존되었습니다.")
+        print("="*70 + "\n", flush=True)
+        await asyncio.sleep(2)
         await context.close()
 
 if __name__ == "__main__":
