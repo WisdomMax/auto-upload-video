@@ -119,6 +119,13 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to start YouTube Auto Heart & Like Daemon: {e}")
 
+    try:
+        from scratch.tiktok_auto_responder_daemon import tiktok_daemon_loop
+        asyncio.create_task(tiktok_daemon_loop())
+        logger.info("TikTok Auto-Responder Daemon started automatically with npm run dev.")
+    except Exception as e:
+        logger.error(f"Failed to start TikTok Auto-Responder Daemon: {e}")
+
 
 from fastapi import Response
 

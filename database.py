@@ -84,7 +84,7 @@ def init_db():
     )
     """)
     
-    # 6. ig_processed_users 테이블 생성 (게시물/릴스별 유저 중복 응답 방지 DB 락)
+    # 6. ig_processed_users 테이블 생성 (인스타 게시물/릴스별 유저 중복 응답 방지 DB 락)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS ig_processed_users (
         username TEXT NOT NULL,
@@ -93,6 +93,18 @@ def init_db():
         reply_posted INTEGER DEFAULT 0,
         processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (username, reel_id)
+    )
+    """)
+
+    # 7. tiktok_processed_users 테이블 생성 (틱톡 영상별 유저 중복 응답 방지 DB 락)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tiktok_processed_users (
+        username TEXT NOT NULL,
+        video_id TEXT NOT NULL,
+        dm_sent INTEGER DEFAULT 0,
+        reply_posted INTEGER DEFAULT 0,
+        processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (username, video_id)
     )
     """)
     
@@ -166,6 +178,99 @@ def update_ig_user_reply_status(username: str, reel_id: str, reply_posted: bool)
         conn.commit()
     except Exception as e:
         print(f"[DB Error update_ig_user_reply_status] {e}")
+    conn.close()
+
+def mark_ig_user_processed_for_reel(username: str, reel_id: str, dm_sent: bool = True, reply_posted: bool = True):
+    if not username or not reel_id:
+        return
+    shortcode = extract_reel_shortcode(reel_id)
+    uname_clean = username.strip().lower()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+        INSERT INTO ig_processed_users (username, reel_id, dm_sent, reply_posted, processed_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(username, reel_id) DO UPDATE SET
+            dm_sent = excluded.dm_sent,
+            reply_posted = excluded.reply_posted,
+            processed_at = CURRENT_TIMESTAMP
+        """, (uname_clean, shortcode, 1 if dm_sent else 0, 1 if reply_posted else 0))
+        conn.commit()
+    except Exception as e:
+        print(f"[DB Error mark_ig_user_processed_for_reel] {e}")
+    conn.close()
+
+# --- 틱톡 (TikTok) 사용자 응답 상태 관리 함수 ---
+
+def extract_tiktok_video_id(video_url_or_id: str) -> str:
+    """틱톡 영상 URL에서 고유 video_id 추출 (예: /video/7391234567 -> 7391234567)"""
+    if not video_url_or_id:
+        return ""
+    import re
+    m = re.search(r'/video/(\d+)', str(video_url_or_id))
+    if m:
+        return m.group(1).strip()
+    return str(video_url_or_id).strip().strip('/')
+
+def get_tiktok_user_status_for_video(username: str, video_id: str) -> dict:
+    """틱톡 유저 및 영상별 대댓글 작성 여부(reply_posted) 및 DM 여부(dm_sent) 조회"""
+    if not username or not video_id:
+        return {"dm_sent": False, "reply_posted": False, "exists": False}
+    vid_clean = extract_tiktok_video_id(video_id)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT dm_sent, reply_posted FROM tiktok_processed_users WHERE LOWER(username) = LOWER(?) AND video_id = ?", (username.strip(), vid_clean))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return {"dm_sent": bool(row['dm_sent']), "reply_posted": bool(row['reply_posted']), "exists": True}
+        return {"dm_sent": False, "reply_posted": False, "exists": False}
+    except Exception:
+        conn.close()
+        return {"dm_sent": False, "reply_posted": False, "exists": False}
+
+def update_tiktok_user_reply_status(username: str, video_id: str, reply_posted: bool):
+    """틱톡 대댓글 작성 상태 독립적으로 DB에 기록/갱신"""
+    if not username or not video_id:
+        return
+    vid_clean = extract_tiktok_video_id(video_id)
+    uname_clean = username.strip().lower()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+        INSERT INTO tiktok_processed_users (username, video_id, dm_sent, reply_posted, processed_at)
+        VALUES (?, ?, 0, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(username, video_id) DO UPDATE SET
+            reply_posted = excluded.reply_posted,
+            processed_at = CURRENT_TIMESTAMP
+        """, (uname_clean, vid_clean, 1 if reply_posted else 0))
+        conn.commit()
+    except Exception as e:
+        print(f"[DB Error update_tiktok_user_reply_status] {e}")
+    conn.close()
+
+def update_tiktok_user_dm_status(username: str, video_id: str, dm_sent: bool):
+    """틱톡 DM 발송 상태 독립적으로 DB에 기록/갱신"""
+    if not username or not video_id:
+        return
+    vid_clean = extract_tiktok_video_id(video_id)
+    uname_clean = username.strip().lower()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+        INSERT INTO tiktok_processed_users (username, video_id, dm_sent, reply_posted, processed_at)
+        VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP)
+        ON CONFLICT(username, video_id) DO UPDATE SET
+            dm_sent = excluded.dm_sent,
+            processed_at = CURRENT_TIMESTAMP
+        """, (uname_clean, vid_clean, 1 if dm_sent else 0))
+        conn.commit()
+    except Exception as e:
+        print(f"[DB Error update_tiktok_user_dm_status] {e}")
     conn.close()
 
 def is_ig_user_processed_for_reel(username: str, reel_id: str) -> bool:
