@@ -61,9 +61,15 @@ def remove_video_watermark(input_video: str, output_video: str) -> bool:
         logger.info(f"Extracting frames for Big-LaMa Inpainting: {input_video}")
         subprocess.run(['ffmpeg', '-y', '-i', input_video, '-qscale:v', '1', os.path.join(frames_in, 'frame_%05d.png')], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
         
-        # 3. Big-LaMa AI Inpainting 프레임 일괄 처리
+        # 3. Big-LaMa AI Inpainting 초경량 ROI 크롭 처리 (리소스 90% 절감)
+        # CPU 스레드 2개로 제한하여 맥북 리소스 부담 최소화
+        torch.set_num_threads(2)
+        
         frame_files = sorted([f for f in os.listdir(frames_in) if f.endswith('.png')])
-        logger.info(f"Processing {len(frame_files)} frames with Big-LaMa AI Inpainting...")
+        logger.info(f"Processing {len(frame_files)} frames with lightweight ROI Big-LaMa...")
+        
+        # 워터마크 영역 크롭 마진 (256x256 정사각형)
+        CROP_SIZE = 256
         
         for idx, f_name in enumerate(frame_files):
             in_p = os.path.join(frames_in, f_name)
@@ -74,31 +80,42 @@ def remove_video_watermark(input_video: str, output_video: str) -> bool:
                 continue
             h, w = img.shape[:2]
             
-            # 우측 하단 워터마크 영역 마스킹 (720p/1080p 해상도 자동 비례)
-            mask = np.zeros((h, w), dtype=np.uint8)
-            # 워터마크는 우측 20%, 하단 15% 영역에 위치
-            x1 = int(w * 0.75)
-            y1 = int(h * 0.85)
-            x2 = int(w * 0.95)
-            y2 = int(h * 0.97)
-            cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+            # 우측 하단 256x256 ROI 영역만 잘라냄
+            ry1 = max(0, h - CROP_SIZE)
+            ry2 = h
+            rx1 = max(0, w - CROP_SIZE)
+            rx2 = w
+            
+            roi = img[ry1:ry2, rx1:rx2].copy()
+            rh, rw = roi.shape[:2]
+            
+            # ROI 내부의 워터마크 마스크 생성 (중앙/우측 위치)
+            mask_roi = np.zeros((rh, rw), dtype=np.uint8)
+            # 워터마크 별빛 위치에 정확히 마스크 지정
+            mx1 = int(rw * 0.15)
+            my1 = int(rh * 0.25)
+            mx2 = int(rw * 0.85)
+            my2 = int(rh * 0.90)
+            cv2.rectangle(mask_roi, (mx1, my1), (mx2, my2), 255, -1)
             
             # 8의 배수 패딩
-            pad_h = (8 - h % 8) % 8
-            pad_w = (8 - w % 8) % 8
-            img_pad = np.pad(img, ((0, pad_h), (0, pad_w), (0, 0)), mode='reflect')
-            mask_pad = np.pad(mask, ((0, pad_h), (0, pad_w)), mode='constant')
+            pad_h = (8 - rh % 8) % 8
+            pad_w = (8 - rw % 8) % 8
+            roi_pad = np.pad(roi, ((0, pad_h), (0, pad_w), (0, 0)), mode='reflect')
+            mask_pad = np.pad(mask_roi, ((0, pad_h), (0, pad_w)), mode='constant')
             
-            img_t = torch.from_numpy(img_pad).float().permute(2, 0, 1).unsqueeze(0) / 255.0
+            roi_t = torch.from_numpy(roi_pad).float().permute(2, 0, 1).unsqueeze(0) / 255.0
             mask_t = torch.from_numpy(mask_pad).float().unsqueeze(0).unsqueeze(0) / 255.0
             mask_t = (mask_t > 0).float()
             
             with torch.no_grad():
-                out = model(img_t, mask_t)
-                out = out[0].permute(1, 2, 0).clamp(0, 1).numpy() * 255.0
-                out = out[:h, :w].astype(np.uint8)
+                out_roi = model(roi_t, mask_t)
+                out_roi = out_roi[0].permute(1, 2, 0).clamp(0, 1).numpy() * 255.0
+                out_roi = out_roi[:rh, :rw].astype(np.uint8)
                 
-            cv2.imwrite(out_p, out)
+            # 깨끗해진 ROI 조각을 원본 프레임의 우측 하단에 자연스럽게 덮어쓰기
+            img[ry1:ry2, rx1:rx2] = out_roi
+            cv2.imwrite(out_p, img)
             
         # 4. 고화질 재인코딩 (H.264 CRF 16 무손실급)
         logger.info(f"Re-assembling Big-LaMa cleaned video to: {output_video}")
