@@ -168,7 +168,20 @@ def overlay_code_subtitles(input_path, output_path, product_code):
     except Exception as e:
         logger.error(f"Failed to save temporary overlay image: {e}")
         
-    # 1. 원본 영상 화각과 화질 100% 보존하며 1080x1920 규격 맞춤 (워터마크 인위적 조작 없음)
+    # 1. Google/Gemini/Veo 워터마크 역 알파 블렌딩 무손실 복원 클리너 적용
+    clean_input_path = input_path
+    temp_clean_video = None
+    try:
+        from video_cleaner import remove_video_watermark, is_watermark_cleaner_available
+        if is_watermark_cleaner_available():
+            temp_clean_video = os.path.join(temp_dir, f"clean_{os.path.basename(input_path)}")
+            logger.info(f"Removing AI watermark via Reverse Alpha Blending: {input_path}")
+            if remove_video_watermark(input_path, temp_clean_video):
+                clean_input_path = temp_clean_video
+    except Exception as e:
+        logger.warning(f"Watermark removal step skipped or failed: {e}")
+        clean_input_path = input_path
+
     filter_complex = (
         f"[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,"
         f"pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black[v0];"
@@ -176,20 +189,26 @@ def overlay_code_subtitles(input_path, output_path, product_code):
     )
         
     cmd = [
-        "ffmpeg", "-y", "-i", input_path, "-i", overlay_img_path,
+        "ffmpeg", "-y", "-i", clean_input_path, "-i", overlay_img_path,
         "-filter_complex", filter_complex,
-        "-codec:a", "copy", output_path
+        "-codec:a", "copy",
+        output_path
     ]
     
+    logger.info(f"Executing ffmpeg overlay: {' '.join(cmd)}")
     try:
-        logger.info(f"Running ffmpeg complex filter overlay for code {product_code}...")
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-        logger.info("ffmpeg complex filter overlay successfully completed.")
+        subprocess.run(cmd, check=True)
+        logger.info(f"Successfully generated video with subtitles: {output_path}")
         success = True
-    except Exception as e:
+    except subprocess.CalledProcessError as e:
         logger.error(f"ffmpeg complex filter overlay failed: {e}")
         success = False
     finally:
+        if temp_clean_video and os.path.exists(temp_clean_video):
+            try:
+                os.remove(temp_clean_video)
+            except Exception:
+                pass
         # 임시 이미지 파일 정리
         if os.path.exists(overlay_img_path):
             try:
