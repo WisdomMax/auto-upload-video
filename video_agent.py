@@ -168,9 +168,11 @@ def overlay_code_subtitles(input_path, output_path, product_code):
     except Exception as e:
         logger.error(f"Failed to save temporary overlay image: {e}")
         
+    # 1. 1080x1920 해상도 맞춤 및 우측 하단 AI 워터마크(별빛/로고) 자동 제거 delogo 필터 적용
     filter_complex = (
-        f"[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,"
-        f"pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black[v0];"
+        f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,"
+        f"crop=1080:1920,"
+        f"delogo=x=820:y=1680:w=220:h=220:show=0[v0];"
         f"[v0][1:v]overlay=0:0:enable='gte(t,{start_time:.2f})'"
     )
         
