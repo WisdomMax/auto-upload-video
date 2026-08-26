@@ -3,7 +3,7 @@ import subprocess
 import logging
 import json
 import re
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import google.generativeai as genai
 import database
 
@@ -48,19 +48,26 @@ def capture_frames(video_path, duration, num_frames=3):
 
 
 
-def overlay_code_subtitles(input_path, output_path, product_code):
-    font_paths = [
+def get_pretendard_font(size, weight="black"):
+    font_candidates = [
+        "/Library/Fonts/Pretendard-Black.otf",
+        "/Library/Fonts/Pretendard-ExtraBold.otf",
+        "/Library/Fonts/Pretendard-Bold.otf",
+        "/Library/Fonts/NotoSansKR-Black.otf",
         "/System/Library/Fonts/AppleSDGothicNeo.ttc",
-        "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
-        "/Library/Fonts/NanumGothic.ttf",
-        "AppleGothic.ttf"
+        "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
     ]
-    font_path = None
-    for path in font_paths:
-        if os.path.exists(path):
-            font_path = path
-            break
-            
+    for p in font_candidates:
+        if os.path.exists(p):
+            try:
+                if "AppleSDGothic" in p:
+                    return ImageFont.truetype(p, size, index=6) # Bold index
+                return ImageFont.truetype(p, size)
+            except Exception:
+                pass
+    return ImageFont.load_default()
+
+def overlay_code_subtitles(input_path, output_path, product_code):
     # 영상 전체 길이 구하기
     duration = get_video_duration(input_path)
     start_time = max(0.0, duration - 5.0)
@@ -73,64 +80,87 @@ def overlay_code_subtitles(input_path, output_path, product_code):
     overlay_img_path = os.path.join(temp_dir, f"overlay_{product_code}.png")
     
     # Pillow를 이용해 투명 PNG 이미지 생성 (1080x1920 규격)
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageDraw, ImageFont, ImageFilter
     
     overlay_img = Image.new("RGBA", (1080, 1920), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay_img)
+    d = ImageDraw.Draw(overlay_img)
     
     # 폰트 로드
-    font_size = 54
-    if font_path:
-        try:
-            font = ImageFont.truetype(font_path, font_size)
-        except Exception:
-            font = ImageFont.load_default()
-    else:
-        font = ImageFont.load_default()
-        
-    # 세그먼트별로 색상을 다르게 렌더링하고 중앙 정렬하는 함수
-    def draw_mixed_color_text(draw, font, segments, y_position, total_width=1080):
-        widths = []
-        for text, _ in segments:
-            try:
-                bbox = draw.textbbox((0, 0), text, font=font)
-                w = bbox[2] - bbox[0]
-            except AttributeError:
-                w, _ = draw.textsize(text, font=font)
-            widths.append(w)
-            
-        total_text_width = sum(widths)
-        start_x = (total_width - total_text_width) // 2
-        
-        current_x = start_x
-        for i, (text, color) in enumerate(segments):
-            draw.text(
-                (current_x, y_position), 
-                text, 
-                font=font, 
-                fill=color, 
-                stroke_width=4, 
-                stroke_fill=(0, 0, 0, 255)
-            )
-            current_x += widths[i]
-            
-    # 첫째 줄: 댓글에 '엄마'라고 남겨주세요 ('엄마' -> 노란색)
-    segments_line1 = [
-        ("댓글에 ", (255, 255, 255, 255)),
-        ("'엄마'", (255, 223, 0, 255)),
-        ("라고 남겨주세요", (255, 255, 255, 255))
-    ]
+    f_tag = get_pretendard_font(34, "black")
+    f_main = get_pretendard_font(48, "black")
     
-    # 둘째 줄: 링크는 프로필 확인! ('프로필' -> 톡톡 튀는 연하늘색/민트)
-    segments_line2 = [
-        ("링크는 ", (255, 255, 255, 255)),
-        ("프로필", (0, 229, 255, 255)),
-        (" 확인!", (255, 255, 255, 255))
-    ]
+    center_x = 1080 // 2
     
-    # Y 좌표: 화면 세로 중앙(960) 기준 상하 60px 배치
-    draw_mixed_color_text(draw, font, segments_line1, 960 - 60)
-    draw_mixed_color_text(draw, font, segments_line2, 960 + 60)
+    # 1. 좌상단: 세련된 옐로우 라운드 뱃지 (스마트폰 상단 UI 안전지대 Y=130)
+    tag_text = f"{product_code}"
+    tb = d.textbbox((0, 0), tag_text, font=f_tag)
+    tw, th = tb[2] - tb[0], tb[3] - tb[1]
+    
+    # 드롭 섀도우
+    sh_img = Image.new("RGBA", (1080, 1920), (0, 0, 0, 0))
+    sh_draw = ImageDraw.Draw(sh_img)
+    tag_x1, tag_y1 = 60, 130
+    tag_x2, tag_y2 = tag_x1 + tw + 44, tag_y1 + th + 24
+    sh_draw.rounded_rectangle([tag_x1, tag_y1 + 6, tag_x2, tag_y2 + 6], radius=16, fill=(0, 0, 0, 120))
+    sh_img = sh_img.filter(ImageFilter.GaussianBlur(14))
+    overlay_img.alpha_composite(sh_img)
+    
+    # 뱃지 본체 (비비드 옐로우)
+    d.rounded_rectangle([tag_x1, tag_y1, tag_x2, tag_y2], radius=16, fill=(250, 204, 21, 255))
+    d.text((tag_x1 + 22, tag_y1 + 12 - tb[1]), tag_text, font=f_tag, fill=(15, 23, 42, 255))
+    
+    # 2. 중앙: S-2 인스타그램 스토리 스티커 바 (Y=1240)
+    # [ 댓글에 ] + [ 엄마 (옐로우 칩) ] + [ 남겨주세요! ]
+    txt1 = "댓글에"
+    txt_hi = "엄마"
+    txt2 = "남겨주세요!"
+    
+    bb1 = d.textbbox((0, 0), txt1, font=f_main)
+    bbh = d.textbbox((0, 0), txt_hi, font=f_main)
+    bb2 = d.textbbox((0, 0), txt2, font=f_main)
+    
+    w1 = bb1[2] - bb1[0]
+    wh = bbh[2] - bbh[0]
+    w2 = bb2[2] - bb2[0]
+    
+    CHIP_PAD = 16
+    m_box_w = wh + (CHIP_PAD * 2)
+    GAP = 18
+    
+    tot_content_w = w1 + GAP + m_box_w + GAP + w2
+    stk_h = 86
+    stk_w = tot_content_w + 64
+    stk_x1 = center_x - (stk_w // 2)
+    stk_x2 = center_x + (stk_w // 2)
+    stk_y1 = 1240
+    stk_y2 = stk_y1 + stk_h
+    
+    # 스티커 섀도우
+    sh_stk = Image.new("RGBA", (1080, 1920), (0, 0, 0, 0))
+    sh_stk_draw = ImageDraw.Draw(sh_stk)
+    sh_stk_draw.rounded_rectangle([stk_x1, stk_y1 + 8, stk_x2, stk_y2 + 8], radius=22, fill=(0, 0, 0, 140))
+    sh_stk = sh_stk.filter(ImageFilter.GaussianBlur(16))
+    overlay_img.alpha_composite(sh_stk)
+    
+    # 메인 다크 반투명 칩 (알파 215, 약 84% 불투명)
+    d.rounded_rectangle([stk_x1, stk_y1, stk_x2, stk_y2], radius=22, fill=(0, 0, 0, 215))
+    
+    base_stk_y = stk_y1 + (stk_h // 2)
+    cur_x = center_x - (tot_content_w // 2)
+    
+    # '댓글에'
+    d.text((cur_x, base_stk_y - ((bb1[3] - bb1[1]) // 2) - bb1[1]), txt1, font=f_main, fill=(255, 255, 255, 255))
+    cur_x += w1 + GAP
+    
+    # '엄마' 형광 옐로우 스티커 칩
+    chip_y1 = stk_y1 + 10
+    chip_y2 = stk_y2 - 10
+    d.rounded_rectangle([cur_x, chip_y1, cur_x + m_box_w, chip_y2], radius=14, fill=(250, 204, 21, 255))
+    d.text((cur_x + CHIP_PAD, base_stk_y - ((bbh[3] - bbh[1]) // 2) - bbh[1]), txt_hi, font=f_main, fill=(0, 0, 0, 255))
+    cur_x += m_box_w + GAP
+    
+    # '남겨주세요!'
+    d.text((cur_x, base_stk_y - ((bb2[3] - bb2[1]) // 2) - bb2[1]), txt2, font=f_main, fill=(255, 255, 255, 255))
     
     # 이미지 저장
     try:
@@ -138,23 +168,11 @@ def overlay_code_subtitles(input_path, output_path, product_code):
     except Exception as e:
         logger.error(f"Failed to save temporary overlay image: {e}")
         
-    text = f"{product_code}"
-    
-    # filter_complex 사용해서 동영상 스케일링, 좌측 상단 텍스트 추가 후 마지막 5초에 오버레이 PNG 적용
-    if font_path:
-        filter_complex = (
-            f"[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,"
-            f"pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,"
-            f"drawtext=fontfile='{font_path}':text='{text}':x=60:y=180:fontsize=80:fontcolor=white[v0];"
-            f"[v0][1:v]overlay=0:0:enable='gte(t,{start_time:.2f})'"
-        )
-    else:
-        filter_complex = (
-            f"[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,"
-            f"pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black,"
-            f"drawtext=text='{text}':x=60:y=180:fontsize=80:fontcolor=white[v0];"
-            f"[v0][1:v]overlay=0:0:enable='gte(t,{start_time:.2f})'"
-        )
+    filter_complex = (
+        f"[0:v]scale=1080:1920:force_original_aspect_ratio=decrease,"
+        f"pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black[v0];"
+        f"[v0][1:v]overlay=0:0:enable='gte(t,{start_time:.2f})'"
+    )
         
     cmd = [
         "ffmpeg", "-y", "-i", input_path, "-i", overlay_img_path,
