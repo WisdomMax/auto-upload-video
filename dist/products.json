@@ -668,5 +668,25 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8065906901&itemId=22683877734&vendorItemId=95143048900&traceid=V0-153-4a7cd75b978bc6d4&clickBeacon=d5ddf040-b2b6-11f1-a1e7-0a9d3e146001%7E3&requestid=20260918014256637135125383&token=31850C%7CMIXED&pt=1&slot=1",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8065906901&itemId=22683877734&vendorItemId=95143048900&traceid=V0-153-4a7cd75b978bc6d4&clickBeacon=d5ddf040-b2b6-11f1-a1e7-0a9d3e146001%7E3&requestid=20260918014256637135125383&token=31850C%7CMIXED&pt=1&slot=1",
     "thumbnail_url": "/static/thumbnails/T00067.webp"
+  },
+  {
+    "id": 134,
+    "product_no": 68,
+    "product_code": "T00068",
+    "title": "국민할매 엄마옷 자수 5색단추 스웨터 할머니 니트 티셔츠 요양원옷 실내복 봄 가을 겨울옷",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=6769678813&itemId=15891489382&vendorItemId=83099714192&traceid=V0-153-36b8ab1503af8079&requestid=20260918063600658207061761&token=31850C%7CMIXED&pt=0&slot=8",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=6769678813&itemId=15891489382&vendorItemId=83099714192&traceid=V0-153-36b8ab1503af8079&requestid=20260918063600658207061761&token=31850C%7CMIXED&pt=0&slot=8",
+    "thumbnail_url": "/static/thumbnails/T00068.webp"
+  },
+  {
+    "id": 135,
+    "product_no": 69,
+    "product_code": "T00069",
+    "title": "요양원 생신선물 어르신 보온 니트 스카프형 상의",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9284683236&itemId=27492015594&vendorItemId=93899223508&traceid=V0-153-3063d33e8b82f18b&requestid=20260918063601394135969601&token=31850C%7CMIXED&pt=0&slot=3",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9284683236&itemId=27492015594&vendorItemId=93899223508&traceid=V0-153-3063d33e8b82f18b&requestid=20260918063601394135969601&token=31850C%7CMIXED&pt=0&slot=3",
+    "thumbnail_url": "/static/thumbnails/T00069.webp"
   }
 ]
