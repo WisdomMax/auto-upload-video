@@ -688,5 +688,35 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9284683236&itemId=27492015594&vendorItemId=93899223508&traceid=V0-153-3063d33e8b82f18b&requestid=20260918063601394135969601&token=31850C%7CMIXED&pt=0&slot=3",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9284683236&itemId=27492015594&vendorItemId=93899223508&traceid=V0-153-3063d33e8b82f18b&requestid=20260918063601394135969601&token=31850C%7CMIXED&pt=0&slot=3",
     "thumbnail_url": "/static/thumbnails/T00069.webp"
+  },
+  {
+    "id": 136,
+    "product_no": 70,
+    "product_code": "T00070",
+    "title": "MOSAIRATION 중년 여성 봄 가을 패턴 롱 트렌치 코트 V92614 CC",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8364641490&itemId=24167046201&vendorItemId=91185379922&traceid=V0-153-2f8f0541c989cde7&clickBeacon=dd36cd70-b6b8-11f1-a531-5b48f00d9660%7E3&requestid=20260923040732611290289073&token=31850C%7CMIXED&pt=1&slot=1",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8364641490&itemId=24167046201&vendorItemId=91185379922&traceid=V0-153-2f8f0541c989cde7&clickBeacon=dd36cd70-b6b8-11f1-a531-5b48f00d9660%7E3&requestid=20260923040732611290289073&token=31850C%7CMIXED&pt=1&slot=1",
+    "thumbnail_url": "/static/thumbnails/T00070.webp"
+  },
+  {
+    "id": 137,
+    "product_no": 71,
+    "product_code": "T00071",
+    "title": "국민할매 할머니옷 엄마옷 꽃무늬 배색 코튼 라운드 시보리 가디건봄가을 간절기 요양원옷 중년 여성의류",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9464605447&itemId=28165336079&vendorItemId=95120339488&traceid=V0-153-f604a11c40b3297d&clickBeacon=dda5bbe0-b6b8-11f1-a789-d052db16b3af%7E3&requestid=20260923040733334288210842&token=31850C%7CMIXED&pt=1&slot=2",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9464605447&itemId=28165336079&vendorItemId=95120339488&traceid=V0-153-f604a11c40b3297d&clickBeacon=dda5bbe0-b6b8-11f1-a789-d052db16b3af%7E3&requestid=20260923040733334288210842&token=31850C%7CMIXED&pt=1&slot=2",
+    "thumbnail_url": "/static/thumbnails/T00071.webp"
+  },
+  {
+    "id": 138,
+    "product_no": 72,
+    "product_code": "T00072",
+    "title": "애플망고옷장 오버핏 랍바단가라니트 한라 2322 겨울 여성 스웨터",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9151386034&itemId=26946932157&vendorItemId=93916049895&traceid=V0-153-cc6857d084884b2d&clickBeacon=cb1ac530-b526-11f1-90c8-2b6917c3dbb1%7E3&requestid=20260921040924559136633875&token=31850C%7CMIXED&pt=1&slot=3",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9151386034&itemId=26946932157&vendorItemId=93916049895&traceid=V0-153-cc6857d084884b2d&clickBeacon=cb1ac530-b526-11f1-90c8-2b6917c3dbb1%7E3&requestid=20260921040924559136633875&token=31850C%7CMIXED&pt=1&slot=3",
+    "thumbnail_url": "/static/thumbnails/T00072.webp"
   }
 ]
