@@ -728,5 +728,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9548792416&itemId=28488723028&vendorItemId=95438753620&traceid=V0-153-8f3e98c6e6c7a394&clickBeacon=023c49c0-b5f0-11f1-926f-93a50a2c118b%7E3&requestid=20260922040945897013283802&token=31850C%7CMIXED&pt=1&slot=4",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9548792416&itemId=28488723028&vendorItemId=95438753620&traceid=V0-153-8f3e98c6e6c7a394&clickBeacon=023c49c0-b5f0-11f1-926f-93a50a2c118b%7E3&requestid=20260922040945897013283802&token=31850C%7CMIXED&pt=1&slot=4",
     "thumbnail_url": "/static/thumbnails/T00073.webp"
+  },
+  {
+    "id": 140,
+    "product_no": 74,
+    "product_code": "T00074",
+    "title": "노나네 여성 브이넥 니트티 루즈핏 봄니트 데일리 니트 간절기",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9437132205&itemId=28065024843&vendorItemId=95021723730&traceid=V0-153-126bb1ca28fb3a99&clickBeacon=917dc900-b781-11f1-8008-e24d3f453af5%7E3&requestid=20260924040414415102856914&token=31850C%7CMIXED&pt=1&slot=1",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9437132205&itemId=28065024843&vendorItemId=95021723730&traceid=V0-153-126bb1ca28fb3a99&clickBeacon=917dc900-b781-11f1-8008-e24d3f453af5%7E3&requestid=20260924040414415102856914&token=31850C%7CMIXED&pt=1&slot=1",
+    "thumbnail_url": "/static/thumbnails/T00074.webp"
   }
 ]
