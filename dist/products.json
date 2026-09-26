@@ -734,9 +734,19 @@
     "product_no": 74,
     "product_code": "T00074",
     "title": "노나네 여성 브이넥 니트티 루즈핏 봄니트 데일리 니트 간절기",
-    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "description": "목선이 길어 보이고 답답하지 않은 브이넥 라인과 상체 뱃살, 옆구리 군살을 편안하게 쏙 가려주는 루즈핏 봄·간절기 데일리 여성 니트티입니다.",
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9437132205&itemId=28065024843&vendorItemId=95021723730&traceid=V0-153-126bb1ca28fb3a99&clickBeacon=917dc900-b781-11f1-8008-e24d3f453af5%7E3&requestid=20260924040414415102856914&token=31850C%7CMIXED&pt=1&slot=1",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9437132205&itemId=28065024843&vendorItemId=95021723730&traceid=V0-153-126bb1ca28fb3a99&clickBeacon=917dc900-b781-11f1-8008-e24d3f453af5%7E3&requestid=20260924040414415102856914&token=31850C%7CMIXED&pt=1&slot=1",
     "thumbnail_url": "/static/thumbnails/T00074.webp"
+  },
+  {
+    "id": 141,
+    "product_no": 75,
+    "product_code": "T00075",
+    "title": "국민할매 국내생산 할머니옷 겨울 소프트 투톤 카라배색 릴리 카라티셔츠 요양원옷",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8390561066&itemId=24253815617&vendorItemId=91270675442&traceid=V0-153-3f7e8c42ecd0e4e7&requestid=20260925040346895298183906&token=31850C%7CGM&pt=0&slot=7",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8390561066&itemId=24253815617&vendorItemId=91270675442&traceid=V0-153-3f7e8c42ecd0e4e7&requestid=20260925040346895298183906&token=31850C%7CGM&pt=0&slot=7",
+    "thumbnail_url": "/static/thumbnails/T00075.webp"
   }
 ]
