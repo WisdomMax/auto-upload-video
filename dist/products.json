@@ -748,5 +748,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8390561066&itemId=24253815617&vendorItemId=91270675442&traceid=V0-153-3f7e8c42ecd0e4e7&requestid=20260925040346895298183906&token=31850C%7CGM&pt=0&slot=7",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8390561066&itemId=24253815617&vendorItemId=91270675442&traceid=V0-153-3f7e8c42ecd0e4e7&requestid=20260925040346895298183906&token=31850C%7CGM&pt=0&slot=7",
     "thumbnail_url": "/static/thumbnails/T00075.webp"
+  },
+  {
+    "id": 142,
+    "product_no": 76,
+    "product_code": "T00076",
+    "title": "이젠벅 여성용 네파 경량 바람막이",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9706126043&itemId=29037936012&vendorItemId=95965195196&traceid=V0-153-4c356b51cad7abb2&clickBeacon=bf394af0-b9dd-11f1-a8c2-4e4284072bf2%7E3&requestid=20260927040907161075049007&token=31850C%7CMIXED&pt=1&slot=3",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9706126043&itemId=29037936012&vendorItemId=95965195196&traceid=V0-153-4c356b51cad7abb2&clickBeacon=bf394af0-b9dd-11f1-a8c2-4e4284072bf2%7E3&requestid=20260927040907161075049007&token=31850C%7CMIXED&pt=1&slot=3",
+    "thumbnail_url": "/static/thumbnails/T00076.webp"
   }
 ]
