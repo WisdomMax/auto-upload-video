@@ -758,5 +758,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9706126043&itemId=29037936012&vendorItemId=95965195196&traceid=V0-153-4c356b51cad7abb2&clickBeacon=bf394af0-b9dd-11f1-a8c2-4e4284072bf2%7E3&requestid=20260927040907161075049007&token=31850C%7CMIXED&pt=1&slot=3",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9706126043&itemId=29037936012&vendorItemId=95965195196&traceid=V0-153-4c356b51cad7abb2&clickBeacon=bf394af0-b9dd-11f1-a8c2-4e4284072bf2%7E3&requestid=20260927040907161075049007&token=31850C%7CMIXED&pt=1&slot=3",
     "thumbnail_url": "/static/thumbnails/T00076.webp"
+  },
+  {
+    "id": 143,
+    "product_no": 77,
+    "product_code": "T00077",
+    "title": "중년여성니트 엄마 할머니 큐빅 니트티 스웨터",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7865669616&itemId=21474365471&vendorItemId=88528636449&traceid=V0-153-f987d07c02811f75&clickBeacon=ee46a580-bb6e-11f1-bdb0-72e4c27fe764%7E3&requestid=20260929040054293221527882&token=31850C%7CMIXED&pt=1&slot=5",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7865669616&itemId=21474365471&vendorItemId=88528636449&traceid=V0-153-f987d07c02811f75&clickBeacon=ee46a580-bb6e-11f1-bdb0-72e4c27fe764%7E3&requestid=20260929040054293221527882&token=31850C%7CMIXED&pt=1&slot=5",
+    "thumbnail_url": "/static/thumbnails/T00077.webp"
   }
 ]
