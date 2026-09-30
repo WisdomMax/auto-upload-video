@@ -778,5 +778,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9009665828&itemId=26408036661&vendorItemId=93384141369&traceid=V0-153-ce2af9194a6ef89a&requestid=20260930040207430207003312&token=31850C%7CGM&pt=0&slot=2",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9009665828&itemId=26408036661&vendorItemId=93384141369&traceid=V0-153-ce2af9194a6ef89a&requestid=20260930040207430207003312&token=31850C%7CGM&pt=0&slot=2",
     "thumbnail_url": "/static/thumbnails/T00078.webp"
+  },
+  {
+    "id": 145,
+    "product_no": 79,
+    "product_code": "T00079",
+    "title": "DM 여성용 중년 플라워패턴 카라 재킷",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8938522880&itemId=26136269125&vendorItemId=93116453819&traceid=V0-153-acc6f679943b2404&requestid=20260930040207430207003312&token=31850C%7CGM&pt=0&slot=1",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8938522880&itemId=26136269125&vendorItemId=93116453819&traceid=V0-153-acc6f679943b2404&requestid=20260930040207430207003312&token=31850C%7CGM&pt=0&slot=1",
+    "thumbnail_url": "/static/thumbnails/T00079.webp"
   }
 ]
