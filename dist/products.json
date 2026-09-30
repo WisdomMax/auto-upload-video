@@ -768,5 +768,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7865669616&itemId=21474365471&vendorItemId=88528636449&traceid=V0-153-f987d07c02811f75&clickBeacon=ee46a580-bb6e-11f1-bdb0-72e4c27fe764%7E3&requestid=20260929040054293221527882&token=31850C%7CMIXED&pt=1&slot=5",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7865669616&itemId=21474365471&vendorItemId=88528636449&traceid=V0-153-f987d07c02811f75&clickBeacon=ee46a580-bb6e-11f1-bdb0-72e4c27fe764%7E3&requestid=20260929040054293221527882&token=31850C%7CMIXED&pt=1&slot=5",
     "thumbnail_url": "/static/thumbnails/T00077.webp"
+  },
+  {
+    "id": 144,
+    "product_no": 78,
+    "product_code": "T00078",
+    "title": "샤트렌 여성용 라운드넥 자켓 HCCWJK802",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9009665828&itemId=26408036661&vendorItemId=93384141369&traceid=V0-153-ce2af9194a6ef89a&requestid=20260930040207430207003312&token=31850C%7CGM&pt=0&slot=2",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9009665828&itemId=26408036661&vendorItemId=93384141369&traceid=V0-153-ce2af9194a6ef89a&requestid=20260930040207430207003312&token=31850C%7CGM&pt=0&slot=2",
+    "thumbnail_url": "/static/thumbnails/T00078.webp"
   }
 ]
