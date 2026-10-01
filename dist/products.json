@@ -784,9 +784,19 @@
     "product_no": 79,
     "product_code": "T00079",
     "title": "DM 여성용 중년 플라워패턴 카라 재킷",
-    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "description": "우아하고 화사한 플라워 패턴과 단정한 카라 넥라인으로 안색을 백배 밝혀주는 중년 여성용 데일리 외출 재킷입니다. 처진 어깨선을 바르게 잡아주고 복부와 상체 군살을 넉넉하게 커버해 주어 모임, 나들이, 격식 있는 자리에 세련되게 연출하기 좋습니다.",
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8938522880&itemId=26136269125&vendorItemId=93116453819&traceid=V0-153-acc6f679943b2404&requestid=20260930040207430207003312&token=31850C%7CGM&pt=0&slot=1",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8938522880&itemId=26136269125&vendorItemId=93116453819&traceid=V0-153-acc6f679943b2404&requestid=20260930040207430207003312&token=31850C%7CGM&pt=0&slot=1",
     "thumbnail_url": "/static/thumbnails/T00079.webp"
+  },
+  {
+    "id": 146,
+    "product_no": 80,
+    "product_code": "T00080",
+    "title": "중년여성 할머니 엄마 중장년층 후리스 안감 모피 반코트 빅사이즈 자켓",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8404983448&itemId=24298285430&vendorItemId=94492850459&traceid=V0-153-11ad2947b7975124&requestid=20261001040232960004463183&token=31850C%7CGM&pt=0&slot=5",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8404983448&itemId=24298285430&vendorItemId=94492850459&traceid=V0-153-11ad2947b7975124&requestid=20261001040232960004463183&token=31850C%7CGM&pt=0&slot=5",
+    "thumbnail_url": "/static/thumbnails/T00080.webp"
   }
 ]
