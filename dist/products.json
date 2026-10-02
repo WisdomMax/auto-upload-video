@@ -798,5 +798,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8404983448&itemId=24298285430&vendorItemId=94492850459&traceid=V0-153-11ad2947b7975124&requestid=20261001040232960004463183&token=31850C%7CGM&pt=0&slot=5",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8404983448&itemId=24298285430&vendorItemId=94492850459&traceid=V0-153-11ad2947b7975124&requestid=20261001040232960004463183&token=31850C%7CGM&pt=0&slot=5",
     "thumbnail_url": "/static/thumbnails/T00080.webp"
+  },
+  {
+    "id": 147,
+    "product_no": 81,
+    "product_code": "T00081",
+    "title": "ZENCY 젠시 노스 폴라 니트 롱원피스",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8513693498&itemId=24645566291&vendorItemId=91739925825&traceid=V0-153-cac16dace1dcea06&requestid=20261002040603768027437815&token=31850C%7CGM&pt=0&slot=3",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8513693498&itemId=24645566291&vendorItemId=91739925825&traceid=V0-153-cac16dace1dcea06&requestid=20261002040603768027437815&token=31850C%7CGM&pt=0&slot=3",
+    "thumbnail_url": "/static/thumbnails/T00081.webp"
   }
 ]
