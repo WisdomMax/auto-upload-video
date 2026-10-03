@@ -808,5 +808,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8513693498&itemId=24645566291&vendorItemId=91739925825&traceid=V0-153-cac16dace1dcea06&requestid=20261002040603768027437815&token=31850C%7CGM&pt=0&slot=3",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8513693498&itemId=24645566291&vendorItemId=91739925825&traceid=V0-153-cac16dace1dcea06&requestid=20261002040603768027437815&token=31850C%7CGM&pt=0&slot=3",
     "thumbnail_url": "/static/thumbnails/T00081.webp"
+  },
+  {
+    "id": 148,
+    "product_no": 82,
+    "product_code": "T00082",
+    "title": "가을 겨울 신상 맘룩 고급 니트 투피스 세트 보온 가디건 엄마선물 CIILLNY",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9136185537&itemId=26888719623&vendorItemId=93877130241&traceid=V0-153-a4dff4a90b2903b7&requestid=20261003040803223239986678&token=31850C%7CGM&pt=0&slot=4",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9136185537&itemId=26888719623&vendorItemId=93877130241&traceid=V0-153-a4dff4a90b2903b7&requestid=20261003040803223239986678&token=31850C%7CGM&pt=0&slot=4",
+    "thumbnail_url": "/static/thumbnails/T00082.webp"
   }
 ]
