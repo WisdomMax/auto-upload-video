@@ -818,5 +818,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9136185537&itemId=26888719623&vendorItemId=93877130241&traceid=V0-153-a4dff4a90b2903b7&requestid=20261003040803223239986678&token=31850C%7CGM&pt=0&slot=4",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9136185537&itemId=26888719623&vendorItemId=93877130241&traceid=V0-153-a4dff4a90b2903b7&requestid=20261003040803223239986678&token=31850C%7CGM&pt=0&slot=4",
     "thumbnail_url": "/static/thumbnails/T00082.webp"
+  },
+  {
+    "id": 149,
+    "product_no": 83,
+    "product_code": "T00083",
+    "title": "40/50대 엄마핏 중년여성 모던 스타일 니트 탑 + 오픈 카디건 세트 XINNIX",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9138740174&itemId=26900106636&vendorItemId=93883890729&traceid=V0-153-aff8cc1bf8f60e2b&requestid=20261004040908542109429586&token=31850C%7CMIXED&pt=0&slot=7",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9138740174&itemId=26900106636&vendorItemId=93883890729&traceid=V0-153-aff8cc1bf8f60e2b&requestid=20261004040908542109429586&token=31850C%7CMIXED&pt=0&slot=7",
+    "thumbnail_url": "/static/thumbnails/T00083.webp"
   }
 ]
