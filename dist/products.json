@@ -828,5 +828,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9138740174&itemId=26900106636&vendorItemId=93883890729&traceid=V0-153-aff8cc1bf8f60e2b&requestid=20261004040908542109429586&token=31850C%7CMIXED&pt=0&slot=7",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9138740174&itemId=26900106636&vendorItemId=93883890729&traceid=V0-153-aff8cc1bf8f60e2b&requestid=20261004040908542109429586&token=31850C%7CMIXED&pt=0&slot=7",
     "thumbnail_url": "/static/thumbnails/T00083.webp"
+  },
+  {
+    "id": 150,
+    "product_no": 84,
+    "product_code": "T00084",
+    "title": "데일리 중년 여성 롱 코트 봄 가을 엄마옷 패션 가디건 캐주얼 트렌치코트 YCY",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9364371200&itemId=27786991183&vendorItemId=94747262001&traceid=V0-153-a46cc2e603a9d1af&requestid=20261005040525603099076579&token=31850C%7CGM&pt=0&slot=2",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9364371200&itemId=27786991183&vendorItemId=94747262001&traceid=V0-153-a46cc2e603a9d1af&requestid=20261005040525603099076579&token=31850C%7CGM&pt=0&slot=2",
+    "thumbnail_url": "/static/thumbnails/T00084.webp"
   }
 ]
