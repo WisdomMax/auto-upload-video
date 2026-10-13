@@ -918,5 +918,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9689582977&itemId=28979154547&vendorItemId=96082567897&traceid=V0-153-9a0d8de63498e486&clickBeacon=5e2dded0-c66f-11f1-b6e0-027346e03c21%7E3&requestid=20261013040144764131466250&token=31850C%7CMIXED&pt=1&slot=3",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9689582977&itemId=28979154547&vendorItemId=96082567897&traceid=V0-153-9a0d8de63498e486&clickBeacon=5e2dded0-c66f-11f1-b6e0-027346e03c21%7E3&requestid=20261013040144764131466250&token=31850C%7CMIXED&pt=1&slot=3",
     "thumbnail_url": "/static/thumbnails/T00092.webp"
+  },
+  {
+    "id": 159,
+    "product_no": 93,
+    "product_code": "T00093",
+    "title": "국민할매 엄마옷 국내생산 할머니옷 꽃무늬 배색 코튼 카라 가디건 티셔츠 봄가을 요양원옷 중년 여성의류",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9079372261&itemId=26671802106&vendorItemId=93644099803&traceid=V0-153-56a47df248dcc877&clickBeacon=5dbec950-c66f-11f1-af4a-78dfd826724c%7E3&requestid=20261013040144096069109907&token=31850C%7CMIXED&pt=1&slot=1",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9079372261&itemId=26671802106&vendorItemId=93644099803&traceid=V0-153-56a47df248dcc877&clickBeacon=5dbec950-c66f-11f1-af4a-78dfd826724c%7E3&requestid=20261013040144096069109907&token=31850C%7CMIXED&pt=1&slot=1",
+    "thumbnail_url": "/static/thumbnails/T00093.webp"
   }
 ]
