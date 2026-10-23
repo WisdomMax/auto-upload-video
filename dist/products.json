@@ -938,5 +938,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=5158237786&itemId=24152960179&vendorItemId=91171653833&traceid=V0-153-78098f0bd3f520cf&requestid=20261014040317849068774280&token=31850C%7CMIXED&pt=0&slot=8",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=5158237786&itemId=24152960179&vendorItemId=91171653833&traceid=V0-153-78098f0bd3f520cf&requestid=20261014040317849068774280&token=31850C%7CMIXED&pt=0&slot=8",
     "thumbnail_url": "/static/thumbnails/T00094.webp"
+  },
+  {
+    "id": 161,
+    "product_no": 95,
+    "product_code": "T00095",
+    "title": "마그랜마 엄마 할머니 가을 겨울 라운드넥 큐빅 니트 가디건",
+    "description": "은은하게 반짝이는 큐빅 포인트로 얼굴빛을 화사하고 우아하게 밝혀주는 라운드넥 니트 가디건입니다. 도톰하고 포근한 가을/겨울 니트 소재로 체형의 군살을 자연스럽게 커버해주며, 단추를 잠가 단정한 니트 상의로 연출하거나 가볍게 걸치는 아우터로 다양하게 활용하기 좋은 시니어 프리미엄 모임룩입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9737355542&itemId=29141933080&vendorItemId=96065482227&traceid=V0-153-300c57c0025c2331&clickBeacon=d44ffe30-ce4a-11f1-beed-2a536710859b%7E3&requestid=20261023040020939191611237&token=31850C%7CMIXED&pt=1&slot=4",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9737355542&itemId=29141933080&vendorItemId=96065482227&traceid=V0-153-300c57c0025c2331&clickBeacon=d44ffe30-ce4a-11f1-beed-2a536710859b%7E3&requestid=20261023040020939191611237&token=31850C%7CMIXED&pt=1&slot=4",
+    "thumbnail_url": "/static/thumbnails/T00095.webp"
   }
 ]
