@@ -948,5 +948,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9737355542&itemId=29141933080&vendorItemId=96065482227&traceid=V0-153-300c57c0025c2331&clickBeacon=d44ffe30-ce4a-11f1-beed-2a536710859b%7E3&requestid=20261023040020939191611237&token=31850C%7CMIXED&pt=1&slot=4",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9737355542&itemId=29141933080&vendorItemId=96065482227&traceid=V0-153-300c57c0025c2331&clickBeacon=d44ffe30-ce4a-11f1-beed-2a536710859b%7E3&requestid=20261023040020939191611237&token=31850C%7CMIXED&pt=1&slot=4",
     "thumbnail_url": "/static/thumbnails/T00095.webp"
+  },
+  {
+    "id": 162,
+    "product_no": 96,
+    "product_code": "T00096",
+    "title": "꽃소담 중년여성 꽃무늬 긴팔 카라티 엄마 할머니 긴팔티셔츠 빅사이즈 MAL26A553",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9310207679&itemId=27586675615&vendorItemId=94550247228&traceid=V0-153-638932ac512d624b&requestid=20261024040132776287780148&token=31850C%7CGM&pt=0&slot=4",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9310207679&itemId=27586675615&vendorItemId=94550247228&traceid=V0-153-638932ac512d624b&requestid=20261024040132776287780148&token=31850C%7CGM&pt=0&slot=4",
+    "thumbnail_url": "/static/thumbnails/T00096.webp"
   }
 ]
