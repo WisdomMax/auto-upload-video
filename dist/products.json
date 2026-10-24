@@ -958,5 +958,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9310207679&itemId=27586675615&vendorItemId=94550247228&traceid=V0-153-638932ac512d624b&requestid=20261024040132776287780148&token=31850C%7CGM&pt=0&slot=4",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9310207679&itemId=27586675615&vendorItemId=94550247228&traceid=V0-153-638932ac512d624b&requestid=20261024040132776287780148&token=31850C%7CGM&pt=0&slot=4",
     "thumbnail_url": "/static/thumbnails/T00096.webp"
+  },
+  {
+    "id": 163,
+    "product_no": 97,
+    "product_code": "T00097",
+    "title": "메이리앤 중년 여성 니트 스웨터 스카프 일체형 두툼한 엄마옷",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7730358305&itemId=20771054177&vendorItemId=96041529480&traceid=V0-153-cb3cfe2f9b58c170&requestid=20261025040242884066164743&token=31850C%7CGM&pt=0&slot=9",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7730358305&itemId=20771054177&vendorItemId=96041529480&traceid=V0-153-cb3cfe2f9b58c170&requestid=20261025040242884066164743&token=31850C%7CGM&pt=0&slot=9",
+    "thumbnail_url": "/static/thumbnails/T00097.webp"
   }
 ]
