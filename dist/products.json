@@ -954,7 +954,7 @@
     "product_no": 96,
     "product_code": "T00096",
     "title": "꽃소담 중년여성 꽃무늬 긴팔 카라티 엄마 할머니 긴팔티셔츠 빅사이즈 MAL26A553",
-    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "description": "얼굴빛을 화사하고 생기 있게 밝혀주는 우아한 잔꽃 패턴과 단정한 카라 넥라인이 돋보이는 중년 여성 긴팔 카라 티셔츠입니다. 부드럽고 신축성이 좋은 원단에 넉넉한 핏으로 상체의 군살과 뱃살을 자연스럽게 커버해주며, 단독으로 입거나 가디건, 조끼 안에 이너로 매치하기 좋은 데일리 효자 아이템입니다.",
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9310207679&itemId=27586675615&vendorItemId=94550247228&traceid=V0-153-638932ac512d624b&requestid=20261024040132776287780148&token=31850C%7CGM&pt=0&slot=4",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9310207679&itemId=27586675615&vendorItemId=94550247228&traceid=V0-153-638932ac512d624b&requestid=20261024040132776287780148&token=31850C%7CGM&pt=0&slot=4",
     "thumbnail_url": "/static/thumbnails/T00096.webp"
@@ -964,9 +964,19 @@
     "product_no": 97,
     "product_code": "T00097",
     "title": "메이리앤 중년 여성 니트 스웨터 스카프 일체형 두툼한 엄마옷",
-    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "description": "스카프가 일체형으로 디자인되어 번거로운 스타일링 없이도 입는 순간 목선을 우아하게 감싸주며 귀티 나는 분위기를 연출해 주는 프리미엄 니트 스웨터입니다. 쌀쌀한 계절에 목 주름을 자연스럽게 커버하고 보온성을 높여주며, 촘촘하고 도톰한 니트 원단이 체형의 군살을 깔끔하게 잡아주는 시니어 고급 외출복입니다.",
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7730358305&itemId=20771054177&vendorItemId=96041529480&traceid=V0-153-cb3cfe2f9b58c170&requestid=20261025040242884066164743&token=31850C%7CGM&pt=0&slot=9",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7730358305&itemId=20771054177&vendorItemId=96041529480&traceid=V0-153-cb3cfe2f9b58c170&requestid=20261025040242884066164743&token=31850C%7CGM&pt=0&slot=9",
     "thumbnail_url": "/static/thumbnails/T00097.webp"
+  },
+  {
+    "id": 164,
+    "product_no": 98,
+    "product_code": "T00098",
+    "title": "여성 가을 겨울 핀턱 알렌 밴딩와이드팬츠 8부/롱 2기장 55~100 빅사이즈",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9099713511&itemId=26749076083&vendorItemId=93720263367&traceid=V0-153-ecbf73c23f16b701&clickBeacon=c0c52490-d0a6-11f1-98a2-c4ff9e7b37f8%7E3&requestid=20261026040324202066168306&token=31850C%7CMIXED&pt=1&slot=4",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9099713511&itemId=26749076083&vendorItemId=93720263367&traceid=V0-153-ecbf73c23f16b701&clickBeacon=c0c52490-d0a6-11f1-98a2-c4ff9e7b37f8%7E3&requestid=20261026040324202066168306&token=31850C%7CMIXED&pt=1&slot=4",
+    "thumbnail_url": "/static/thumbnails/T00098.webp"
   }
 ]
