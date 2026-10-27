@@ -978,5 +978,25 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9099713511&itemId=26749076083&vendorItemId=93720263367&traceid=V0-153-ecbf73c23f16b701&clickBeacon=c0c52490-d0a6-11f1-98a2-c4ff9e7b37f8%7E3&requestid=20261026040324202066168306&token=31850C%7CMIXED&pt=1&slot=4",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9099713511&itemId=26749076083&vendorItemId=93720263367&traceid=V0-153-ecbf73c23f16b701&clickBeacon=c0c52490-d0a6-11f1-98a2-c4ff9e7b37f8%7E3&requestid=20261026040324202066168306&token=31850C%7CMIXED&pt=1&slot=4",
     "thumbnail_url": "/static/thumbnails/T00098.webp"
+  },
+  {
+    "id": 165,
+    "product_no": 99,
+    "product_code": "T00099",
+    "title": "여성 니트 집업 가디건 후드 배색 울 가을 겨울 중년 엄마 옷",
+    "description": "감각적인 배색 후드 디자인으로 입는 순간 10년은 젊어 보이는 동안 캐주얼 무드를 선사하는 울 니트 집업 가디건입니다. 부드럽고 가벼운 울 혼방 원사로 포근한 보온성을 자랑하며, 여유 있는 실루엣이 복부와 허리 라인 군살을 자연스럽게 커버해 줍니다. 부드러운 지퍼 클로징으로 간절기부터 한겨울 실내외 아우터로 편안하고 실용적으로 연출하실 수 있습니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9157730471&itemId=26971997377&vendorItemId=96223137170&traceid=V0-153-b19bfdcf289f7ca8&requestid=20261025040242048134491026&token=31850C%7CMIXED&pt=0&slot=1",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9157730471&itemId=26971997377&vendorItemId=96223137170&traceid=V0-153-b19bfdcf289f7ca8&requestid=20261025040242048134491026&token=31850C%7CMIXED&pt=0&slot=1",
+    "thumbnail_url": "/static/thumbnails/T00099.webp"
+  },
+  {
+    "id": 166,
+    "product_no": 100,
+    "product_code": "T00100",
+    "title": "708090 여성용 린넨 안감 중장 보온 솜 코트",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9721818811&itemId=29093655246&vendorItemId=96108826042&traceid=V0-153-4371c75493b63878&requestid=20261027040442127171893626&token=31850C%7CGM&pt=0&slot=6",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9721818811&itemId=29093655246&vendorItemId=96108826042&traceid=V0-153-4371c75493b63878&requestid=20261027040442127171893626&token=31850C%7CGM&pt=0&slot=6",
+    "thumbnail_url": "/static/thumbnails/T00100.webp"
   }
 ]
