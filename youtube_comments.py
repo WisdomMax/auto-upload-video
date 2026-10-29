@@ -99,50 +99,86 @@ def check_and_reply_to_comments():
         return
         
     try:
-        # 1. 채널 비디오-상품코드 매핑 동적 빌드
-        # 채널 내 최신 20개 비디오 조회
-        search_res = youtube.search().list(
-            channelId=channel_id,
+        # 1. 채널의 전체 업로드 비디오를 플레이리스트로 빠르게 조회
+        ch_res = youtube.channels().list(id=channel_id, part="contentDetails").execute()
+        if not ch_res.get("items"):
+            logger.warning("Could not find YouTube channel details.")
+            return
+            
+        uploads_playlist_id = ch_res["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
+        
+        playlist_res = youtube.playlistItems().list(
+            playlistId=uploads_playlist_id,
             part="snippet",
-            type="video",
-            maxResults=20,
-            order="date"
+            maxResults=50
         ).execute()
         
-        video_code_map = {}  # {video_id: product_code}
-        video_ids = [item["id"]["videoId"] for item in search_res.get("items", []) if "videoId" in item.get("id", {})]
+        # DB의 모든 상품 목록 조회
+        import sqlite3
+        conn = sqlite3.connect("db.sqlite")
+        cur = conn.cursor()
+        cur.execute("SELECT product_code, product_no, title, coupang_url FROM items;")
+        db_items = cur.fetchall()
+        conn.close()
         
-        if video_ids:
-            # 비디오 상세 정보(제목/설명란) 가져오기
-            videos_res = youtube.videos().list(
-                id=",".join(video_ids),
-                part="snippet"
-            ).execute()
+        video_code_map = {}  # {video_id: (product_code, product_no, title)}
+        code_pattern = re.compile(r'([O|T|P|D|S]\d{5})')
+        
+        for p_item in playlist_res.get("items", []):
+            snippet = p_item["snippet"]
+            vid = snippet["resourceId"]["videoId"]
+            title = snippet.get("title", "")
+            desc = snippet.get("description", "")
             
-            # 정규식 패턴 (O00001, T00002 등)
-            code_pattern = re.compile(r'([O|T|P|D|S]\d{5})')
+            matched = None
             
-            for v_item in videos_res.get("items", []):
-                vid = v_item["id"]
-                title = v_item["snippet"].get("title", "")
-                desc = v_item["snippet"].get("description", "")
-                
-                # 제목이나 설명란에서 상품코드 추출
-                match = code_pattern.search(title + " " + desc)
-                if match:
-                    video_code_map[vid] = match.group(1)
+            # (1) 쿠팡 링크 내 itemId / pageKey 매칭 (가장 정확함)
+            for pcode, pno, dbtitle, curl in db_items:
+                if curl:
+                    # itemId 추출
+                    item_id_match = re.search(r'itemId=(\d+)', curl)
+                    if item_id_match and item_id_match.group(1) in desc:
+                        matched = (pcode, pno, dbtitle)
+                        break
+                    # pageKey 추출
+                    page_key_match = re.search(r'pageKey=(\d+)', curl)
+                    if page_key_match and page_key_match.group(1) in desc:
+                        matched = (pcode, pno, dbtitle)
+                        break
+            
+            # (2) 설명란/제목의 T000XX 코드 매칭
+            if not matched:
+                m = code_pattern.search(title + " " + desc)
+                if m:
+                    matched_code = m.group(1)
+                    matched = (matched_code, int(matched_code[1:]), title)
                     
-        logger.info(f"Dynamic video-to-product mapping: {video_code_map}")
+            # (3) 제목 단어 유사도 매칭
+            if not matched:
+                for pcode, pno, dbtitle, curl in db_items:
+                    words = [w for w in dbtitle.split() if len(w) >= 3]
+                    if any(w in title for w in words[:3]):
+                        matched = (pcode, pno, dbtitle)
+                        break
+                        
+            if matched:
+                video_code_map[vid] = matched
+                
+        logger.info(f"Dynamic video-to-product mapping count: {len(video_code_map)}")
         
-        # 2. 채널의 최근 댓글 목록 조회
+        # 2. 채널의 최근 댓글 목록 조회 (50개)
         comment_res = youtube.commentThreads().list(
             allThreadsRelatedToChannelId=channel_id,
             part="snippet,replies",
-            maxResults=30
+            maxResults=50
         ).execute()
         
-        # 문의 의도 감지 키워드 리스트
-        keywords = ["엄마", "정보", "링크", "얼마", "코드", "사이트", "주소", "어디", "어떻게", "구매", "가방", "신발", "바지", "원피스", "아우터"]
+        # 문의 의도 감지 키워드 리스트 (시니어 오타/변형 지원)
+        keywords = [
+            "엄마", "엉마", "음마", "어마", "엄 마",
+            "정보", "링크", "얼마", "코드", "사이트", "주소", "어디", "어떻게",
+            "구매", "가방", "신발", "바지", "원피스", "아우터", "주문", "가격", "사고십"
+        ]
         
         reply_count = 0
         
@@ -153,18 +189,19 @@ def check_and_reply_to_comments():
             text = top_comment["snippet"].get("textOriginal", "")
             video_id = top_comment["snippet"].get("videoId")
             
-            # 본인 댓글은 패스
+            # 본인 채널의 댓글은 패스
             if author_channel_id == channel_id:
                 continue
                 
-            # 비디오 매핑에 없으면 기본 상품코드 '29' 부여
-            product_code = video_code_map.get(video_id, "29")
+            # 비디오 매핑에서 상품 정보 조회
+            v_info = video_code_map.get(video_id)
+            product_code = v_info[0] if v_info else "T00050"
             
-            # 문의 의도 감지
-            has_intent = any(keyword in text for keyword in keywords)
+            # 텍스트 정규화 (공백/특수문자 제거 후 검사)
+            clean_text = re.sub(r'[\s\W_]+', '', text)
+            has_intent = any(keyword in text or keyword in clean_text for keyword in keywords)
             if not has_intent:
                 continue
-
                 
             # 이미 내가 대댓글을 달았는지 중복 검사
             already_replied = False
@@ -178,21 +215,12 @@ def check_and_reply_to_comments():
             if already_replied:
                 continue
                 
-            # DB에서 상품 코드로 정보 조회 (없을 경우 폴백)
-            item = database.get_item_by_code(product_code) or database.get_item_by_product_no(product_code)
-            if not item:
-                item = {"product_code": product_code}
-
-                
             # 유튜브 대댓글 템플릿: 한눈에 보이는 3줄 초간단 포맷 (더보기 접힘 방지)
             reply_text = (
                 f"어머님 안녕하세요! 💕 문의하신 {product_code}번 상품 안내입니다!\n"
-                f"👉 쇼핑몰: 6080.piella.shop\n"
+                f"👉 쇼핑몰: 6070.piella.shop\n"
                 f"(채널 메인 프로필 홈을 누르시면 바로 연결됩니다! ✨)"
             )
-
-
-
             
             # 대댓글 작성 API 호출
             youtube.comments().insert(
@@ -205,13 +233,14 @@ def check_and_reply_to_comments():
                 }
             ).execute()
             
-            logger.info(f"Successfully replied to comment {comment_id} on video {video_id} with product {product_code}")
+            author_name = top_comment['snippet'].get('authorDisplayName')
+            logger.info(f"Successfully replied to comment {comment_id} by {author_name} on video {video_id} ({product_code})")
             
             # 에이전트 로그 작성
             database.create_agent_log(
                 task_type="comment_monitor",
                 status="success",
-                message=f"💬 [유튜브 대댓글 자동 작성] @{top_comment['snippet'].get('authorDisplayName')}: \"{text[:20]}\" -> 대댓글 작성 완료 ({product_code})",
+                message=f"💬 [유튜브 대댓글 자동 작성] @{author_name}: \"{text[:20]}\" -> 대댓글 작성 완료 ({product_code})",
                 details=json.dumps({
                     "comment_id": comment_id,
                     "video_id": video_id,
@@ -225,3 +254,4 @@ def check_and_reply_to_comments():
         
     except Exception as e:
         logger.error(f"Error checking and replying to YouTube comments: {e}", exc_info=True)
+

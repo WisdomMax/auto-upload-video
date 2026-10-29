@@ -105,26 +105,33 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to start AI Agent Engine: {e}")
 
-    try:
-        from scratch.ig_auto_responder_daemon import daemon_loop
-        asyncio.create_task(daemon_loop())
-        logger.info("Instagram Auto-Responder Daemon started automatically with npm run dev.")
-    except Exception as e:
-        logger.error(f"Failed to start IG Auto-Responder Daemon: {e}")
+    # Aside 브라우저 데몬으로 통합 완료 (구형 Playwright 크로미움 중복 구동 방지)
+    # try:
+    #     from scratch.ig_auto_responder_daemon import daemon_loop
+    #     asyncio.create_task(daemon_loop())
+    # except Exception as e:
+    #     logger.error(f"Failed to start IG Auto-Responder Daemon: {e}")
 
     try:
-        from scratch.yt_auto_heart_daemon import run_yt_heart_and_like
-        asyncio.create_task(run_yt_heart_and_like())
-        logger.info("YouTube Auto Heart & Like Daemon started automatically with npm run dev.")
+        from scratch.yt_auto_responder_daemon import yt_daemon_loop
+        asyncio.create_task(yt_daemon_loop())
+        logger.info("YouTube Auto-Responder Daemon started automatically with npm run dev.")
     except Exception as e:
-        logger.error(f"Failed to start YouTube Auto Heart & Like Daemon: {e}")
+        logger.error(f"Failed to start YouTube Auto-Responder Daemon: {e}")
 
     try:
-        from scratch.tiktok_auto_responder_daemon import tiktok_daemon_loop
-        asyncio.create_task(tiktok_daemon_loop())
-        logger.info("TikTok Auto-Responder Daemon started automatically with npm run dev.")
+        from scratch.tiktok_aside_daemon import tiktok_aside_daemon_loop
+        asyncio.create_task(tiktok_aside_daemon_loop())
+        logger.info("TikTok (Aside Browser) Auto-Responder Daemon started automatically with npm run dev.")
     except Exception as e:
-        logger.error(f"Failed to start TikTok Auto-Responder Daemon: {e}")
+        logger.error(f"Failed to start TikTok Aside Auto-Responder Daemon: {e}")
+
+    try:
+        from scratch.instagram_aside_daemon import instagram_aside_daemon_loop
+        asyncio.create_task(instagram_aside_daemon_loop())
+        logger.info("Instagram (Aside Browser) Auto-Responder Daemon started automatically with npm run dev.")
+    except Exception as e:
+        logger.error(f"Failed to start Instagram Aside Auto-Responder Daemon: {e}")
 
 
 from fastapi import Response
@@ -488,16 +495,30 @@ def distribute_video_task(item_id: int, platforms: List[str]):
             except Exception:
                 pass
 
-        # 플랫폼별 텍스트 및 제목 가공
-        text = item['sns_caption']
-        title = item['title']
+        # 플랫폼별 텍스트 및 제목 가공 (제품 번호 필수 명시)
+        p_code = item.get('product_code') or f"T{item.get('product_no', 0):05d}"
+        p_no = item.get('product_no') or int(re.sub(r'\D', '', p_code) or 0)
+        
+        base_caption = item.get('sns_caption', '') or ''
+        title = item.get('title', '')
+        
+        # 캡션 상단에 제품 번호 헤더가 이미 없으면 추가
+        header_tag = f"📌 [제품 번호: {p_code} / {p_no}번 상품]\n\n"
+        caption_with_code = base_caption if p_code in base_caption or f"{p_no}번" in base_caption else header_tag + base_caption
+
         if platform == 'youtube':
-            text = item['youtube_description']
-            title = item['youtube_title'] or item['title']
+            yt_desc = item.get('youtube_description', '') or ''
+            if p_code not in yt_desc and f"{p_no}번" not in yt_desc:
+                text = f"📌 제품 번호: {p_code} ({p_no}번 옷)\n\n" + yt_desc
+            else:
+                text = yt_desc
+            title = item.get('youtube_title') or title
         elif platform == 'tiktok':
-            text = item['sns_caption'] + "\n\n(채널 프로필 홈에 연결된 링크를 클릭하시면 모든 제품의 구매 링크를 편리하게 확인하실 수 있습니다)"
+            text = caption_with_code + f"\n\n👉 쇼핑몰: 6070.piella.shop\n(채널 프로필 홈 링크에서 {p_code}번을 바로 확인하실 수 있습니다! ✨)"
         elif platform == 'instagram':
-            text = item['sns_caption'] + "\n\n(전체 제품 링크는 프로필 링크: 6070.piella.shop 에서 확인하실 수 있습니다)"
+            text = caption_with_code + f"\n\n👉 쇼핑몰: 6070.piella.shop\n(프로필 링크에서 {p_code}번 상품을 편리하게 확인해 보세요! 💌)"
+        else:
+            text = caption_with_code
 
         # 배포 요청
         try:
@@ -825,6 +846,21 @@ async def save_recommend_keywords(payload: dict):
     kws_str = payload.get("keywords", "").strip()
     database.set_setting("coupang_recommend_keywords", kws_str)
     return {"status": "success"}
+
+@app.get("/api/coupang/seasonal-info")
+async def get_seasonal_info():
+    import recommendation_agent
+    month = recommendation_agent.get_current_kst_month()
+    intel = recommendation_agent.get_seasonal_intelligence(month)
+    return {"status": "success", "month": month, "intelligence": intel}
+
+@app.post("/api/coupang/recommendations/trigger")
+async def trigger_coupang_recommendation(payload: dict = None):
+    import recommendation_agent
+    limit = (payload or {}).get("limit", 2)
+    # 비동기 백그라운드 태스크로 구동
+    asyncio.create_task(recommendation_agent.run_recommendation_batch(max_items_to_add=limit))
+    return {"status": "success", "message": f"AI 4단계 딥 퀄리티 추천 발굴 프로세스가 백그라운드에서 가동되었습니다."}
 
 @app.delete("/api/items/{item_id}")
 async def delete_single_item(item_id: int):
@@ -1621,6 +1657,22 @@ async def trigger_scan_manually(background_tasks: BackgroundTasks):
         return {"status": "success", "message": "비디오 스캔 즉시 실행이 예약되었습니다."}
     except Exception as e:
         logger.error(f"Manual scan trigger error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/agent/cleanup-videos")
+async def trigger_cleanup_manually(days: int = 30):
+    try:
+        from agent_engine import cleanup_processed_videos
+        deleted_files = cleanup_processed_videos(days=days)
+        return {
+            "status": "success", 
+            "message": f"{days}일 경과 영상 정리 완료", 
+            "deleted_count": len(deleted_files),
+            "deleted_files": deleted_files
+        }
+    except Exception as e:
+        logger.error(f"Manual cleanup trigger error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

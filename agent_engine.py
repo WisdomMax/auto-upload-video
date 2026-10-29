@@ -25,6 +25,134 @@ def calculate_file_hash(file_path):
         logger.error(f"Error calculating hash for {file_path}: {e}")
         return None
 
+def cleanup_processed_videos(days: int = 30) -> list:
+    """
+    input/processed 폴더 내 보관 기간이 지정된 일수(기본 30일) 이상 경과한 영상 파일들을
+    검사하여 안전하게 정리(삭제)합니다.
+    
+    안전 조건:
+    1. 파일의 수정일자(mtime)가 days(30일) 이상 경과
+    2. DB 매핑 검사:
+       - 해당 파일명에 연계된 상품이 존재하는 경우, 배포 상태가 'success' 또는 'completed'이거나
+         이미 uploads/originals 디렉토리에 원본 복사본이 보존되어 있는 경우 안전하게 삭제.
+       - 상품이 매핑되지 않은 임의 파일/중복 격리 파일인 경우에도 30일 경과 시 삭제.
+    3. 삭제 시 database의 processed_input_files 캐시 목록에서도 제거하여 동기화.
+    """
+    import time
+    import re
+    
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    input_dir = os.path.join(base_dir, "input")
+    processed_dir = os.path.join(input_dir, "processed")
+    
+    if not os.path.exists(processed_dir):
+        return []
+        
+    now_sec = time.time()
+    limit_sec = days * 24 * 3600
+    
+    # DB settings에서 processed_input_files 로드
+    processed_files_str = database.get_setting("processed_input_files", "[]")
+    try:
+        processed_files = json.loads(processed_files_str)
+    except Exception:
+        processed_files = []
+        
+    updated_processed_files = processed_files.copy()
+    deleted_files = []
+    
+    try:
+        # 비디오 확장자 대상 선별 (.mp4, .mov, .avi, .mkv, .webm)
+        target_exts = ('.mp4', '.mov', '.avi', '.mkv', '.webm')
+        all_files = [
+            f for f in os.listdir(processed_dir) 
+            if os.path.isfile(os.path.join(processed_dir, f)) and f.lower().endswith(target_exts)
+        ]
+        
+        for file_name in all_files:
+            file_path = os.path.join(processed_dir, file_name)
+            try:
+                mtime = os.path.getmtime(file_path)
+            except OSError:
+                continue
+                
+            age_sec = now_sec - mtime
+            if age_sec < limit_sec:
+                continue
+                
+            age_days = age_sec / 86400
+            
+            # 타임스탬프 접미사 등을 정규식으로 걸러서 원본 파일명 매칭 (예: 1_1718000000.mp4 -> 1.mp4)
+            name_part, ext_part = os.path.splitext(file_name)
+            orig_name = re.sub(r'_\d+$', '', name_part) + ext_part
+            
+            # DB 연계 조회: 이 원본 파일명과 관련된 상품 정보의 업로드 완료 상태 점검
+            # LIKE '%1.mp4' 오탐 방지를 위해 '%_{orig_name}' 및 '%/{orig_name}' 패턴 사용
+            conn = database.get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT original_video_path, publish_status FROM items WHERE original_video_path LIKE ? OR original_video_path LIKE ?", 
+                (f"%_{orig_name}", f"%/{orig_name}")
+            )
+            rows = cursor.fetchall()
+            conn.close()
+            
+            # 파이썬 정밀 매칭: basename이 orig_name이거나 prod_TXXXXX_{orig_name} 형태인지 확인
+            matched_items = []
+            for row in rows:
+                p = row['original_video_path'] or ""
+                bname = os.path.basename(p)
+                if bname == orig_name or bname.endswith(f"_{orig_name}"):
+                    matched_items.append(row)
+                    
+            should_delete = True
+            if matched_items:
+                for row in matched_items:
+                    status = row['publish_status']
+                    # 배포 완료 상태 ('success' 또는 'completed')인 경우 안전
+                    if status in ('success', 'completed'):
+                        continue
+                        
+                    # 아직 pending 상태인 경우, uploads/originals에 원본 복사본이 보존되어 있는지 체크
+                    p = row['original_video_path'] or ""
+                    if p and os.path.exists(p):
+                        continue
+                    else:
+                        # 원본 복사본도 없고 배포도 안 된 상태라면 삭제 유예
+                        should_delete = False
+                        break
+                        
+            if not should_delete:
+                logger.info(f"⏳ Postponed deletion of {file_name} ({age_days:.1f} days old): associated item upload is pending and no backup found.")
+                continue
+                
+            try:
+                os.remove(file_path)
+                deleted_files.append(file_name)
+                logger.info(f"🗑️ [Processed 정리] {days}일 경과 영상 자동 삭제 완료: {file_name} (보관 기간: {age_days:.1f}일)")
+                
+                # DB 캐시 목록에서 제거
+                if orig_name in updated_processed_files:
+                    updated_processed_files.remove(orig_name)
+                if file_name in updated_processed_files:
+                    updated_processed_files.remove(file_name)
+            except Exception as e_del:
+                logger.error(f"Failed to delete {file_path}: {e_del}")
+                
+        if updated_processed_files != processed_files:
+            database.set_setting("processed_input_files", json.dumps(updated_processed_files))
+            
+        if deleted_files:
+            database.create_agent_log(
+                task_type="system",
+                status="success",
+                message=f"🧹 [오래된 영상 자동 정리] {days}일 이상 경과한 input/processed 영상 {len(deleted_files)}건 삭제 완료 ({', '.join(deleted_files[:5])}{' 등' if len(deleted_files) > 5 else ''})"
+            )
+    except Exception as cleanup_err:
+        logger.error(f"Failed to cleanup older input files: {cleanup_err}", exc_info=True)
+        
+    return deleted_files
+
 class AIAgentEngine:
     def __init__(self):
         # 10분(600초) 주기로 깨어나서 시간 조건을 매칭
@@ -54,6 +182,7 @@ class AIAgentEngine:
         last_manychat_brief_hour = None # 예: "2026-06-08 09"
         last_publish_date = None        # 예: "2026-06-08"
         last_recommend_date = None      # 예: "2026-06-08"
+        last_cleanup_date = None        # 예: "2026-06-08" (30일 경과 영상 정리)
         
         # [최초 기동 대응] 추천 대기 상품 목록이 비어있다면 즉시 최초 1회 수집 진행
         try:
@@ -127,6 +256,13 @@ class AIAgentEngine:
                             logger.error(f"Failed to run recommendation batch: {e_rec}")
                         last_recommend_date = today_str
 
+                # 6. input/processed 오래된 영상 정기 정리: 매일 오전 3시 (03:00 KST)에 1회 구동 (30일 경과 영상 삭제)
+                if hour == 3:
+                    if last_cleanup_date != today_str:
+                        logger.info("[오전 3시 오래된 영상 정기 정리] 30일 이상 경과한 input/processed 영상 청소 실행...")
+                        cleanup_processed_videos(days=30)
+                        last_cleanup_date = today_str
+
             except Exception as e:
                 logger.error(f"Error in Agent Scheduler loop: {e}", exc_info=True)
                 
@@ -144,6 +280,27 @@ class AIAgentEngine:
             os.makedirs(input_dir, exist_ok=True)
             
         os.makedirs(processed_dir, exist_ok=True)
+
+        # 0. 외부 신상 동영상 폴더 (/Users/wisdom/Downloads/Aside/momdad) 자동 스캔 및 인입
+        external_input_dir = "/Users/wisdom/Downloads/Aside/momdad"
+        if os.path.exists(external_input_dir):
+            try:
+                processed_files_check = json.loads(database.get_setting("processed_input_files", "[]"))
+            except Exception:
+                processed_files_check = []
+            try:
+                ext_files = [f for f in os.listdir(external_input_dir) if f.lower().endswith(('.mp4', '.mov', '.avi')) and not f.startswith('.')]
+                for ef in ext_files:
+                    src_fpath = os.path.join(external_input_dir, ef)
+                    dst_fpath = os.path.join(input_dir, ef)
+                    # input 또는 processed 에 이미 없는 신규 파일이면 복사
+                    if ef not in processed_files_check and not os.path.exists(dst_fpath) and not os.path.exists(os.path.join(processed_dir, ef)):
+                        shutil.copy2(src_fpath, dst_fpath)
+                        logger.info(f"📥 [신상 동영상 인입] 외부 폴더에서 신규 영상 발견: {ef} -> input/")
+            except PermissionError as pe:
+                logger.warning(f"⚠️ macOS 권한 제한으로 외부 폴더({external_input_dir}) 접근 불가: {pe}")
+            except Exception as e_ext:
+                logger.error(f"Error checking external input dir ({external_input_dir}): {e_ext}")
 
         # 1. DB settings에서 이미 처리 완료된 파일명 캐시 로드
         processed_files_str = database.get_setting("processed_input_files", "[]")
@@ -323,53 +480,9 @@ class AIAgentEngine:
                         message=f"❌ [비디오 처리 실패] 파일 {file_name} 처리 중 오류 발생: {str(e)}"
                     )
 
-        # 3. 보관 기간이 30일 이상 경과한 영상 중, 업로드 배포가 완료된 건들만 안전하게 순차 정리
+        # 3. 보관 기간이 30일 이상 경과한 영상 중, 업로드 배포가 완료되었거나 백업이 확보된 건 안전 정리
         try:
-            now_sec = time.time()
-            limit_sec = 30 * 24 * 3600  # 30일 초 단위
-            updated_processed_files = processed_files.copy()
-            
-            if os.path.exists(processed_dir):
-                processed_all_files = [f for f in os.listdir(processed_dir) if os.path.isfile(os.path.join(processed_dir, f))]
-                for file_name in processed_all_files:
-                    file_path = os.path.join(processed_dir, file_name)
-                    mtime = os.path.getmtime(file_path)
-                    age_sec = now_sec - mtime
-                    if age_sec >= limit_sec:
-                        # 타임스탬프 접미사 등을 정규식으로 걸러서 원본 파일명 매칭
-                        name_part, ext_part = os.path.splitext(file_name)
-                        orig_name = re.sub(r'_\d+$', '', name_part) + ext_part
-                        
-                        # DB 연계 조회: 이 원본 파일명과 관련된 모든 상품 정보의 업로드 완료 상태 점검
-                        conn = database.get_db_connection()
-                        cursor = conn.cursor()
-                        cursor.execute("SELECT publish_status FROM items WHERE original_video_path LIKE ?", (f"%{orig_name}",))
-                        related_items = cursor.fetchall()
-                        conn.close()
-                        
-                        should_delete = True
-                        if related_items:
-                            for row in related_items:
-                                status = row['publish_status']
-                                # 하나라도 업로드 완료(success)가 아니면 삭제 유예
-                                if status != 'success':
-                                    should_delete = False
-                                    break
-                                    
-                        if not should_delete:
-                            logger.info(f"⏳ Postponed deletion of {file_name}: associated item upload is not yet completed.")
-                            continue
-                            
-                        os.remove(file_path)
-                        logger.info(f"🗑️ Removed processed input file older than 7 days (Upload complete): {file_name}")
-                        
-                        if orig_name in updated_processed_files:
-                            updated_processed_files.remove(orig_name)
-                        elif file_name in updated_processed_files:
-                            updated_processed_files.remove(file_name)
-                            
-            if updated_processed_files != processed_files:
-                database.set_setting("processed_input_files", json.dumps(updated_processed_files))
+            cleanup_processed_videos(days=30)
         except Exception as cleanup_err:
             logger.error(f"Failed to cleanup older input files: {cleanup_err}")
 
@@ -503,15 +616,29 @@ class AIAgentEngine:
                 failed_count += 1
                 continue
 
-            text = item.get('sns_caption', '')
+            # 플랫폼별 텍스트 및 제목 가공 (제품 번호 필수 명시)
+            p_code = item.get('product_code') or f"T{item.get('product_no', 0):05d}"
+            p_no = item.get('product_no') or int(re.sub(r'\D', '', p_code) or 0)
+            
+            base_caption = item.get('sns_caption', '') or ''
             title = item.get('title', '')
+            
+            header_tag = f"📌 [제품 번호: {p_code} / {p_no}번 상품]\n\n"
+            caption_with_code = base_caption if p_code in base_caption or f"{p_no}번" in base_caption else header_tag + base_caption
+
             if platform == 'youtube':
-                text = item.get('youtube_description', '')
-                title = item.get('youtube_title') or item.get('title', '')
+                yt_desc = item.get('youtube_description', '') or ''
+                if p_code not in yt_desc and f"{p_no}번" not in yt_desc:
+                    text = f"📌 제품 번호: {p_code} ({p_no}번 옷)\n\n" + yt_desc
+                else:
+                    text = yt_desc
+                title = item.get('youtube_title') or title
             elif platform == 'tiktok':
-                text = item.get('sns_caption', '') + "\n\n(채널 프로필 홈에 연결된 링크를 클릭하시면 모든 제품의 구매 링크를 편리하게 확인하실 수 있습니다)"
+                text = caption_with_code + f"\n\n👉 쇼핑몰: 6070.piella.shop\n(채널 프로필 홈 링크에서 {p_code}번을 바로 확인하실 수 있습니다! ✨)"
             elif platform == 'instagram':
-                text = item.get('sns_caption', '') + "\n\n(전체 제품 링크는 프로필 링크: 6070.piella.shop 에서 확인하실 수 있습니다)"
+                text = caption_with_code + f"\n\n👉 쇼핑몰: 6070.piella.shop\n(프로필 링크에서 {p_code}번 상품을 편리하게 확인해 보세요! 💌)"
+            else:
+                text = caption_with_code
 
             try:
                 from main import publish_post_via_buffer
