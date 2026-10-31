@@ -1018,5 +1018,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8327987093&itemId=24042411686&vendorItemId=91062630340&traceid=V0-153-59bb57ddd876bb33&requestid=20261029040350078075732444&token=31850C%7CGM&pt=0&slot=7",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=8327987093&itemId=24042411686&vendorItemId=91062630340&traceid=V0-153-59bb57ddd876bb33&requestid=20261029040350078075732444&token=31850C%7CGM&pt=0&slot=7",
     "thumbnail_url": "/static/thumbnails/T00102.webp"
+  },
+  {
+    "id": 169,
+    "product_no": 103,
+    "product_code": "T00103",
+    "title": "우리할미 여성 중년 할머니 엄마옷 카디건 진주 꽃장식 라운드 니트 가디건",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9798137780&itemId=29338774439&vendorItemId=96252309154&traceid=V0-153-eaaff116245a3f57&requestid=20261031040459879074449085&token=31850C%7CMIXED&pt=0&slot=6",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9798137780&itemId=29338774439&vendorItemId=96252309154&traceid=V0-153-eaaff116245a3f57&requestid=20261031040459879074449085&token=31850C%7CMIXED&pt=0&slot=6",
+    "thumbnail_url": "/static/thumbnails/T00103.webp"
   }
 ]
