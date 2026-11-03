@@ -1044,9 +1044,19 @@
     "product_no": 105,
     "product_code": "T00105",
     "title": "페이퍼먼츠 여성용 미르에 뒷밴딩 와이드 8부 가죽 팬츠 15643",
-    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "description": "허리 뒷밴딩으로 하루 종일 편안하고 와이드 핏과 8부 기장으로 뱃살과 다리 라인을 완벽하게 커버해주는 고급스러운 중년 시니어 가죽 팬츠",
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9678721922&itemId=28941490706&vendorItemId=95872376693&traceid=V0-153-ee8dd093d4179caf&requestid=20261103040032751042221305&token=31850C%7CGM&pt=0&slot=5",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9678721922&itemId=28941490706&vendorItemId=95872376693&traceid=V0-153-ee8dd093d4179caf&requestid=20261103040032751042221305&token=31850C%7CGM&pt=0&slot=5",
     "thumbnail_url": "/static/thumbnails/T00105.webp"
+  },
+  {
+    "id": 172,
+    "product_no": 106,
+    "product_code": "T00106",
+    "title": "형제상회 할머니바지 겨울 기모 고무줄 보카시바지 할머니옷 국산 0007W03",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7642625519&itemId=20312745231&vendorItemId=91170321956&traceid=V0-153-fe62409ab7993734&requestid=20261102040906424181697108&token=31850C%7CGM&pt=0&slot=3",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7642625519&itemId=20312745231&vendorItemId=91170321956&traceid=V0-153-fe62409ab7993734&requestid=20261102040906424181697108&token=31850C%7CGM&pt=0&slot=3",
+    "thumbnail_url": "/static/thumbnails/T00106.webp"
   }
 ]
