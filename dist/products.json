@@ -1054,9 +1054,19 @@
     "product_no": 106,
     "product_code": "T00106",
     "title": "형제상회 할머니바지 겨울 기모 고무줄 보카시바지 할머니옷 국산 0007W03",
-    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "description": "하루 종일 입어도 배 조임 없이 편안한 통고무줄 밴딩과 포근한 겨울 기모 안감의 국산 보카시 바지입니다. 밋밋하지 않고 고급스러운 멜란지 텍스처로 외출룩과 일상 마실룩 모두에 세련되게 어울리며, 탄탄한 국산 마감으로 무릎 늘어짐 걱정 없이 따뜻하고 단정하게 착용하실 수 있습니다.",
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7642625519&itemId=20312745231&vendorItemId=91170321956&traceid=V0-153-fe62409ab7993734&requestid=20261102040906424181697108&token=31850C%7CGM&pt=0&slot=3",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7642625519&itemId=20312745231&vendorItemId=91170321956&traceid=V0-153-fe62409ab7993734&requestid=20261102040906424181697108&token=31850C%7CGM&pt=0&slot=3",
     "thumbnail_url": "/static/thumbnails/T00106.webp"
+  },
+  {
+    "id": 173,
+    "product_no": 107,
+    "product_code": "T00107",
+    "title": "도톰한 알파카 캐시울 단추 나그랑 라운드 가디건",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9784315423&itemId=29293507884&vendorItemId=96209526339&traceid=V0-153-33235aef93be0117&requestid=20261104040139406265563775&token=31850C%7CMIXED&pt=0&slot=5",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9784315423&itemId=29293507884&vendorItemId=96209526339&traceid=V0-153-33235aef93be0117&requestid=20261104040139406265563775&token=31850C%7CMIXED&pt=0&slot=5",
+    "thumbnail_url": "/static/thumbnails/T00107.webp"
   }
 ]
