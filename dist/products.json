@@ -1064,9 +1064,19 @@
     "product_no": 107,
     "product_code": "T00107",
     "title": "도톰한 알파카 캐시울 단추 나그랑 라운드 가디건",
-    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "description": "도톰하고 부드러운 알파카 캐시울 혼방으로 찬바람 부는 날씨에도 포근함을 선사하는 라운드넥 니트 가디건입니다. 어깨선이 둥글고 자연스럽게 떨어지는 나그랑 소매 디자인으로 상체 부해 보임과 팔뚝살 군살을 매끄럽게 커버해 주며, 단정한 라운드넥과 고급스러운 단추 디테일로 모임룩부터 데일리 마실룩까지 우아하고 귀티 나게 연출하실 수 있습니다.",
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9784315423&itemId=29293507884&vendorItemId=96209526339&traceid=V0-153-33235aef93be0117&requestid=20261104040139406265563775&token=31850C%7CMIXED&pt=0&slot=5",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9784315423&itemId=29293507884&vendorItemId=96209526339&traceid=V0-153-33235aef93be0117&requestid=20261104040139406265563775&token=31850C%7CMIXED&pt=0&slot=5",
     "thumbnail_url": "/static/thumbnails/T00107.webp"
+  },
+  {
+    "id": 174,
+    "product_no": 108,
+    "product_code": "T00108",
+    "title": "미녀언니 1+1 중년여성 봄가을 하이웨이스트 밴딩 스판 일자바지 엄마옷 정장바지 데일리룩 HZHFC02XW",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9707386261&itemId=29042460685&vendorItemId=95969551124&traceid=V0-153-367157248179d407&requestid=20261105040248970284365106&token=31850C%7CGM&pt=0&slot=9",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9707386261&itemId=29042460685&vendorItemId=95969551124&traceid=V0-153-367157248179d407&requestid=20261105040248970284365106&token=31850C%7CGM&pt=0&slot=9",
+    "thumbnail_url": "/static/thumbnails/T00108.webp"
   }
 ]
