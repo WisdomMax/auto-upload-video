@@ -1078,5 +1078,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9707386261&itemId=29042460685&vendorItemId=95969551124&traceid=V0-153-367157248179d407&requestid=20261105040248970284365106&token=31850C%7CGM&pt=0&slot=9",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9707386261&itemId=29042460685&vendorItemId=95969551124&traceid=V0-153-367157248179d407&requestid=20261105040248970284365106&token=31850C%7CGM&pt=0&slot=9",
     "thumbnail_url": "/static/thumbnails/T00108.webp"
+  },
+  {
+    "id": 175,
+    "product_no": 109,
+    "product_code": "T00109",
+    "title": "국민할매 엄마옷 도톰 융안감 스판 밑단꽃자수 몸빼바지 겨울바지 요양원옷",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9153069995&itemId=26954216301&vendorItemId=93923271815&traceid=V0-153-f3069d0b5c481888&clickBeacon=af226ec0-d94b-11f1-8505-d233684eead1%7E3&requestid=20261106040410832275955767&token=31850C%7CMIXED&pt=1&slot=1",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9153069995&itemId=26954216301&vendorItemId=93923271815&traceid=V0-153-f3069d0b5c481888&clickBeacon=af226ec0-d94b-11f1-8505-d233684eead1%7E3&requestid=20261106040410832275955767&token=31850C%7CMIXED&pt=1&slot=1",
+    "thumbnail_url": "/static/thumbnails/T00109.webp"
   }
 ]
