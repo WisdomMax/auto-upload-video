@@ -1098,5 +1098,25 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9150828084&itemId=23742814865&vendorItemId=70964612101&traceid=V0-153-f97adfce32a80899&pt=0&requestid=20261107040553986054023184&slot=2",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9150828084&itemId=23742814865&vendorItemId=70964612101&traceid=V0-153-f97adfce32a80899&pt=0&requestid=20261107040553986054023184&slot=2",
     "thumbnail_url": "/static/thumbnails/T00110.webp"
+  },
+  {
+    "id": 177,
+    "product_no": 111,
+    "product_code": "T00111",
+    "title": "AHC 리뉴에이지 토탈 4종 + 아이크림 20ml 기프트 세트",
+    "description": "토너, 에멀전, 앰플, 크림 4종과 베스트셀러 아이크림(20ml)으로 구성된 고영양 안티에이징 기초 세트. 피부 속부터 차오르는 수분과 탄력으로 깊어지는 주름을 케어하고 윤기 있는 동안 피부를 가꿔줍니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=6460642556&itemId=14059332783&vendorItemId=70557700633&traceid=V0-153-50114576a730d9e1&pt=0&requestid=20261108040652967133062184&slot=1",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=6460642556&itemId=14059332783&vendorItemId=70557700633&traceid=V0-153-50114576a730d9e1&pt=0&requestid=20261108040652967133062184&slot=1",
+    "thumbnail_url": "/static/thumbnails/T00111.webp"
+  },
+  {
+    "id": 178,
+    "product_no": 112,
+    "product_code": "T00112",
+    "title": "스케쳐스 남성용 뮤레트 방한화 204636",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9673782019&itemId=28924818698&vendorItemId=95856357535&traceid=V0-153-a33c93b3d6206192&pt=0&requestid=20261109040717710200086273&slot=9",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9673782019&itemId=28924818698&vendorItemId=95856357535&traceid=V0-153-a33c93b3d6206192&pt=0&requestid=20261109040717710200086273&slot=9",
+    "thumbnail_url": "/static/thumbnails/T00112.webp"
   }
 ]
