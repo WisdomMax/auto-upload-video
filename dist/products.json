@@ -1114,9 +1114,19 @@
     "product_no": 112,
     "product_code": "T00112",
     "title": "스케쳐스 남성용 뮤레트 방한화 204636",
-    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "description": "도톰한 패딩 퀼팅으로 찬바람을 완벽히 차단하고 발끝까지 훈훈함을 선사하는 스케쳐스 뮤레트 방한화입니다. 손댈 필요 없이 발만 쏙 넣으면 편안하게 신을 수 있는 뮬 슬립온 스타일로 허리와 무릎에 무리가 가지 않으며, 스케쳐스 특유의 푹신하고 유연한 쿠셔닝 아웃솔이 발바닥 충격을 흡수해 하루 종일 걸어도 피로하지 않습니다. 세련된 블랙 패딩 디자인으로 슬랙스, 조거팬츠, 데님 어디에나 깔끔하고 모던하게 매치되는 가을·겨울 필수 방한 슈즈입니다.",
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9673782019&itemId=28924818698&vendorItemId=95856357535&traceid=V0-153-a33c93b3d6206192&pt=0&requestid=20261109040717710200086273&slot=9",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9673782019&itemId=28924818698&vendorItemId=95856357535&traceid=V0-153-a33c93b3d6206192&pt=0&requestid=20261109040717710200086273&slot=9",
     "thumbnail_url": "/static/thumbnails/T00112.webp"
+  },
+  {
+    "id": 179,
+    "product_no": 113,
+    "product_code": "T00113",
+    "title": "에쥬아 중년여성 기모 밴딩 슬랙스 겨울 와이드팬츠",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9742228313&itemId=29160599085&vendorItemId=96082795893&traceid=V0-153-e152cfd673fc4a8a&requestid=20261110040756822116905129&token=31850C%7CGM&pt=0&slot=4",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9742228313&itemId=29160599085&vendorItemId=96082795893&traceid=V0-153-e152cfd673fc4a8a&requestid=20261110040756822116905129&token=31850C%7CGM&pt=0&slot=4",
+    "thumbnail_url": "/static/thumbnails/T00113.webp"
   }
 ]
