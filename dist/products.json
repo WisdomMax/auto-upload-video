@@ -1158,5 +1158,15 @@
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9088636261&itemId=26706743171&vendorItemId=87476991162&traceid=V0-153-411f69bfa8c76257&requestid=20261112041001813321876857&token=31850C%7CGM&pt=0&slot=8",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9088636261&itemId=26706743171&vendorItemId=87476991162&traceid=V0-153-411f69bfa8c76257&requestid=20261112041001813321876857&token=31850C%7CGM&pt=0&slot=8",
     "thumbnail_url": "/static/thumbnails/T00116.webp"
+  },
+  {
+    "id": 183,
+    "product_no": 117,
+    "product_code": "T00117",
+    "title": "에리페 여성용 소프트 울 베이직 니트 가디건",
+    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7699069318&itemId=20608426401&vendorItemId=87682979724&traceid=V0-153-5fa97ccd1d4ddc8e&clickBeacon=c52d4bf0-df94-11f1-99b6-0c3f1a83162f%7E3&requestid=20261114040228079202772193&token=31850C%7CMIXED&pt=1&slot=2",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7699069318&itemId=20608426401&vendorItemId=87682979724&traceid=V0-153-5fa97ccd1d4ddc8e&clickBeacon=c52d4bf0-df94-11f1-99b6-0c3f1a83162f%7E3&requestid=20261114040228079202772193&token=31850C%7CMIXED&pt=1&slot=2",
+    "thumbnail_url": "/static/thumbnails/T00117.webp"
   }
 ]
