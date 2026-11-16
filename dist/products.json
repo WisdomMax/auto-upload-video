@@ -1164,9 +1164,19 @@
     "product_no": 117,
     "product_code": "T00117",
     "title": "에리페 여성용 소프트 울 베이직 니트 가디건",
-    "description": "에이전트가 추천한 고품질 신상품 정보입니다.",
+    "description": "부드러운 소프트 울 원사로 제작되어 까슬거림 없이 포근하며, 어깨와 팔뚝 군살을 슬림하게 커버해 주는 단정한 베이직 니트 가디건입니다.",
     "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7699069318&itemId=20608426401&vendorItemId=87682979724&traceid=V0-153-5fa97ccd1d4ddc8e&clickBeacon=c52d4bf0-df94-11f1-99b6-0c3f1a83162f%7E3&requestid=20261114040228079202772193&token=31850C%7CMIXED&pt=1&slot=2",
     "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=7699069318&itemId=20608426401&vendorItemId=87682979724&traceid=V0-153-5fa97ccd1d4ddc8e&clickBeacon=c52d4bf0-df94-11f1-99b6-0c3f1a83162f%7E3&requestid=20261114040228079202772193&token=31850C%7CMIXED&pt=1&slot=2",
     "thumbnail_url": "/static/thumbnails/T00117.webp"
+  },
+  {
+    "id": 184,
+    "product_no": 118,
+    "product_code": "T00118",
+    "title": "드라엘 크롭 가디건 하트단추",
+    "description": "부담스럽지 않은 세미 크롭 기장감으로 하이웨이스트 슬랙스나 스커트와 함께 매치했을 때 허리선이 쏙 올라가 다리가 5cm는 더 길어 보이는 비율 보정 가디건입니다. 은은하고 사랑스러운 하트 단추 디테일이 밋밋한 룩에 화사한 포인트를 더해주어 입는 순간 10년은 더 젊고 생기 있어 보이는 동안 무드를 연출합니다. 단추를 모두 잠가 깔끔한 니트 탑 단독으로 입거나, 원피스 및 블라우스 위에 가볍게 툭 걸쳐 모임룩부터 일상 나들이룩까지 러블리하고 단아한 귀티를 완성해 줍니다.",
+    "coupang_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9210682736&itemId=27208322332&vendorItemId=94175648759&traceid=V0-153-1080a223a78fafaa&clickBeacon=19297110-e05e-11f1-9d3b-a70685522efa%7E3&requestid=20261115040337830038328274&token=31850C%7CMIXED&pt=1&slot=4",
+    "short_url": "https://link.coupang.com/re/AFFSDP?lptag=AF1047126&pageKey=9210682736&itemId=27208322332&vendorItemId=94175648759&traceid=V0-153-1080a223a78fafaa&clickBeacon=19297110-e05e-11f1-9d3b-a70685522efa%7E3&requestid=20261115040337830038328274&token=31850C%7CMIXED&pt=1&slot=4",
+    "thumbnail_url": "/static/thumbnails/T00118.webp"
   }
 ]
